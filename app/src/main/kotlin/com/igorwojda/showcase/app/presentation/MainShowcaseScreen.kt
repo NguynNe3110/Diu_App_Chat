@@ -22,6 +22,7 @@ import com.igorwojda.showcase.feature.settings.presentation.screen.settings.Sett
 
 @Composable
 fun MainShowcaseScreen(modifier: Modifier = Modifier) {
+    // tạo và lưu trữ trạng thái của NavController
     val navController = rememberNavController()
 
     if (BuildConfig.DEBUG) {
@@ -30,7 +31,7 @@ fun MainShowcaseScreen(modifier: Modifier = Modifier) {
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
-        bottomBar = { BottomNavigationBar(navController) },
+        bottomBar = { BottomNavigationBar(navController) }, // thanh bottom nav
     ) { innerPadding ->
         NavHost(
             navController = navController,
@@ -81,6 +82,7 @@ fun MainShowcaseScreen(modifier: Modifier = Modifier) {
     }
 }
 
+//khi chuyển màn thì in ra log
 private fun addOnDestinationChangedListener(navController: NavController) {
     navController.addOnDestinationChangedListener(
         object : NavController.OnDestinationChangedListener {

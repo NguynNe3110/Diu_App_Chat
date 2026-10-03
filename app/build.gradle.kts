@@ -15,6 +15,9 @@ android {
 
         buildConfigFieldFromGradleProperty(project, "apiBaseUrl")
         buildConfigFieldFromGradleProperty(project, "apiToken")
+        //supabase
+        buildConfigFieldFromGradleProperty(project, "supabaseUrl")
+        buildConfigFieldFromGradleProperty(project, "supabaseAnonKey")
     }
 
     buildTypes {
