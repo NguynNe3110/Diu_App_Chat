@@ -34,4 +34,9 @@ dependencies {
     implementation(projects.feature.album)
     implementation(projects.feature.settings)
     implementation(projects.feature.favourite)
+
+    // Supabase
+    implementation(platform(libs.supabase.bom))
+    implementation(libs.bundles.supabase)
+    implementation(libs.ktor.client.okhttp)
 }
