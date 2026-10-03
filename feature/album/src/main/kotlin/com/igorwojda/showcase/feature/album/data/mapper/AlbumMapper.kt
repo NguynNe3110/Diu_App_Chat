@@ -1,9 +1,9 @@
-package com.igorwojda.showcase.feature.album.data.mapper
+package com.uzuu.diuchat.feature.album.data.mapper
 
-import com.igorwojda.showcase.feature.album.data.datasource.api.model.AlbumApiModel
-import com.igorwojda.showcase.feature.album.data.datasource.api.model.ImageSizeApiModel
-import com.igorwojda.showcase.feature.album.data.datasource.database.model.AlbumRoomModel
-import com.igorwojda.showcase.feature.album.domain.model.Album
+import com.uzuu.diuchat.feature.album.data.datasource.api.model.AlbumApiModel
+import com.uzuu.diuchat.feature.album.data.datasource.api.model.ImageSizeApiModel
+import com.uzuu.diuchat.feature.album.data.datasource.database.model.AlbumRoomModel
+import com.uzuu.diuchat.feature.album.domain.model.Album
 
 internal class AlbumMapper(
     private val imageMapper: ImageMapper,

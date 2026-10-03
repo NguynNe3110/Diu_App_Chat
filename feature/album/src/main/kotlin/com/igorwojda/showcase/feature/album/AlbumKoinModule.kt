@@ -1,8 +1,8 @@
-package com.igorwojda.showcase.feature.album
+package com.uzuu.diuchat.feature.album
 
-import com.igorwojda.showcase.feature.album.data.dataModule
-import com.igorwojda.showcase.feature.album.domain.domainModule
-import com.igorwojda.showcase.feature.album.presentation.presentationModule
+import com.uzuu.diuchat.feature.album.data.dataModule
+import com.uzuu.diuchat.feature.album.domain.domainModule
+import com.uzuu.diuchat.feature.album.presentation.presentationModule
 
 val featureAlbumModules =
     listOf(

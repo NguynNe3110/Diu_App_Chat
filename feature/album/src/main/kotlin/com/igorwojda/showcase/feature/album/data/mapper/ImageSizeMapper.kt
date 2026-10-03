@@ -1,8 +1,8 @@
-package com.igorwojda.showcase.feature.album.data.mapper
+package com.uzuu.diuchat.feature.album.data.mapper
 
-import com.igorwojda.showcase.feature.album.data.datasource.api.model.ImageSizeApiModel
-import com.igorwojda.showcase.feature.album.data.datasource.database.model.ImageSizeRoomModel
-import com.igorwojda.showcase.feature.album.domain.enum.ImageSize
+import com.uzuu.diuchat.feature.album.data.datasource.api.model.ImageSizeApiModel
+import com.uzuu.diuchat.feature.album.data.datasource.database.model.ImageSizeRoomModel
+import com.uzuu.diuchat.feature.album.domain.enum.ImageSize
 
 internal class ImageSizeMapper {
     fun apiToDomain(apiModel: ImageSizeApiModel): ImageSize = ImageSize.valueOf(apiModel.name)

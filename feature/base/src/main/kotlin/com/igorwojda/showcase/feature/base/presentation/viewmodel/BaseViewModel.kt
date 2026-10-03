@@ -1,7 +1,7 @@
-package com.igorwojda.showcase.feature.base.presentation.viewmodel
+package com.uzuu.diuchat.feature.base.presentation.viewmodel
 
 import androidx.lifecycle.ViewModel
-import com.igorwojda.showcase.feature.base.BuildConfig
+import com.uzuu.diuchat.feature.base.BuildConfig
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlin.properties.Delegates

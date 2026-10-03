@@ -1,9 +1,9 @@
-package com.igorwojda.showcase.app.presentation.util
+package com.uzuu.diuchat.app.presentation.util
 
 import android.os.Bundle
 import androidx.navigation.NavDestination
-import com.igorwojda.showcase.app.presentation.NavigationRoute
-import com.igorwojda.showcase.feature.base.util.TimberLogTags
+import com.uzuu.diuchat.app.presentation.NavigationRoute
+import com.uzuu.diuchat.feature.base.util.TimberLogTags
 import timber.log.Timber
 
 object NavigationDestinationLogger {

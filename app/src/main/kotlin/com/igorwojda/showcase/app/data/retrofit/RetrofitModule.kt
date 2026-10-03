@@ -1,9 +1,9 @@
-package com.igorwojda.showcase.app.data.retrofit
+package com.uzuu.diuchat.app.data.retrofit
 
-import com.igorwojda.showcase.app.BuildConfig
-import com.igorwojda.showcase.app.data.retrofit.interceptor.AuthenticationInterceptor
-import com.igorwojda.showcase.app.data.retrofit.interceptor.UserAgentInterceptor
-import com.igorwojda.showcase.feature.base.data.retrofit.ApiResultAdapterFactory
+import com.uzuu.diuchat.app.BuildConfig
+import com.uzuu.diuchat.app.data.retrofit.interceptor.AuthenticationInterceptor
+import com.uzuu.diuchat.app.data.retrofit.interceptor.UserAgentInterceptor
+import com.uzuu.diuchat.feature.base.data.retrofit.ApiResultAdapterFactory
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import kotlinx.serialization.ExperimentalSerializationApi
 import okhttp3.MediaType.Companion.toMediaType

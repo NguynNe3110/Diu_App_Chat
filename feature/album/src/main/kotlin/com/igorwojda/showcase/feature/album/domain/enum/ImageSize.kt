@@ -1,4 +1,4 @@
-package com.igorwojda.showcase.feature.album.domain.enum
+package com.uzuu.diuchat.feature.album.domain.enum
 
 internal enum class ImageSize {
     SMALL,

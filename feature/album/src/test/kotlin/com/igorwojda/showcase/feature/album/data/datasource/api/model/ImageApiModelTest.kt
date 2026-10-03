@@ -1,7 +1,7 @@
-package com.igorwojda.showcase.feature.album.data.datasource.api.model
+package com.uzuu.diuchat.feature.album.data.datasource.api.model
 
-import com.igorwojda.showcase.feature.album.data.DataFixtures
-import com.igorwojda.showcase.feature.album.domain.model.Image
+import com.uzuu.diuchat.feature.album.data.DataFixtures
+import com.uzuu.diuchat.feature.album.domain.model.Image
 import org.amshove.kluent.shouldBeEqualTo
 import org.amshove.kluent.shouldThrow
 import org.junit.jupiter.api.Test

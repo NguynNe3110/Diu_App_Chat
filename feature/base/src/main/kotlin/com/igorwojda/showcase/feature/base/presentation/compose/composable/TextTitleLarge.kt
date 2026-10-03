@@ -1,4 +1,4 @@
-package com.igorwojda.showcase.feature.base.presentation.compose.composable
+package com.uzuu.diuchat.feature.base.presentation.compose.composable
 
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text

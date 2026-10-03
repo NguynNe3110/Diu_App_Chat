@@ -1,4 +1,4 @@
-package com.igorwojda.showcase.app.presentation
+package com.uzuu.diuchat.app.presentation
 
 import kotlinx.serialization.Serializable
 

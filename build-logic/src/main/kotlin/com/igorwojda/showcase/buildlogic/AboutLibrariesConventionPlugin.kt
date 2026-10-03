@@ -1,4 +1,4 @@
-package com.igorwojda.showcase.buildlogic
+package com.uzuu.diuchat.buildlogic
 
 import com.mikepenz.aboutlibraries.plugin.AboutLibrariesExtension
 import com.mikepenz.aboutlibraries.plugin.DuplicateMode

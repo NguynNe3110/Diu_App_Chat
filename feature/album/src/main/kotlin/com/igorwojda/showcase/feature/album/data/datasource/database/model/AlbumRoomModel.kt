@@ -1,10 +1,10 @@
-package com.igorwojda.showcase.feature.album.data.datasource.database.model
+package com.uzuu.diuchat.feature.album.data.datasource.database.model
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import androidx.room.TypeConverter
 import androidx.room.TypeConverters
-import com.igorwojda.showcase.feature.album.domain.model.Album
+import com.uzuu.diuchat.feature.album.domain.model.Album
 import kotlinx.serialization.json.Json
 
 @Entity(tableName = "albums")

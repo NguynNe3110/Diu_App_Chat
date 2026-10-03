@@ -1,4 +1,4 @@
-package com.igorwojda.showcase.konsisttest
+package com.uzuu.diuchat.konsisttest
 
 import com.lemonappdev.konsist.api.Konsist
 import com.lemonappdev.konsist.api.architecture.KoArchitectureCreator.assertArchitecture
@@ -13,7 +13,7 @@ class CleanArchitectureKonsistTest {
             .scopeFromProduction()
             .assertArchitecture {
                 // Define layers
-                val packagePrefix = "com.igorwojda.showcase"
+                val packagePrefix = "com.uzuu.diuchat"
                 val domain = Layer("Domain", "$packagePrefix..domain..")
                 val presentation = Layer("Presentation", "$packagePrefix..presentation..")
                 val data = Layer("Data", "$packagePrefix..data..")

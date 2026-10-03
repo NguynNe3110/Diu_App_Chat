@@ -1,4 +1,4 @@
-package com.igorwojda.showcase.feature.settings.presentation.screen.aboutlibraries
+package com.uzuu.diuchat.feature.settings.presentation.screen.aboutlibraries
 
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -16,7 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.igorwojda.showcase.feature.settings.R
+import com.uzuu.diuchat.feature.settings.R
 import com.mikepenz.aboutlibraries.ui.compose.android.produceLibraries
 import com.mikepenz.aboutlibraries.ui.compose.m3.LibrariesContainer
 import org.koin.androidx.compose.koinViewModel

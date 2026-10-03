@@ -1,8 +1,8 @@
-package com.igorwojda.showcase.feature.base.presentation.compose.composable
+package com.uzuu.diuchat.feature.base.presentation.compose.composable
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
-import com.igorwojda.showcase.feature.base.R
+import com.uzuu.diuchat.feature.base.R
 
 @Composable
 fun UnderConstructionAnim() {

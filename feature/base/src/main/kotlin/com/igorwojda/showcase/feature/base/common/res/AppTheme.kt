@@ -1,4 +1,4 @@
-package com.igorwojda.showcase.feature.base.common.res
+package com.uzuu.diuchat.feature.base.common.res
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme

@@ -1,15 +1,15 @@
-package com.igorwojda.showcase.buildlogic
+package com.uzuu.diuchat.buildlogic
 
 import com.android.build.api.dsl.LibraryExtension
-import com.igorwojda.showcase.buildlogic.config.JavaBuildConfig
-import com.igorwojda.showcase.buildlogic.ext.debugImplementation
-import com.igorwojda.showcase.buildlogic.ext.excludeLicenseAndMetaFiles
-import com.igorwojda.showcase.buildlogic.ext.implementation
-import com.igorwojda.showcase.buildlogic.ext.ksp
-import com.igorwojda.showcase.buildlogic.ext.libs
-import com.igorwojda.showcase.buildlogic.ext.testImplementation
-import com.igorwojda.showcase.buildlogic.ext.testRuntimeOnly
-import com.igorwojda.showcase.buildlogic.ext.versions
+import com.uzuu.diuchat.buildlogic.config.JavaBuildConfig
+import com.uzuu.diuchat.buildlogic.ext.debugImplementation
+import com.uzuu.diuchat.buildlogic.ext.excludeLicenseAndMetaFiles
+import com.uzuu.diuchat.buildlogic.ext.implementation
+import com.uzuu.diuchat.buildlogic.ext.ksp
+import com.uzuu.diuchat.buildlogic.ext.libs
+import com.uzuu.diuchat.buildlogic.ext.testImplementation
+import com.uzuu.diuchat.buildlogic.ext.testRuntimeOnly
+import com.uzuu.diuchat.buildlogic.ext.versions
 import com.mikepenz.aboutlibraries.plugin.AboutLibrariesPlugin
 import org.gradle.api.Plugin
 import org.gradle.api.Project

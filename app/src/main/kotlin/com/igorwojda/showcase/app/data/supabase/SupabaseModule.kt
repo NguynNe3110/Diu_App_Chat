@@ -1,6 +1,6 @@
-package com.igorwojda.showcase.app.data.supabase
+package com.uzuu.diuchat.app.data.supabase
 
-import com.igorwojda.showcase.app.BuildConfig
+import com.uzuu.diuchat.app.BuildConfig
 import org.koin.dsl.module
 
 /**

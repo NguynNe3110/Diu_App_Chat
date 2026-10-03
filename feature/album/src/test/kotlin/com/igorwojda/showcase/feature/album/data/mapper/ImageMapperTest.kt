@@ -1,11 +1,11 @@
-package com.igorwojda.showcase.feature.album.data.mapper
+package com.uzuu.diuchat.feature.album.data.mapper
 
-import com.igorwojda.showcase.feature.album.data.datasource.api.model.ImageApiModel
-import com.igorwojda.showcase.feature.album.data.datasource.api.model.ImageSizeApiModel
-import com.igorwojda.showcase.feature.album.data.datasource.database.model.ImageRoomModel
-import com.igorwojda.showcase.feature.album.data.datasource.database.model.ImageSizeRoomModel
-import com.igorwojda.showcase.feature.album.domain.enum.ImageSize
-import com.igorwojda.showcase.feature.album.domain.model.Image
+import com.uzuu.diuchat.feature.album.data.datasource.api.model.ImageApiModel
+import com.uzuu.diuchat.feature.album.data.datasource.api.model.ImageSizeApiModel
+import com.uzuu.diuchat.feature.album.data.datasource.database.model.ImageRoomModel
+import com.uzuu.diuchat.feature.album.data.datasource.database.model.ImageSizeRoomModel
+import com.uzuu.diuchat.feature.album.domain.enum.ImageSize
+import com.uzuu.diuchat.feature.album.domain.model.Image
 import io.mockk.every
 import io.mockk.mockk
 import org.amshove.kluent.shouldBeEqualTo

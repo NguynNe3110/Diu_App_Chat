@@ -1,4 +1,4 @@
-package com.igorwojda.showcase.app.presentation
+package com.uzuu.diuchat.app.presentation
 
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
@@ -17,7 +17,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.igorwojda.showcase.app.R
+import com.uzuu.diuchat.app.R
 
 @Composable
 fun BottomNavigationBar(

@@ -1,4 +1,4 @@
-package com.igorwojda.showcase.feature.base.presentation.compose.composable
+package com.uzuu.diuchat.feature.base.presentation.compose.composable
 
 import androidx.annotation.RawRes
 import androidx.annotation.StringRes
@@ -16,7 +16,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.rememberLottieComposition
-import com.igorwojda.showcase.feature.base.common.res.Dimen
+import com.uzuu.diuchat.feature.base.common.res.Dimen
 
 @Composable
 fun LabeledAnimation(
@@ -58,7 +58,7 @@ fun LottieAssetLoader(
 private fun LabeledAnimationPreview() {
     LabeledAnimation(
         label = android.R.string.ok,
-        assetResId = com.igorwojda.showcase.feature.base.R.raw.lottie_building_screen,
+        assetResId = com.uzuu.diuchat.feature.base.R.raw.lottie_building_screen,
     )
 }
 
@@ -66,6 +66,6 @@ private fun LabeledAnimationPreview() {
 @Composable
 private fun LottieAssetLoaderPreview() {
     LottieAssetLoader(
-        assetResId = com.igorwojda.showcase.feature.base.R.raw.lottie_building_screen,
+        assetResId = com.uzuu.diuchat.feature.base.R.raw.lottie_building_screen,
     )
 }

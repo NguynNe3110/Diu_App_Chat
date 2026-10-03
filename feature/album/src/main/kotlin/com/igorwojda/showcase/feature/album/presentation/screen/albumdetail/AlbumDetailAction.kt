@@ -1,7 +1,7 @@
-package com.igorwojda.showcase.feature.album.presentation.screen.albumdetail
+package com.uzuu.diuchat.feature.album.presentation.screen.albumdetail
 
-import com.igorwojda.showcase.feature.album.domain.model.Album
-import com.igorwojda.showcase.feature.base.presentation.viewmodel.BaseAction
+import com.uzuu.diuchat.feature.album.domain.model.Album
+import com.uzuu.diuchat.feature.base.presentation.viewmodel.BaseAction
 
 internal sealed interface AlbumDetailAction : BaseAction<AlbumDetailUiState> {
     object AlbumLoadStart : AlbumDetailAction {

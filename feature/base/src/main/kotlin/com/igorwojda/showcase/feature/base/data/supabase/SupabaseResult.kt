@@ -1,11 +1,11 @@
-package com.igorwojda.showcase.feature.base.data.supabase
+package com.uzuu.diuchat.feature.base.data.supabase
 
 /**
  * A generic result wrapper for Supabase operations.
  *
- * Mirrors [com.igorwojda.showcase.feature.base.data.retrofit.ApiResult] but tailored for Supabase.
+ * Mirrors [com.uzuu.diuchat.feature.base.data.retrofit.ApiResult] but tailored for Supabase.
  * Use this in feature module services to wrap Supabase query results before mapping
- * to domain [com.igorwojda.showcase.feature.base.domain.result.Result].
+ * to domain [com.uzuu.diuchat.feature.base.domain.result.Result].
  */
 sealed interface SupabaseResult<T> {
     /**

@@ -1,4 +1,4 @@
-package com.igorwojda.showcase.feature.base.presentation.compose.composable
+package com.uzuu.diuchat.feature.base.presentation.compose.composable
 
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
@@ -11,7 +11,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
-import com.igorwojda.showcase.feature.base.R
+import com.uzuu.diuchat.feature.base.R
 
 private val PLACEHOLDER_IMAGES =
     listOf(

@@ -1,14 +1,14 @@
-import com.igorwojda.showcase.buildlogic.ext.buildConfigFieldFromGradleProperty
+import com.uzuu.diuchat.buildlogic.ext.buildConfigFieldFromGradleProperty
 
 plugins {
-    id("com.igorwojda.showcase.convention.application")
+    id("com.uzuu.diuchat.convention.application")
 }
 
 android {
-    namespace = "com.igorwojda.showcase.app"
+    namespace = "com.uzuu.diuchat.app"
 
     defaultConfig {
-        applicationId = "com.igorwojda.showcase"
+        applicationId = "com.uzuu.diuchat"
 
         versionCode = 1
         versionName = "0.0.1" // SemVer (Major.Minor.Patch)

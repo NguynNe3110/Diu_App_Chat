@@ -1,10 +1,10 @@
-package com.igorwojda.showcase.feature.album.domain
+package com.uzuu.diuchat.feature.album.domain
 
-import com.igorwojda.showcase.feature.album.domain.enum.ImageSize
-import com.igorwojda.showcase.feature.album.domain.model.Album
-import com.igorwojda.showcase.feature.album.domain.model.Image
-import com.igorwojda.showcase.feature.album.domain.model.Tag
-import com.igorwojda.showcase.feature.album.domain.model.Track
+import com.uzuu.diuchat.feature.album.domain.enum.ImageSize
+import com.uzuu.diuchat.feature.album.domain.model.Album
+import com.uzuu.diuchat.feature.album.domain.model.Image
+import com.uzuu.diuchat.feature.album.domain.model.Tag
+import com.uzuu.diuchat.feature.album.domain.model.Track
 
 object DomainFixtures {
     internal fun getAlbum(

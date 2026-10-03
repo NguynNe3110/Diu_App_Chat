@@ -1,10 +1,10 @@
-package com.igorwojda.showcase.feature.album.data.datasource.api.model
+package com.uzuu.diuchat.feature.album.data.datasource.api.model
 
-import com.igorwojda.showcase.feature.album.data.DataFixtures
-import com.igorwojda.showcase.feature.album.domain.enum.ImageSize
-import com.igorwojda.showcase.feature.album.domain.model.Album
-import com.igorwojda.showcase.feature.album.domain.model.Tag
-import com.igorwojda.showcase.feature.album.domain.model.Track
+import com.uzuu.diuchat.feature.album.data.DataFixtures
+import com.uzuu.diuchat.feature.album.domain.enum.ImageSize
+import com.uzuu.diuchat.feature.album.domain.model.Album
+import com.uzuu.diuchat.feature.album.domain.model.Tag
+import com.uzuu.diuchat.feature.album.domain.model.Track
 import org.amshove.kluent.shouldBeEqualTo
 import org.junit.jupiter.api.Test
 

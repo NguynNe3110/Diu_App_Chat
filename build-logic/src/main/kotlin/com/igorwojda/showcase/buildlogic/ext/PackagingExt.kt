@@ -1,4 +1,4 @@
-package com.igorwojda.showcase.buildlogic.ext
+package com.uzuu.diuchat.buildlogic.ext
 
 import com.android.build.api.dsl.Packaging
 

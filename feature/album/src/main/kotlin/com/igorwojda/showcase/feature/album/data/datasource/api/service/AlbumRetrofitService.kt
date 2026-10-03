@@ -1,8 +1,8 @@
-package com.igorwojda.showcase.feature.album.data.datasource.api.service
+package com.uzuu.diuchat.feature.album.data.datasource.api.service
 
-import com.igorwojda.showcase.feature.album.data.datasource.api.response.GetAlbumInfoResponse
-import com.igorwojda.showcase.feature.album.data.datasource.api.response.SearchAlbumResponse
-import com.igorwojda.showcase.feature.base.data.retrofit.ApiResult
+import com.uzuu.diuchat.feature.album.data.datasource.api.response.GetAlbumInfoResponse
+import com.uzuu.diuchat.feature.album.data.datasource.api.response.SearchAlbumResponse
+import com.uzuu.diuchat.feature.base.data.retrofit.ApiResult
 import retrofit2.http.POST
 import retrofit2.http.Query
 

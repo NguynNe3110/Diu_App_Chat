@@ -1,4 +1,4 @@
-package com.igorwojda.showcase.feature.album.presentation.screen.albumdetail
+package com.uzuu.diuchat.feature.album.presentation.screen.albumdetail
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -33,16 +33,16 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.igorwojda.showcase.feature.album.R
-import com.igorwojda.showcase.feature.album.domain.model.Tag
-import com.igorwojda.showcase.feature.album.domain.model.Track
-import com.igorwojda.showcase.feature.album.presentation.util.TimeUtil
-import com.igorwojda.showcase.feature.base.common.res.Dimen
-import com.igorwojda.showcase.feature.base.presentation.compose.composable.ErrorAnim
-import com.igorwojda.showcase.feature.base.presentation.compose.composable.LoadingIndicator
-import com.igorwojda.showcase.feature.base.presentation.compose.composable.PlaceholderImage
-import com.igorwojda.showcase.feature.base.presentation.compose.composable.TextTitleLarge
-import com.igorwojda.showcase.feature.base.presentation.compose.composable.TextTitleMedium
+import com.uzuu.diuchat.feature.album.R
+import com.uzuu.diuchat.feature.album.domain.model.Tag
+import com.uzuu.diuchat.feature.album.domain.model.Track
+import com.uzuu.diuchat.feature.album.presentation.util.TimeUtil
+import com.uzuu.diuchat.feature.base.common.res.Dimen
+import com.uzuu.diuchat.feature.base.presentation.compose.composable.ErrorAnim
+import com.uzuu.diuchat.feature.base.presentation.compose.composable.LoadingIndicator
+import com.uzuu.diuchat.feature.base.presentation.compose.composable.PlaceholderImage
+import com.uzuu.diuchat.feature.base.presentation.compose.composable.TextTitleLarge
+import com.uzuu.diuchat.feature.base.presentation.compose.composable.TextTitleMedium
 import org.koin.androidx.compose.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)

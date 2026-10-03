@@ -1,4 +1,4 @@
-package com.igorwojda.showcase.konsisttest
+package com.uzuu.diuchat.konsisttest
 
 import androidx.lifecycle.ViewModel
 import com.lemonappdev.konsist.api.Konsist

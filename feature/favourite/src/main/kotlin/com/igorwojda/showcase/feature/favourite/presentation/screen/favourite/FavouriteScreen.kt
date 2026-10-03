@@ -1,4 +1,4 @@
-package com.igorwojda.showcase.feature.favourite.presentation.screen.favourite
+package com.uzuu.diuchat.feature.favourite.presentation.screen.favourite
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -6,7 +6,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
-import com.igorwojda.showcase.feature.base.presentation.compose.composable.UnderConstructionAnim
+import com.uzuu.diuchat.feature.base.presentation.compose.composable.UnderConstructionAnim
 
 @Composable
 fun FavouriteScreen(modifier: Modifier = Modifier) {

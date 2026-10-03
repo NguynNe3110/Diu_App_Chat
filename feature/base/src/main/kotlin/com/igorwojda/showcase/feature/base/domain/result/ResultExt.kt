@@ -1,4 +1,4 @@
-package com.igorwojda.showcase.feature.base.domain.result
+package com.uzuu.diuchat.feature.base.domain.result
 
 inline fun <T> Result<T>.mapSuccess(crossinline onResult: Result.Success<T>.() -> Result<T>): Result<T> {
     if (this is Result.Success) {

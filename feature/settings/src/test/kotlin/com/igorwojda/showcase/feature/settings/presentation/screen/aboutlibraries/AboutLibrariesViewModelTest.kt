@@ -1,7 +1,7 @@
-package com.igorwojda.showcase.feature.settings.presentation.screen.aboutlibraries
+package com.uzuu.diuchat.feature.settings.presentation.screen.aboutlibraries
 
-import com.igorwojda.showcase.library.testutils.CoroutinesTestDispatcherExtension
-import com.igorwojda.showcase.library.testutils.InstantTaskExecutorExtension
+import com.uzuu.diuchat.library.testutils.CoroutinesTestDispatcherExtension
+import com.uzuu.diuchat.library.testutils.InstantTaskExecutorExtension
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import org.amshove.kluent.shouldBeEqualTo

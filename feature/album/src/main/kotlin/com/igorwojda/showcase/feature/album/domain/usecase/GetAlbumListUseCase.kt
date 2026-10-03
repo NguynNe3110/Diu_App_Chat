@@ -1,9 +1,9 @@
-package com.igorwojda.showcase.feature.album.domain.usecase
+package com.uzuu.diuchat.feature.album.domain.usecase
 
-import com.igorwojda.showcase.feature.album.domain.model.Album
-import com.igorwojda.showcase.feature.album.domain.repository.AlbumRepository
-import com.igorwojda.showcase.feature.base.domain.result.Result
-import com.igorwojda.showcase.feature.base.domain.result.mapSuccess
+import com.uzuu.diuchat.feature.album.domain.model.Album
+import com.uzuu.diuchat.feature.album.domain.repository.AlbumRepository
+import com.uzuu.diuchat.feature.base.domain.result.Result
+import com.uzuu.diuchat.feature.base.domain.result.mapSuccess
 
 internal class GetAlbumListUseCase(
     private val albumRepository: AlbumRepository,

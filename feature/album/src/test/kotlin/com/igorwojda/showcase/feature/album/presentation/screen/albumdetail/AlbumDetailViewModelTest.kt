@@ -1,10 +1,10 @@
-package com.igorwojda.showcase.feature.album.presentation.screen.albumdetail
+package com.uzuu.diuchat.feature.album.presentation.screen.albumdetail
 
-import com.igorwojda.showcase.feature.album.domain.model.Album
-import com.igorwojda.showcase.feature.album.domain.usecase.GetAlbumUseCase
-import com.igorwojda.showcase.feature.base.domain.result.Result
-import com.igorwojda.showcase.library.testutils.CoroutinesTestDispatcherExtension
-import com.igorwojda.showcase.library.testutils.InstantTaskExecutorExtension
+import com.uzuu.diuchat.feature.album.domain.model.Album
+import com.uzuu.diuchat.feature.album.domain.usecase.GetAlbumUseCase
+import com.uzuu.diuchat.feature.base.domain.result.Result
+import com.uzuu.diuchat.library.testutils.CoroutinesTestDispatcherExtension
+import com.uzuu.diuchat.library.testutils.InstantTaskExecutorExtension
 import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi

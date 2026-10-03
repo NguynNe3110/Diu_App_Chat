@@ -1,6 +1,6 @@
-package com.igorwojda.showcase.konsisttest
+package com.uzuu.diuchat.konsisttest
 
-import com.igorwojda.showcase.feature.base.presentation.viewmodel.BaseViewModel
+import com.uzuu.diuchat.feature.base.presentation.viewmodel.BaseViewModel
 import com.lemonappdev.konsist.api.KoModifier
 import com.lemonappdev.konsist.api.Konsist
 import com.lemonappdev.konsist.api.ext.list.modifierprovider.withoutAllModifiers

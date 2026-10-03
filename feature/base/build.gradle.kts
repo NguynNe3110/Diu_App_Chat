@@ -1,7 +1,7 @@
 plugins {
-    id("com.igorwojda.showcase.convention.feature")
+    id("com.uzuu.diuchat.convention.feature")
 }
 
 android {
-    namespace = "com.igorwojda.showcase.feature.base"
+    namespace = "com.uzuu.diuchat.feature.base"
 }

@@ -1,4 +1,4 @@
-package com.igorwojda.showcase.feature.base.domain.result
+package com.uzuu.diuchat.feature.base.domain.result
 
 sealed interface Result<out T> {
     data class Success<T>(

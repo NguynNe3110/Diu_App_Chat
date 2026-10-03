@@ -1,6 +1,6 @@
-package com.igorwojda.showcase.feature.base.presentation.viewmodel
+package com.uzuu.diuchat.feature.base.presentation.viewmodel
 
-import com.igorwojda.showcase.feature.base.util.TimberLogTags
+import com.uzuu.diuchat.feature.base.util.TimberLogTags
 import kotlin.reflect.full.memberProperties
 import timber.log.Timber
 

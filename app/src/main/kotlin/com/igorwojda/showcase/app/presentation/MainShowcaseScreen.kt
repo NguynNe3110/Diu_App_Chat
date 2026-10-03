@@ -1,4 +1,4 @@
-package com.igorwojda.showcase.app.presentation
+package com.uzuu.diuchat.app.presentation
 
 import android.os.Bundle
 import androidx.compose.foundation.layout.fillMaxSize
@@ -12,13 +12,13 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
-import com.igorwojda.showcase.app.BuildConfig
-import com.igorwojda.showcase.app.presentation.util.NavigationDestinationLogger
-import com.igorwojda.showcase.feature.album.presentation.screen.albumdetail.AlbumDetailScreen
-import com.igorwojda.showcase.feature.album.presentation.screen.albumlist.AlbumListScreen
-import com.igorwojda.showcase.feature.favourite.presentation.screen.favourite.FavouriteScreen
-import com.igorwojda.showcase.feature.settings.presentation.screen.aboutlibraries.AboutLibrariesScreen
-import com.igorwojda.showcase.feature.settings.presentation.screen.settings.SettingsScreen
+import com.uzuu.diuchat.app.BuildConfig
+import com.uzuu.diuchat.app.presentation.util.NavigationDestinationLogger
+import com.uzuu.diuchat.feature.album.presentation.screen.albumdetail.AlbumDetailScreen
+import com.uzuu.diuchat.feature.album.presentation.screen.albumlist.AlbumListScreen
+import com.uzuu.diuchat.feature.favourite.presentation.screen.favourite.FavouriteScreen
+import com.uzuu.diuchat.feature.settings.presentation.screen.aboutlibraries.AboutLibrariesScreen
+import com.uzuu.diuchat.feature.settings.presentation.screen.settings.SettingsScreen
 
 @Composable
 fun MainShowcaseScreen(modifier: Modifier = Modifier) {

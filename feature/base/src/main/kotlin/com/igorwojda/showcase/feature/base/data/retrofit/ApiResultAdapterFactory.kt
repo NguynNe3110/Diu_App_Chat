@@ -1,4 +1,4 @@
-package com.igorwojda.showcase.feature.base.data.retrofit
+package com.uzuu.diuchat.feature.base.data.retrofit
 
 import retrofit2.Call
 import retrofit2.CallAdapter

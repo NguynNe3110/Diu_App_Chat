@@ -1,9 +1,9 @@
-package com.igorwojda.showcase.feature.album.presentation.screen.albumdetail
+package com.uzuu.diuchat.feature.album.presentation.screen.albumdetail
 
 import androidx.compose.runtime.Immutable
-import com.igorwojda.showcase.feature.album.domain.model.Tag
-import com.igorwojda.showcase.feature.album.domain.model.Track
-import com.igorwojda.showcase.feature.base.presentation.viewmodel.BaseState
+import com.uzuu.diuchat.feature.album.domain.model.Tag
+import com.uzuu.diuchat.feature.album.domain.model.Track
+import com.uzuu.diuchat.feature.base.presentation.viewmodel.BaseState
 
 @Immutable
 internal sealed interface AlbumDetailUiState : BaseState {

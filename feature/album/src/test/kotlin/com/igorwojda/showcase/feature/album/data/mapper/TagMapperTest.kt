@@ -1,8 +1,8 @@
-package com.igorwojda.showcase.feature.album.data.mapper
+package com.uzuu.diuchat.feature.album.data.mapper
 
-import com.igorwojda.showcase.feature.album.data.datasource.api.model.TagApiModel
-import com.igorwojda.showcase.feature.album.data.datasource.database.model.TagRoomModel
-import com.igorwojda.showcase.feature.album.domain.model.Tag
+import com.uzuu.diuchat.feature.album.data.datasource.api.model.TagApiModel
+import com.uzuu.diuchat.feature.album.data.datasource.database.model.TagRoomModel
+import com.uzuu.diuchat.feature.album.domain.model.Tag
 import org.amshove.kluent.shouldBeEqualTo
 import org.junit.jupiter.api.Test
 

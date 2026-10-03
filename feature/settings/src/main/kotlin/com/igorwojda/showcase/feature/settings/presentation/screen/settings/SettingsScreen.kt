@@ -1,4 +1,4 @@
-package com.igorwojda.showcase.feature.settings.presentation.screen.settings
+package com.uzuu.diuchat.feature.settings.presentation.screen.settings
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -24,7 +24,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.igorwojda.showcase.feature.settings.R
+import com.uzuu.diuchat.feature.settings.R
 import org.koin.androidx.compose.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)

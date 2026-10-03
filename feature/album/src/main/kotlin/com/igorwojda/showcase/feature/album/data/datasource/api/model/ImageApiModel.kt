@@ -1,7 +1,7 @@
-package com.igorwojda.showcase.feature.album.data.datasource.api.model
+package com.uzuu.diuchat.feature.album.data.datasource.api.model
 
-import com.igorwojda.showcase.feature.album.data.datasource.database.model.ImageRoomModel
-import com.igorwojda.showcase.feature.album.domain.model.Image
+import com.uzuu.diuchat.feature.album.data.datasource.database.model.ImageRoomModel
+import com.uzuu.diuchat.feature.album.domain.model.Image
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 

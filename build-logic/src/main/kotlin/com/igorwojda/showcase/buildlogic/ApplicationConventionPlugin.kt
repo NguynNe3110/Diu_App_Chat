@@ -1,12 +1,12 @@
-package com.igorwojda.showcase.buildlogic
+package com.uzuu.diuchat.buildlogic
 
 import com.android.build.api.dsl.ApplicationExtension
-import com.igorwojda.showcase.buildlogic.config.JavaBuildConfig
-import com.igorwojda.showcase.buildlogic.ext.debugImplementation
-import com.igorwojda.showcase.buildlogic.ext.excludeLicenseAndMetaFiles
-import com.igorwojda.showcase.buildlogic.ext.implementation
-import com.igorwojda.showcase.buildlogic.ext.libs
-import com.igorwojda.showcase.buildlogic.ext.versions
+import com.uzuu.diuchat.buildlogic.config.JavaBuildConfig
+import com.uzuu.diuchat.buildlogic.ext.debugImplementation
+import com.uzuu.diuchat.buildlogic.ext.excludeLicenseAndMetaFiles
+import com.uzuu.diuchat.buildlogic.ext.implementation
+import com.uzuu.diuchat.buildlogic.ext.libs
+import com.uzuu.diuchat.buildlogic.ext.versions
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.kotlin.dsl.apply
@@ -36,7 +36,7 @@ class ApplicationConventionPlugin : Plugin<Project> {
                         .toInt()
 
                 defaultConfig {
-                    applicationId = "com.igorwojda.showcase"
+                    applicationId = "com.uzuu.diuchat"
 
                     minSdk =
                         versions

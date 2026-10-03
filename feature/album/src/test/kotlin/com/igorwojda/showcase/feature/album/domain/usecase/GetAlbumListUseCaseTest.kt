@@ -1,8 +1,8 @@
-package com.igorwojda.showcase.feature.album.domain.usecase
+package com.uzuu.diuchat.feature.album.domain.usecase
 
-import com.igorwojda.showcase.feature.album.data.repository.AlbumRepositoryImpl
-import com.igorwojda.showcase.feature.album.domain.DomainFixtures
-import com.igorwojda.showcase.feature.base.domain.result.Result
+import com.uzuu.diuchat.feature.album.data.repository.AlbumRepositoryImpl
+import com.uzuu.diuchat.feature.album.domain.DomainFixtures
+import com.uzuu.diuchat.feature.base.domain.result.Result
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk

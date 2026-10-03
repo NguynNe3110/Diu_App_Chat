@@ -1,6 +1,6 @@
-package com.igorwojda.showcase.feature.album.domain.model
+package com.uzuu.diuchat.feature.album.domain.model
 
-import com.igorwojda.showcase.feature.album.domain.enum.ImageSize
+import com.uzuu.diuchat.feature.album.domain.enum.ImageSize
 
 // Images are loaded for both album list and album detail instance
 // Tracks and Tags are only loaded for album detail instance (not album list instance)

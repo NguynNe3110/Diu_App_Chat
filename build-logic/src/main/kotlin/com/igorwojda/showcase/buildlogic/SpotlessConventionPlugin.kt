@@ -1,7 +1,7 @@
-package com.igorwojda.showcase.buildlogic
+package com.uzuu.diuchat.buildlogic
 
 import com.diffplug.gradle.spotless.SpotlessExtension
-import com.igorwojda.showcase.buildlogic.ext.libs
+import com.uzuu.diuchat.buildlogic.ext.libs
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.kotlin.dsl.configure

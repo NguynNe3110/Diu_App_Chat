@@ -1,6 +1,6 @@
-package com.igorwojda.showcase.app.data.retrofit.interceptor
+package com.uzuu.diuchat.app.data.retrofit.interceptor
 
-import com.igorwojda.showcase.app.BuildConfig
+import com.uzuu.diuchat.app.BuildConfig
 import okhttp3.Interceptor
 import okhttp3.Response
 

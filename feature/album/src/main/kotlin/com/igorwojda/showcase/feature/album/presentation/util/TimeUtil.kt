@@ -1,4 +1,4 @@
-package com.igorwojda.showcase.feature.album.presentation.util
+package com.uzuu.diuchat.feature.album.presentation.util
 
 object TimeUtil {
     /**

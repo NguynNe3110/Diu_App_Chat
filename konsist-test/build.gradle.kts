@@ -1,9 +1,9 @@
 plugins {
-    id("com.igorwojda.showcase.convention.test.library")
+    id("com.uzuu.diuchat.convention.test.library")
 }
 
 android {
-    namespace = "com.igorwojda.showcase.konsist.test"
+    namespace = "com.uzuu.diuchat.konsist.test"
 }
 
 dependencies {

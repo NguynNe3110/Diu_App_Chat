@@ -1,12 +1,12 @@
-package com.igorwojda.showcase.feature.album.data.repository
+package com.uzuu.diuchat.feature.album.data.repository
 
-import com.igorwojda.showcase.feature.album.data.datasource.api.service.AlbumRetrofitService
-import com.igorwojda.showcase.feature.album.data.datasource.database.AlbumDao
-import com.igorwojda.showcase.feature.album.data.mapper.AlbumMapper
-import com.igorwojda.showcase.feature.album.domain.model.Album
-import com.igorwojda.showcase.feature.album.domain.repository.AlbumRepository
-import com.igorwojda.showcase.feature.base.data.retrofit.ApiResult
-import com.igorwojda.showcase.feature.base.domain.result.Result
+import com.uzuu.diuchat.feature.album.data.datasource.api.service.AlbumRetrofitService
+import com.uzuu.diuchat.feature.album.data.datasource.database.AlbumDao
+import com.uzuu.diuchat.feature.album.data.mapper.AlbumMapper
+import com.uzuu.diuchat.feature.album.domain.model.Album
+import com.uzuu.diuchat.feature.album.domain.repository.AlbumRepository
+import com.uzuu.diuchat.feature.base.data.retrofit.ApiResult
+import com.uzuu.diuchat.feature.base.domain.result.Result
 import timber.log.Timber
 
 internal class AlbumRepositoryImpl(

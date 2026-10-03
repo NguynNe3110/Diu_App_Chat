@@ -20,7 +20,7 @@
             android:theme="@style/Theme.Showcase">
 
         <activity
-                android:name="com.igorwojda.showcase.app.presentation.MainShowcaseActivity"
+                android:name="com.uzuu.diuchat.app.presentation.MainShowcaseActivity"
                 android:exported="true"
                 android:theme="@style/Theme.Showcase.Splash">
             <intent-filter>

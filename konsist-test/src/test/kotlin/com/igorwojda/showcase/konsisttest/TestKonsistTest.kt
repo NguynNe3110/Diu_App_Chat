@@ -1,4 +1,4 @@
-package com.igorwojda.showcase.konsisttest
+package com.uzuu.diuchat.konsisttest
 
 import com.lemonappdev.konsist.api.Konsist
 import com.lemonappdev.konsist.api.ext.list.functions

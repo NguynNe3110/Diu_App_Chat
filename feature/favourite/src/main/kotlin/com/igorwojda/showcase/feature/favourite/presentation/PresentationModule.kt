@@ -1,4 +1,4 @@
-package com.igorwojda.showcase.feature.favourite.presentation
+package com.uzuu.diuchat.feature.favourite.presentation
 
 import org.koin.dsl.module
 

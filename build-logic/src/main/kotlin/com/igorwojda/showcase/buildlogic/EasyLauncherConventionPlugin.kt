@@ -1,4 +1,4 @@
-package com.igorwojda.showcase.buildlogic
+package com.uzuu.diuchat.buildlogic
 
 import com.project.starter.easylauncher.filter.ChromeLikeFilter
 import com.project.starter.easylauncher.plugin.EasyLauncherExtension

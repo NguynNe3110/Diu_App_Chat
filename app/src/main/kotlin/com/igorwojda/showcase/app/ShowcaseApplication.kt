@@ -1,10 +1,10 @@
-package com.igorwojda.showcase.app
+package com.uzuu.diuchat.app
 
 import android.app.Application
-import com.igorwojda.showcase.app.di.appModule
-import com.igorwojda.showcase.feature.album.featureAlbumModules
-import com.igorwojda.showcase.feature.favourite.featureFavouriteModules
-import com.igorwojda.showcase.feature.settings.featureSettingsModules
+import com.uzuu.diuchat.app.di.appModule
+import com.uzuu.diuchat.feature.album.featureAlbumModules
+import com.uzuu.diuchat.feature.favourite.featureFavouriteModules
+import com.uzuu.diuchat.feature.settings.featureSettingsModules
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
 import org.koin.core.context.GlobalContext

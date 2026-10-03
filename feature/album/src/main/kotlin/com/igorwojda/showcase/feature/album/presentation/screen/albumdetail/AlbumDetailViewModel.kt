@@ -1,10 +1,10 @@
-package com.igorwojda.showcase.feature.album.presentation.screen.albumdetail
+package com.uzuu.diuchat.feature.album.presentation.screen.albumdetail
 
 import androidx.lifecycle.viewModelScope
-import com.igorwojda.showcase.feature.album.domain.usecase.GetAlbumUseCase
-import com.igorwojda.showcase.feature.base.domain.result.Result.Failure
-import com.igorwojda.showcase.feature.base.domain.result.Result.Success
-import com.igorwojda.showcase.feature.base.presentation.viewmodel.BaseViewModel
+import com.uzuu.diuchat.feature.album.domain.usecase.GetAlbumUseCase
+import com.uzuu.diuchat.feature.base.domain.result.Result.Failure
+import com.uzuu.diuchat.feature.base.domain.result.Result.Success
+import com.uzuu.diuchat.feature.base.presentation.viewmodel.BaseViewModel
 import kotlinx.coroutines.launch
 
 internal class AlbumDetailViewModel(

@@ -1,6 +1,6 @@
-package com.igorwojda.showcase.buildlogic
+package com.uzuu.diuchat.buildlogic
 
-import com.igorwojda.showcase.buildlogic.config.JavaBuildConfig
+import com.uzuu.diuchat.buildlogic.config.JavaBuildConfig
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.jetbrains.kotlin.gradle.dsl.kotlinExtension

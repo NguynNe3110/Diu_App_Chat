@@ -1,4 +1,4 @@
-package com.igorwojda.showcase.konsisttest
+package com.uzuu.diuchat.konsisttest
 
 import com.lemonappdev.konsist.api.Konsist
 import com.lemonappdev.konsist.api.verify.assertTrue
@@ -18,7 +18,7 @@ class ModuleKonsistTest {
                         .replace("/", ".")
                         .replace("-", "")
 
-                val fullyQualifiedPackageName = "com.igorwojda.showcase.$modulePackageName"
+                val fullyQualifiedPackageName = "com.uzuu.diuchat.$modulePackageName"
 
                 it.packagee?.name?.startsWith(fullyQualifiedPackageName)
             }

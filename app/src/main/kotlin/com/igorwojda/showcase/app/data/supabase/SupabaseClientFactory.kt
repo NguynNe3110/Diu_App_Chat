@@ -1,4 +1,4 @@
-package com.igorwojda.showcase.app.data.supabase
+package com.uzuu.diuchat.app.data.supabase
 
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.Auth

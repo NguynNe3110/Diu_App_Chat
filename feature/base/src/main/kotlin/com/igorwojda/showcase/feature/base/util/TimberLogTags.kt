@@ -1,4 +1,4 @@
-package com.igorwojda.showcase.feature.base.util
+package com.uzuu.diuchat.feature.base.util
 
 /**
  * Centralized log tags for consistent logging throughout the application.

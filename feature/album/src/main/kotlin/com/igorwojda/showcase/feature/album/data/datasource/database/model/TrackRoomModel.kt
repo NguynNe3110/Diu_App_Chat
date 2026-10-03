@@ -1,6 +1,6 @@
-package com.igorwojda.showcase.feature.album.data.datasource.database.model
+package com.uzuu.diuchat.feature.album.data.datasource.database.model
 
-import com.igorwojda.showcase.feature.album.domain.model.Track
+import com.uzuu.diuchat.feature.album.domain.model.Track
 import kotlinx.serialization.Serializable
 
 @Serializable

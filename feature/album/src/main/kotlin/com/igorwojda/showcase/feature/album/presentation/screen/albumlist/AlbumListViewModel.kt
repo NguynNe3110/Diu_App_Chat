@@ -1,10 +1,10 @@
-package com.igorwojda.showcase.feature.album.presentation.screen.albumlist
+package com.uzuu.diuchat.feature.album.presentation.screen.albumlist
 
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
-import com.igorwojda.showcase.feature.album.domain.usecase.GetAlbumListUseCase
-import com.igorwojda.showcase.feature.base.domain.result.Result
-import com.igorwojda.showcase.feature.base.presentation.viewmodel.BaseViewModel
+import com.uzuu.diuchat.feature.album.domain.usecase.GetAlbumListUseCase
+import com.uzuu.diuchat.feature.base.domain.result.Result
+import com.uzuu.diuchat.feature.base.presentation.viewmodel.BaseViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 

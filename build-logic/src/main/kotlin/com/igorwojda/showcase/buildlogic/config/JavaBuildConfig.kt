@@ -1,4 +1,4 @@
-package com.igorwojda.showcase.buildlogic.config
+package com.uzuu.diuchat.buildlogic.config
 
 import org.gradle.api.JavaVersion
 import java.io.File

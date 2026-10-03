@@ -4,7 +4,7 @@ plugins {
     `kotlin-dsl`
 }
 
-group = "com.igorwojda.showcase.buildlogic"
+group = "com.uzuu.diuchat.buildlogic"
 
 /*
 Configure the build-logic plugins to target JDK from version catalog
@@ -54,53 +54,53 @@ tasks {
 gradlePlugin {
     plugins {
         register("applicationConvention") {
-            id = "com.igorwojda.showcase.convention.application"
-            implementationClass = "com.igorwojda.showcase.buildlogic.ApplicationConventionPlugin"
+            id = "com.uzuu.diuchat.convention.application"
+            implementationClass = "com.uzuu.diuchat.buildlogic.ApplicationConventionPlugin"
         }
 
         register("featureConvention") {
-            id = "com.igorwojda.showcase.convention.feature"
-            implementationClass = "com.igorwojda.showcase.buildlogic.FeatureConventionPlugin"
+            id = "com.uzuu.diuchat.convention.feature"
+            implementationClass = "com.uzuu.diuchat.buildlogic.FeatureConventionPlugin"
         }
 
         register("libraryConvention") {
-            id = "com.igorwojda.showcase.convention.library"
-            implementationClass = "com.igorwojda.showcase.buildlogic.LibraryConventionPlugin"
+            id = "com.uzuu.diuchat.convention.library"
+            implementationClass = "com.uzuu.diuchat.buildlogic.LibraryConventionPlugin"
         }
 
         register("kotlinConvention") {
-            id = "com.igorwojda.showcase.convention.kotlin"
-            implementationClass = "com.igorwojda.showcase.buildlogic.KotlinConventionPlugin"
+            id = "com.uzuu.diuchat.convention.kotlin"
+            implementationClass = "com.uzuu.diuchat.buildlogic.KotlinConventionPlugin"
         }
 
         register("testConvention") {
-            id = "com.igorwojda.showcase.convention.test"
-            implementationClass = "com.igorwojda.showcase.buildlogic.TestConventionPlugin"
+            id = "com.uzuu.diuchat.convention.test"
+            implementationClass = "com.uzuu.diuchat.buildlogic.TestConventionPlugin"
         }
 
         register("testLibraryConvention") {
-            id = "com.igorwojda.showcase.convention.test.library"
-            implementationClass = "com.igorwojda.showcase.buildlogic.TestConventionLibraryPlugin"
+            id = "com.uzuu.diuchat.convention.test.library"
+            implementationClass = "com.uzuu.diuchat.buildlogic.TestConventionLibraryPlugin"
         }
 
         register("spotlessConvention") {
-            id = "com.igorwojda.showcase.convention.spotless"
-            implementationClass = "com.igorwojda.showcase.buildlogic.SpotlessConventionPlugin"
+            id = "com.uzuu.diuchat.convention.spotless"
+            implementationClass = "com.uzuu.diuchat.buildlogic.SpotlessConventionPlugin"
         }
 
         register("detektConvention") {
-            id = "com.igorwojda.showcase.convention.detekt"
-            implementationClass = "com.igorwojda.showcase.buildlogic.DetektConventionPlugin"
+            id = "com.uzuu.diuchat.convention.detekt"
+            implementationClass = "com.uzuu.diuchat.buildlogic.DetektConventionPlugin"
         }
 
         register("easyLauncherConvention") {
-            id = "com.igorwojda.showcase.convention.easylauncher"
-            implementationClass = "com.igorwojda.showcase.buildlogic.EasyLauncherConventionPlugin"
+            id = "com.uzuu.diuchat.convention.easylauncher"
+            implementationClass = "com.uzuu.diuchat.buildlogic.EasyLauncherConventionPlugin"
         }
 
         register("aboutLibrariesConvention") {
-            id = "com.igorwojda.showcase.convention.aboutlibraries"
-            implementationClass = "com.igorwojda.showcase.buildlogic.AboutLibrariesConventionPlugin"
+            id = "com.uzuu.diuchat.convention.aboutlibraries"
+            implementationClass = "com.uzuu.diuchat.buildlogic.AboutLibrariesConventionPlugin"
         }
     }
 }

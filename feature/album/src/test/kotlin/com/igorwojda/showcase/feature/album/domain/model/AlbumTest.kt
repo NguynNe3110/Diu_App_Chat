@@ -1,6 +1,6 @@
-package com.igorwojda.showcase.feature.album.domain.model
+package com.uzuu.diuchat.feature.album.domain.model
 
-import com.igorwojda.showcase.feature.album.domain.DomainFixtures
+import com.uzuu.diuchat.feature.album.domain.DomainFixtures
 import org.amshove.kluent.shouldBeEqualTo
 import org.junit.jupiter.api.Test
 

@@ -1,4 +1,4 @@
-package com.igorwojda.showcase.feature.album.data.datasource.api.model
+package com.uzuu.diuchat.feature.album.data.datasource.api.model
 
 import org.junit.jupiter.api.Test
 

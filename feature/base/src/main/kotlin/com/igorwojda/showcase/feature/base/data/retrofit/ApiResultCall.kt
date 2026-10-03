@@ -1,4 +1,4 @@
-package com.igorwojda.showcase.feature.base.data.retrofit
+package com.uzuu.diuchat.feature.base.data.retrofit
 
 import okhttp3.Request
 import okio.Timeout

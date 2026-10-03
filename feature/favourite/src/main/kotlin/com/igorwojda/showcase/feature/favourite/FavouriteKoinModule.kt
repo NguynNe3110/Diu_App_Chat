@@ -1,8 +1,8 @@
-package com.igorwojda.showcase.feature.favourite
+package com.uzuu.diuchat.feature.favourite
 
-import com.igorwojda.showcase.feature.favourite.data.dataModule
-import com.igorwojda.showcase.feature.favourite.domain.domainModule
-import com.igorwojda.showcase.feature.favourite.presentation.presentationModule
+import com.uzuu.diuchat.feature.favourite.data.dataModule
+import com.uzuu.diuchat.feature.favourite.domain.domainModule
+import com.uzuu.diuchat.feature.favourite.presentation.presentationModule
 
 val featureFavouriteModules =
     listOf(

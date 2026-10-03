@@ -1,10 +1,10 @@
-package com.igorwojda.showcase.app.presentation
+package com.uzuu.diuchat.app.presentation
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
-import com.igorwojda.showcase.feature.base.common.res.AppTheme
+import com.uzuu.diuchat.feature.base.common.res.AppTheme
 
 class MainShowcaseActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {

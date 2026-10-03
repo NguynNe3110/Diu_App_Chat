@@ -1,4 +1,4 @@
-package com.igorwojda.showcase.feature.album.presentation.screen.albumlist
+package com.uzuu.diuchat.feature.album.presentation.screen.albumlist
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,13 +21,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.igorwojda.showcase.feature.album.R
-import com.igorwojda.showcase.feature.album.domain.model.Album
-import com.igorwojda.showcase.feature.album.presentation.composable.SearchBar
-import com.igorwojda.showcase.feature.base.common.res.Dimen
-import com.igorwojda.showcase.feature.base.presentation.compose.composable.ErrorAnim
-import com.igorwojda.showcase.feature.base.presentation.compose.composable.LoadingIndicator
-import com.igorwojda.showcase.feature.base.presentation.compose.composable.PlaceholderImage
+import com.uzuu.diuchat.feature.album.R
+import com.uzuu.diuchat.feature.album.domain.model.Album
+import com.uzuu.diuchat.feature.album.presentation.composable.SearchBar
+import com.uzuu.diuchat.feature.base.common.res.Dimen
+import com.uzuu.diuchat.feature.base.presentation.compose.composable.ErrorAnim
+import com.uzuu.diuchat.feature.base.presentation.compose.composable.LoadingIndicator
+import com.uzuu.diuchat.feature.base.presentation.compose.composable.PlaceholderImage
 import org.koin.androidx.compose.koinViewModel
 
 @Composable

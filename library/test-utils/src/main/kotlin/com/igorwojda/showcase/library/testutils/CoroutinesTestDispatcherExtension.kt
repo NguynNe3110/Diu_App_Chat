@@ -1,4 +1,4 @@
-package com.igorwojda.showcase.library.testutils
+package com.uzuu.diuchat.library.testutils
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi

@@ -1,20 +1,20 @@
-package com.igorwojda.showcase.feature.album.data
+package com.uzuu.diuchat.feature.album.data
 
-import com.igorwojda.showcase.feature.album.data.datasource.api.model.AlbumApiModel
-import com.igorwojda.showcase.feature.album.data.datasource.api.model.AlbumListApiModel
-import com.igorwojda.showcase.feature.album.data.datasource.api.model.ImageApiModel
-import com.igorwojda.showcase.feature.album.data.datasource.api.model.ImageSizeApiModel
-import com.igorwojda.showcase.feature.album.data.datasource.api.model.SearchAlbumResultsApiModel
-import com.igorwojda.showcase.feature.album.data.datasource.api.model.TagApiModel
-import com.igorwojda.showcase.feature.album.data.datasource.api.model.TagListApiModel
-import com.igorwojda.showcase.feature.album.data.datasource.api.model.TrackApiModel
-import com.igorwojda.showcase.feature.album.data.datasource.api.model.TrackListApiModel
-import com.igorwojda.showcase.feature.album.data.datasource.api.response.SearchAlbumResponse
-import com.igorwojda.showcase.feature.album.data.datasource.database.model.AlbumRoomModel
-import com.igorwojda.showcase.feature.album.data.datasource.database.model.ImageRoomModel
-import com.igorwojda.showcase.feature.album.data.datasource.database.model.ImageSizeRoomModel
-import com.igorwojda.showcase.feature.album.data.datasource.database.model.TagRoomModel
-import com.igorwojda.showcase.feature.album.data.datasource.database.model.TrackRoomModel
+import com.uzuu.diuchat.feature.album.data.datasource.api.model.AlbumApiModel
+import com.uzuu.diuchat.feature.album.data.datasource.api.model.AlbumListApiModel
+import com.uzuu.diuchat.feature.album.data.datasource.api.model.ImageApiModel
+import com.uzuu.diuchat.feature.album.data.datasource.api.model.ImageSizeApiModel
+import com.uzuu.diuchat.feature.album.data.datasource.api.model.SearchAlbumResultsApiModel
+import com.uzuu.diuchat.feature.album.data.datasource.api.model.TagApiModel
+import com.uzuu.diuchat.feature.album.data.datasource.api.model.TagListApiModel
+import com.uzuu.diuchat.feature.album.data.datasource.api.model.TrackApiModel
+import com.uzuu.diuchat.feature.album.data.datasource.api.model.TrackListApiModel
+import com.uzuu.diuchat.feature.album.data.datasource.api.response.SearchAlbumResponse
+import com.uzuu.diuchat.feature.album.data.datasource.database.model.AlbumRoomModel
+import com.uzuu.diuchat.feature.album.data.datasource.database.model.ImageRoomModel
+import com.uzuu.diuchat.feature.album.data.datasource.database.model.ImageSizeRoomModel
+import com.uzuu.diuchat.feature.album.data.datasource.database.model.TagRoomModel
+import com.uzuu.diuchat.feature.album.data.datasource.database.model.TrackRoomModel
 
 object DataFixtures {
     internal fun getAlbumsApiModel() =
