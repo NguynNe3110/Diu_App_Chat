@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Splash Screen Colors -->
-    <color name="splash_background">#FFFFFF</color>
-    <color name="splash_icon_background">#3DDC84</color>
+    <!-- Splash Screen Colors (chỉ dùng cho Android OS trước khi Compose khởi chạy) -->
+    <color name="splash_background">#FCF4EC</color>
+    <color name="splash_icon_background">#FFC29E</color>
 </resources>
