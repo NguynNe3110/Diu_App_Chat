@@ -1,0 +1,30 @@
+package com.uzuu.diuchat.feature.base.common.res
+
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
+import com.uzuu.diuchat.feature.base.R
+
+/** The single font family used throughout Diu, with explicit weight and italic faces. */
+internal val BeVietnamPro = FontFamily(
+    Font(R.font.be_vietnam_pro_thin, FontWeight.Thin),
+    Font(R.font.be_vietnam_pro_extra_light, FontWeight.ExtraLight),
+    Font(R.font.be_vietnam_pro_light, FontWeight.Light),
+    Font(R.font.be_vietnam_pro_regular, FontWeight.Normal),
+    Font(R.font.be_vietnam_pro_medium, FontWeight.Medium),
+    Font(R.font.be_vietnam_pro_semi_bold, FontWeight.SemiBold),
+    Font(R.font.be_vietnam_pro_bold, FontWeight.Bold),
+    Font(R.font.be_vietnam_pro_extra_bold, FontWeight.ExtraBold),
+    Font(R.font.be_vietnam_pro_black, FontWeight.Black),
+    
+    Font(R.font.be_vietnam_pro_thin_italic, FontWeight.Thin, FontStyle.Italic),
+    Font(R.font.be_vietnam_pro_extra_light_italic, FontWeight.ExtraLight, FontStyle.Italic),
+    Font(R.font.be_vietnam_pro_light_italic, FontWeight.Light, FontStyle.Italic),
+    Font(R.font.be_vietnam_pro_italic, FontWeight.Normal, FontStyle.Italic),
+    Font(R.font.be_vietnam_pro_medium_italic, FontWeight.Medium, FontStyle.Italic),
+    Font(R.font.be_vietnam_pro_semi_bold_italic, FontWeight.SemiBold, FontStyle.Italic),
+    Font(R.font.be_vietnam_pro_bold_italic, FontWeight.Bold, FontStyle.Italic),
+    Font(R.font.be_vietnam_pro_extra_bold_italic, FontWeight.ExtraBold, FontStyle.Italic),
+    Font(R.font.be_vietnam_pro_black_italic, FontWeight.Black, FontStyle.Italic),
+)
