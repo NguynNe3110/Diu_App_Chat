@@ -90,8 +90,8 @@ Design references for the intended app experience, **not screenshots of complete
   <summary><b>Overview &amp; Start</b></summary>
 
   <p align="center">
-    <img src="misc/images_expected/basic_screen.png" width="240" alt="Expected interface overview" />
-    <img src="misc/images_expected/start_screen.png" width="240" alt="Expected start screen" />
+    <img src="misc/images_expected/basic_screen.png" width="100%" alt="Expected interface overview" />
+    <img src="misc/images_expected/start_screen.png" width="100%" alt="Expected start screen" />
   </p>
 </details>
 
@@ -99,9 +99,9 @@ Design references for the intended app experience, **not screenshots of complete
   <summary><b>Chat &amp; Details</b></summary>
 
   <p align="center">
-    <img src="misc/images_expected/chat_screen_1.png" width="240" alt="Expected chat interface, first design" />
-    <img src="misc/images_expected/chat_screen_2.png" width="240" alt="Expected chat interface, second design" />
-    <img src="misc/images_expected/detail_screen.png" width="240" alt="Expected detail screen" />
+    <img src="misc/images_expected/chat_screen_1.png" width="100%" alt="Expected chat interface, first design" />
+    <img src="misc/images_expected/chat_screen_2.png" width="100%" alt="Expected chat interface, second design" />
+    <img src="misc/images_expected/detail_screen.png" width="100%" alt="Expected detail screen" />
   </p>
 </details>
 
@@ -109,9 +109,9 @@ Design references for the intended app experience, **not screenshots of complete
   <summary><b>Calling, Settings &amp; Daily Mood</b></summary>
 
   <p align="center">
-    <img src="misc/images_expected/calling_screen.png" width="240" alt="Expected calling screen" />
-    <img src="misc/images_expected/setting_screen.png" width="240" alt="Expected settings screen" />
-    <img src="misc/images_expected/mood_day_screen.png" width="240" alt="Expected daily mood screen" />
+    <img src="misc/images_expected/calling_screen.png" width="100%" alt="Expected calling screen" />
+    <img src="misc/images_expected/setting_screen.png" width="100%" alt="Expected settings screen" />
+    <img src="misc/images_expected/mood_day_screen.png" width="100%" alt="Expected daily mood screen" />
   </p>
 </details>
 
@@ -119,9 +119,9 @@ Design references for the intended app experience, **not screenshots of complete
   <summary><b>Additional Designs</b></summary>
 
   <p align="center">
-    <img src="misc/images_expected/additional_screen_1.png" width="240" alt="Additional interface design 1" />
-    <img src="misc/images_expected/additional_screen_2.png" width="240" alt="Additional interface design 2" />
-    <img src="misc/images_expected/additional_screen_3.png" width="240" alt="Additional interface design 3" />
+    <img src="misc/images_expected/additional_screen_1.png" width="100%" alt="Additional interface design 1" />
+    <img src="misc/images_expected/additional_screen_2.png" width="100%" alt="Additional interface design 2" />
+    <img src="misc/images_expected/additional_screen_3.png" width="100%" alt="Additional interface design 3" />
   </p>
 </details>
 
