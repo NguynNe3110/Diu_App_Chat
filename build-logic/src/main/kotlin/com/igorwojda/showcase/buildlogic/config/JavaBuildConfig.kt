@@ -9,10 +9,14 @@ object JavaBuildConfig {
      * (VersionCatalogsExtension is not available at this stage).
      */
     private val tomlJavaVersion by lazy {
-        File(System.getProperty("user.dir"))
-            .resolve("gradle/libs.versions.toml")
-            .readLines()
-            .firstOrNull { it.trim().startsWith("java") }
+        // ponytail: resolve from working directory ancestors; use Gradle's version catalog if builds run outside this tree.
+        val catalog = generateSequence(File(System.getProperty("user.dir")).absoluteFile) { it.parentFile }
+            .map { it.resolve("gradle/libs.versions.toml") }
+            .firstOrNull { it.isFile }
+            ?: error("Could not find gradle/libs.versions.toml from ${System.getProperty("user.dir")}")
+
+        catalog.readLines()
+            .firstOrNull { it.substringBefore("=").trim() == "java" }
             ?.substringAfter("=")
             ?.trim('"', ' ')
             ?: error("❌ Could not find 'java' version in libs.versions.toml file")
