@@ -22,6 +22,10 @@ android {
 
     buildTypes {
         getByName("release") {
+            // ponytail: test artifacts only; use a stable release key for production.
+            if (providers.gradleProperty("ciDebugSigning").orNull == "true") {
+                signingConfig = signingConfigs.getByName("debug")
+            }
             isMinifyEnabled = false
             proguardFiles("proguard-android.txt", "proguard-rules.pro")
         }

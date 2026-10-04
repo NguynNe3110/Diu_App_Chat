@@ -2,9 +2,16 @@ name: Check
 
 on:
   push:
-    branches: [ main ] # Just in case main was not up to date while merging PR
+    branches: [ main ]
+    paths-ignore:
+      - '**/*.md'
+      - 'misc/**'
   pull_request:
-    types: [ opened, synchronize ]
+    types: [ opened, synchronize, reopened ]
+    paths-ignore:
+      - '**/*.md'
+      - 'misc/**'
+  workflow_dispatch:
 
 # Cancel previous runs on new push
 concurrency:
@@ -28,7 +35,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v6
 
       - name: Build App
-        run: ./gradlew :app:assembleDebug --no-build-cache
+        run: ./gradlew :app:assembleDebug
 
       - uses: actions/upload-artifact@v7
         with:

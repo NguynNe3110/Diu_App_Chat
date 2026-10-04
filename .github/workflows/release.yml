@@ -1,0 +1,63 @@
+name: Release (debug-signed)
+
+on:
+  push:
+    tags: [ 'v*' ]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up JDK
+        uses: actions/setup-java@v6
+        with:
+          java-version: 17
+          distribution: 'zulu'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Build debug-signed release APK
+        run: ./gradlew :app:assembleRelease -PciDebugSigning=true
+
+      - name: Verify APK signature
+        shell: bash
+        run: |
+          apksigner=$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -n 1)
+          test -n "$apksigner"
+          "$apksigner" verify --verbose app/build/outputs/apk/release/app-release.apk
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v7
+        with:
+          name: app-release-debug-signed-${{ github.ref_name }}
+          path: app/build/outputs/apk/release/app-release.apk
+          if-no-files-found: error
+
+      - name: Publish GitHub prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        shell: bash
+        run: |
+          if ! gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release create "$RELEASE_TAG" \
+              --verify-tag \
+              --title "DiuAppChat $RELEASE_TAG (debug-signed)" \
+              --prerelease \
+              --notes "Test build signed with a debug key. Not for production. Signing keys may differ between runs; uninstalling the previous app may be required and will delete its local data."
+          fi
+          gh release upload "$RELEASE_TAG" \
+            app/build/outputs/apk/release/app-release.apk \
+            --clobber
