@@ -2,6 +2,7 @@ package com.uzuu.diuchat.feature.base.common.res
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
@@ -14,6 +15,7 @@ import androidx.compose.runtime.CompositionLocalProvider
  * 1. Cung cấp [AppColors] (custom tokens của Dịu) qua [LocalAppColors].
  * 2. Ánh xạ vào Material 3 [ColorScheme] để các M3 component (Button, Card, Scaffold,...)
  *    tự động sử dụng đúng sắc thái.
+ * 3. Cung cấp typography dùng chung với font Be Vietnam Pro.
  *
  * Usage:
  * ```kotlin
@@ -90,6 +92,7 @@ fun AppTheme(
     CompositionLocalProvider(LocalAppColors provides appColors) {
         MaterialTheme(
             colorScheme = materialColorScheme,
+            typography = DiuTypography,
             content = content,
         )
     }
@@ -108,6 +111,11 @@ fun AppTheme(
  * ```
  */
 object AppTheme {
+    /** Shared Material type styles, all using Be Vietnam Pro. */
+    val typography: Typography
+        @Composable
+        get() = MaterialTheme.typography
+
     /**
      * Bộ màu hiện tại theo theme (Light hoặc Dark).
      * Phải được gọi bên trong @Composable scope.

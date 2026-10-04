@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.navigation.NavController
 import androidx.navigation.NavDestination
 import androidx.navigation.compose.NavHost
@@ -16,9 +17,7 @@ import com.uzuu.diuchat.app.BuildConfig
 import com.uzuu.diuchat.app.presentation.util.NavigationDestinationLogger
 import com.uzuu.diuchat.feature.album.presentation.screen.albumdetail.AlbumDetailScreen
 import com.uzuu.diuchat.feature.album.presentation.screen.albumlist.AlbumListScreen
-import com.uzuu.diuchat.feature.favourite.presentation.screen.favourite.FavouriteScreen
-import com.uzuu.diuchat.feature.settings.presentation.screen.aboutlibraries.AboutLibrariesScreen
-import com.uzuu.diuchat.feature.settings.presentation.screen.settings.SettingsScreen
+import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuAmbientBackground
 
 @Composable
 fun MainShowcaseScreen(modifier: Modifier = Modifier) {
@@ -29,10 +28,12 @@ fun MainShowcaseScreen(modifier: Modifier = Modifier) {
         addOnDestinationChangedListener(navController)
     }
 
-    Scaffold(
-        modifier = modifier.fillMaxSize(),
-        bottomBar = { BottomNavigationBar(navController) }, // thanh bottom nav
-    ) { innerPadding ->
+    DiuAmbientBackground(modifier = modifier) {
+        Scaffold(
+            modifier = Modifier.fillMaxSize(),
+            containerColor = Color.Transparent,
+            bottomBar = { BottomNavigationBar(navController) }, // thanh bottom nav
+        ) { innerPadding ->
         NavHost(
             navController = navController,
             startDestination = NavigationRoute.AlbumList,
@@ -61,23 +62,24 @@ fun MainShowcaseScreen(modifier: Modifier = Modifier) {
                     },
                 )
             }
-            composable<NavigationRoute.Favourites> {
-                FavouriteScreen()
-            }
-            composable<NavigationRoute.Settings> {
-                SettingsScreen(
-                    onNavigateToAboutLibraries = {
-                        navController.navigate(NavigationRoute.AboutLibraries)
-                    },
-                )
-            }
-            composable<NavigationRoute.AboutLibraries> {
-                AboutLibrariesScreen(
-                    onBackClick = {
-                        navController.popBackStack()
-                    },
-                )
-            }
+//            composable<NavigationRoute.Favourites> {
+//                FavouriteScreen()
+//            }
+//            composable<NavigationRoute.Settings> {
+//                SettingsScreen(
+//                    onNavigateToAboutLibraries = {
+//                        navController.navigate(NavigationRoute.AboutLibraries)
+//                    },
+//                )
+//            }
+//            composable<NavigationRoute.AboutLibraries> {
+//                AboutLibrariesScreen(
+//                    onBackClick = {
+//                        navController.popBackStack()
+//                    },
+//                )
+//            }
+        }
         }
     }
 }

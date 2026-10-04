@@ -7,7 +7,6 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -32,20 +31,16 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.uzuu.diuchat.feature.base.common.res.AppTheme
+import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuAmbientBackground
 import com.uzuu.onboarding.presentation.composable.OnBoardingIllustration
 import com.uzuu.onboarding.presentation.composable.OnBoardingIndicator
 import kotlinx.coroutines.launch
@@ -75,23 +70,26 @@ fun OnBoardingScreen(
     onFinish: () -> Unit,
     viewModel: OnBoardingViewModel = koinViewModel(),
 ) {
-    val uiState by viewModel.uiStateFlow.collectAsStateWithLifecycle()
+    OnBoardingContent(onFinish = onFinish, onPageChanged = viewModel::onPageChanged)
+}
+
+@Composable
+private fun OnBoardingContent(
+    onFinish: () -> Unit,
+    onPageChanged: (Int) -> Unit = {},
+) {
     val pagerState = rememberPagerState(pageCount = { pages.size })
     val scope = rememberCoroutineScope()
     val colors = AppTheme.colors
 
     // Đồng bộ: vuốt trang → ViewModel
-    LaunchedEffect(pagerState) {
+    LaunchedEffect(pagerState, onPageChanged) {
         snapshotFlow { pagerState.currentPage }.collect { page ->
-            viewModel.onPageChanged(page)
+            onPageChanged(page)
         }
     }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(colors.background),
-    ) {
+    Box(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -108,12 +106,13 @@ fun OnBoardingScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                // Logo "dịu" chữ nghiêng serif
+                // Logo "dịu" dùng font chung, biến thể italic
                 Text(
                     text = "dịu",
-                    fontSize = 26.sp,
-                    fontStyle = FontStyle.Italic,
-                    fontWeight = FontWeight.Normal,
+                    style = AppTheme.typography.displaySmall.copy(
+                        fontSize = 26.sp,
+                        fontStyle = FontStyle.Italic,
+                    ),
                     color = colors.ink,
                 )
 
@@ -121,7 +120,7 @@ fun OnBoardingScreen(
                 TextButton(onClick = onFinish) {
                     Text(
                         text = "Bỏ qua",
-                        fontSize = 14.sp,
+                        style = AppTheme.typography.bodyMedium.copy(fontSize = 14.sp),
                         color = colors.inkSecondary,
                     )
                 }
@@ -166,18 +165,14 @@ fun OnBoardingScreen(
                         ) {
                             Text(
                                 text = p.title,
-                                fontSize = 34.sp,
-                                fontStyle = FontStyle.Normal,
-                                fontWeight = FontWeight.Normal,
-                                lineHeight = 40.sp,
+                                style = AppTheme.typography.displayMedium,
                                 color = colors.ink,
                                 modifier = Modifier.padding(bottom = 12.dp),
                             )
                             Text(
                                 text = p.subtitle,
-                                fontSize = 15.sp,
+                                style = AppTheme.typography.bodyMedium,
                                 color = colors.inkSecondary,
-                                lineHeight = 22.sp,
                             )
                         }
                     }
@@ -233,6 +228,8 @@ fun OnBoardingScreen(
 @Composable
 private fun OnBoardingScreenPreview() {
     AppTheme {
-        OnBoardingScreen(onFinish = {})
+        DiuAmbientBackground {
+            OnBoardingContent(onFinish = {})
+        }
     }
 }

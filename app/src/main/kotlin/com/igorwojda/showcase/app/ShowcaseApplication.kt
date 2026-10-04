@@ -3,6 +3,7 @@ package com.uzuu.diuchat.app
 import android.app.Application
 import com.uzuu.diuchat.app.di.appModule
 import com.uzuu.diuchat.feature.album.featureAlbumModules
+import com.uzuu.onboarding.featureOnboardingModules
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
 import org.koin.core.context.GlobalContext
@@ -23,6 +24,7 @@ class ShowcaseApplication : Application() {
 
             modules(appModule)
             modules(featureAlbumModules)
+            modules(featureOnboardingModules)
         }
     }
 
