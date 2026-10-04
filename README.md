@@ -1,16 +1,31 @@
-# 💎 Android Showcase 2.0
+<p align="center">
+  <img src="misc/image/icon_logo.png" width="160" alt="DiuAppChat app logo" />
+</p>
 
-[![Kotlin Version](https://img.shields.io/badge/Kotlin-2.x-blue.svg)](https://kotlinlang.org)
-[![AGP](https://img.shields.io/badge/AGP-8.x-blue?style=flat)](https://developer.android.com/studio/releases/gradle-plugin)
-[![Gradle](https://img.shields.io/badge/Gradle-9.x-blue?style=flat)](https://gradle.org)
-[![CodeFactor](https://www.codefactor.io/repository/github/igorwojda/android-showcase/badge)](https://www.codefactor.io/repository/github/igorwojda/android-showcase)
+<h1 align="center" id="diuappchat">DiuAppChat</h1>
 
-A production-ready Android application demonstrating modern development practices and architectural patterns. This project showcases how to build scalable, maintainable, and testable Android applications using industry-standard tools and libraries.
+<p align="center"><b>An Android chat app in development, built with Jetpack Compose and Clean Architecture.</b></p>
 
-Built with **Clean Architecture** principles, this app serves as a comprehensive example of modular design, advanced Gradle configuration, and robust CI/CD practices. Perfect for teams looking to establish solid architectural foundations for large-scale Android projects.
+<p align="center">
+  <a href="https://kotlinlang.org"><img src="https://img.shields.io/badge/Kotlin-2.x-blue.svg" alt="Kotlin" /></a>
+  <a href="https://developer.android.com/jetpack/compose"><img src="https://img.shields.io/badge/UI-Jetpack%20Compose-4285F4" alt="Jetpack Compose" /></a>
+  <a href="https://supabase.com"><img src="https://img.shields.io/badge/Backend-Supabase-3ECF8E" alt="Supabase" /></a>
+  <a href="https://developer.android.com/build/releases/gradle-plugin"><img src="https://img.shields.io/badge/AGP-9.x-blue" alt="Android Gradle Plugin" /></a>
+</p>
 
-- [💎 Android Showcase 2.0](#-android-showcase-20)
+DiuAppChat brings a chat-focused product direction to the modular foundation of [Android Showcase](https://github.com/igorwojda/android-showcase). It retains the base project's **Clean Architecture**, **MVVM + MVI state management**, shared Gradle conventions, testing tools, and CI workflows while developing its own identity and interface.
+
+**Status:** Work in progress. Design previews describe the intended experience, not completed features. The inherited album demo remains part of the codebase alongside the onboarding module and Supabase client setup.
+
+## Table of Contents
+
+- [DiuAppChat](#diuappchat)
   - [Application Scope](#application-scope)
+  - [Key Features](#key-features)
+  - [Interface Gallery](#interface-gallery)
+    - [Expected Interface](#expected-interface)
+    - [Actual Interface](#actual-interface)
+  - [Project Structure](#project-structure)
   - [Tech-Stack](#tech-stack)
   - [Architecture](#architecture)
     - [Module Types and Dependencies](#module-types-and-dependencies)
@@ -46,21 +61,103 @@ Built with **Clean Architecture** principles, this app serves as a comprehensive
 
 ## Application Scope
 
-A music discovery app built with Jetpack Compose that displays album information sourced from the [Last.fm API](https://www.last.fm/api). The application demonstrates real-world scenarios including network requests, local caching, navigation, and state management.
+DiuAppChat is being developed as an Android chat app. The intended interface includes conversations, chat details, calling, settings, and a daily mood screen. These designs are product targets; their presence in this README does not imply working messaging or calling functionality.
 
-**Features:**
-- **Album List** - Browse albums with search functionality
-- **Album Details** - View detailed album information and track listings  
-- **Favorites** - Save preferred albums (WIP)
-- **Profile** - User preferences and settings (WIP)
+The inherited music discovery demo uses the [Last.fm API](https://www.last.fm/api) and provides examples of network requests, local storage, navigation, and state management.
 
-<p>
-  <img src="misc/image/screen_album_list.png" width="250" />
-  <img src="misc/image/screen_album_detail.png" width="250" />
-  <img src="misc/image/screen_favorites.png" width="250" />
-  <img src="misc/image/screen_settings.png" width="250" />
-  <img src="misc/image/screen_open_source_libraries.png" width="250" />
-</p>
+## Key Features
+
+| Foundation | Purpose |
+|------------|---------|
+| **Clean Architecture** | Separate presentation, domain, and data responsibilities. |
+| **Feature modules** | Keep onboarding, album demo, and shared infrastructure organized. |
+| **Jetpack Compose + Material 3** | Declarative UI with dark theme and dynamic theming inherited from the base. |
+| **MVVM + MVI** | Manage UI state with ViewModel, actions, and Kotlin Flow. |
+| **Koin** | Wire app and feature dependencies. |
+| **Retrofit + Room** | Network access and local persistence. |
+| **Supabase client setup** | Backend foundation; feature integration remains in development. |
+| **Quality tooling** | Konsist, unit tests, Detekt, Spotless, Android Lint, and GitHub Actions. |
+
+## Interface Gallery
+
+Click the arrow beside each group to expand its images. All galleries start collapsed to keep this README compact.
+
+### Expected Interface
+
+Design references for the intended app experience, **not screenshots of completed functionality**.
+
+<details>
+  <summary><b>Overview &amp; Start</b></summary>
+
+  <p align="center">
+    <img src="misc/images_expected/basic_screen.png" width="240" alt="Expected interface overview" />
+    <img src="misc/images_expected/start_screen.png" width="240" alt="Expected start screen" />
+  </p>
+</details>
+
+<details>
+  <summary><b>Chat &amp; Details</b></summary>
+
+  <p align="center">
+    <img src="misc/images_expected/chat_screen_1.png" width="240" alt="Expected chat interface, first design" />
+    <img src="misc/images_expected/chat_screen_2.png" width="240" alt="Expected chat interface, second design" />
+    <img src="misc/images_expected/detail_screen.png" width="240" alt="Expected detail screen" />
+  </p>
+</details>
+
+<details>
+  <summary><b>Calling, Settings &amp; Daily Mood</b></summary>
+
+  <p align="center">
+    <img src="misc/images_expected/calling_screen.png" width="240" alt="Expected calling screen" />
+    <img src="misc/images_expected/setting_screen.png" width="240" alt="Expected settings screen" />
+    <img src="misc/images_expected/mood_day_screen.png" width="240" alt="Expected daily mood screen" />
+  </p>
+</details>
+
+<details>
+  <summary><b>Additional Designs</b></summary>
+
+  <p align="center">
+    <img src="misc/images_expected/additional_screen_1.png" width="240" alt="Additional interface design 1" />
+    <img src="misc/images_expected/additional_screen_2.png" width="240" alt="Additional interface design 2" />
+    <img src="misc/images_expected/additional_screen_3.png" width="240" alt="Additional interface design 3" />
+  </p>
+</details>
+
+### Actual Interface
+
+<details>
+  <summary><b>Current App Screenshots</b></summary>
+
+  No runtime screenshots have been added yet. This section is reserved for captures from the running app, kept separate from design previews.
+
+  <!-- Add runtime captures under misc/images_actual/ once available.
+       Example markup (keep commented until the image exists):
+       <p align="center">
+         <img src="misc/images_actual/chat_screen.png" width="240" alt="Actual chat screen captured from the running app" />
+       </p>
+  -->
+</details>
+
+## Project Structure
+
+```text
+DiuAppChat/
+├── app/                  # Application entry point, navigation, DI, backend clients
+├── feature/
+│   ├── base/             # Shared UI, state handling, networking, and utilities
+│   ├── onboarding/       # Onboarding feature
+│   └── album/            # Inherited music discovery demo
+├── library/test-utils/   # Shared testing utilities
+├── konsist-test/         # Architecture and code convention tests
+├── build-logic/          # Gradle convention plugins
+├── gradle/               # Wrapper and dependency version catalog
+├── misc/
+│   ├── image/            # App logo and inherited architecture diagrams
+│   └── images_expected/  # Intended interface designs
+└── .github/workflows/    # CI and review automation
+```
 
 ## Tech-Stack
 
@@ -157,9 +254,13 @@ The project implements **Clean Architecture** with a modular approach, treating 
 
 **Module Types:**
 - **`app`** - Main application module containing navigation setup, DI configuration, and app-level components
-- **`feature-*`** - Feature modules (album, profile, favourite) containing feature-specific business logic  
-- **`feature-base`** - Shared foundation module providing common utilities and base classes
-- **`library-*`** - Utility modules for testing and shared functionality
+- **`feature:album`**, **`feature:onboarding`** - Feature-specific presentation, domain, and data code
+- **`feature:base`** - Shared foundation providing common utilities and base classes
+- **`library:test-utils`** - Shared testing utilities
+- **`konsist-test`** - Architecture and code convention checks
+- **`build-logic`** - Shared Gradle convention plugins
+
+> Architecture diagrams below are retained from Android Showcase as foundation references; they may show modules or flows not yet adapted to DiuAppChat.
 
 ### Feature Module Structure
 
@@ -422,23 +523,37 @@ Optional [Git hooks](https://git-scm.com/docs/githooks#_pre_push) can execute qu
 
 ## Project Scope & Limitations
 
-This showcase prioritizes **architecture, tooling, and development practices** over complex UI design. The interface uses Material Design 3 components but remains intentionally straightforward to focus on the underlying technical implementation.
+DiuAppChat retains the base project's focus on **architecture, tooling, and development practices**, while adding a chat-oriented interface direction. Expected designs and actual implementation are tracked separately in the [Interface Gallery](#interface-gallery). Messaging, calling, and mood-related designs should not be treated as shipped features.
 
 ## Getting Started
 
 **Prerequisites:**
-- Android Studio Giraffe | 2022.3.1+ 
-- JDK 17+
-- Android SDK 34+
+- Android Studio compatible with the AGP version in [`libs.versions.toml`](gradle/libs.versions.toml)
+- JDK 17, as configured in the version catalog
+- Android SDK matching `compile-sdk` in the version catalog (currently 37)
+- Device or emulator running Android 9 / API 28 or newer
 
 **Setup:**
-```bash
-# Clone the repository
-git clone https://github.com/igorwojda/android-showcase.git
+1. Clone this repository and open its root folder in Android Studio.
+2. Configure `apiBaseUrl`, `apiToken`, `supabaseUrl`, and `supabaseAnonKey` as Gradle properties. The current BuildConfig helper expects quoted string values:
+   ```properties
+   apiBaseUrl="https://your-api.example/"
+   apiToken="YOUR_API_TOKEN"
+   supabaseUrl="https://YOUR_PROJECT.supabase.co"
+   supabaseAnonKey="YOUR_SUPABASE_PUBLISHABLE_OR_ANON_KEY"
+   ```
+   Use local, untracked configuration for credentials. Existing project-level properties take precedence over user-level `~/.gradle/gradle.properties`; replace or remove conflicting project values locally.
+3. Sync Gradle, select `app`, and run on a device or emulator.
 
-# Open in Android Studio
-# File -> Open -> Select cloned directory
+**Security:** BuildConfig values are embedded in the APK and are not secret storage. Never put a Supabase `service_role` key in the Android client. Enforce access with Row Level Security on the backend.
+
+**Build from the project root:**
+```bash
+./gradlew :app:assembleDebug
 ```
+On Windows PowerShell, use `.\gradlew.bat :app:assembleDebug`.
+
+See [DeveloperReadme.md](DeveloperReadme.md) for inherited tooling notes and known issues.
 
 **Recommended IDE Plugins:**
 - [Detekt](https://plugins.jetbrains.com/plugin/10761-detekt) - Configure with [detekt.yml](detekt.yml)
@@ -447,7 +562,12 @@ git clone https://github.com/igorwojda/android-showcase.git
 
 ## Roadmap
 
-Active development continues with focus on modern Android practices. View planned [enhancements](https://github.com/igorwojda/android-showcase/issues?q=is%3Aissue+is%3Aopen+sort%3Aupdated-desc+label%3Aenhancement) and contribute ideas.
+- [ ] Adapt the expected chat designs into Compose screens.
+- [ ] Connect chat features to the backend with appropriate authentication and access policies.
+- [ ] Add runtime screenshots to the Actual Interface gallery.
+- [ ] Expand tests as chat functionality is introduced.
+
+These are planned directions, not completed capabilities.
 
 ## Resources
 
@@ -476,7 +596,7 @@ Active development continues with focus on modern Android practices. View planne
 Contributions are welcome! Please check the [CONTRIBUTING.md](CONTRIBUTING.md) guidelines before submitting PRs.
 
 **Areas for Contribution:**
-- Feature implementations (Profile, Favorites screens)
+- Chat and onboarding feature development
 - UI/UX improvements and animations  
 - Performance optimizations
 - Testing coverage expansion
@@ -484,10 +604,11 @@ Contributions are welcome! Please check the [CONTRIBUTING.md](CONTRIBUTING.md) g
 
 ## Author
 
-**Igor Wojda** - Senior Android Engineer
+**DiuAppChat** is developed in this repository, based on [Android Showcase](https://github.com/igorwojda/android-showcase) by **[Igor Wojda](https://github.com/igorwojda)**. Credit for the original architecture, tooling, and inherited documentation remains with the upstream project.
 
-[![Twitter Follow](https://img.shields.io/twitter/follow/igorwojda?style=social)](https://twitter.com/igorwojda)
-[![GitHub](https://img.shields.io/github/followers/igorwojda?style=social)](https://github.com/igorwojda)
+## License
+
+Preserve the upstream license and copyright notices when reusing or distributing inherited code. Third-party libraries and animation assets retain their own licenses.
 
 ## Animations License
 
@@ -495,5 +616,3 @@ Flowing animations are distributed under `Creative Commons License 2.0`:
 
 - [Error screen](https://lottiefiles.com/8049-error-screen) by Chetan Potnuru
 - [Building Screen](https://lottiefiles.com/1271-building-screen) by Carolina Cajazeira
-#   D i u _ A p p _ C h a t  
- 
