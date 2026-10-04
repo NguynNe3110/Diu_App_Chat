@@ -29,14 +29,14 @@ android {
 }
 
 dependencies {
-    // "projects." Syntax utilizes Gradle TYPESAFE_PROJECT_ACCESSORS feature
-    implementation(projects.feature.base)
-    implementation(projects.feature.album)
-    implementation(projects.feature.settings)
-    implementation(projects.feature.favourite)
-
     // Supabase
     implementation(platform(libs.supabase.bom))
     implementation(libs.bundles.supabase)
     implementation(libs.ktor.client.okhttp)
+
+    // "projects." Syntax utilizes Gradle TYPESAFE_PROJECT_ACCESSORS feature
+    implementation(projects.feature.base)
+    implementation(projects.feature.album)
+    implementation(projects.feature.onboarding)
+
 }

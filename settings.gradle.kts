@@ -3,8 +3,6 @@ rootProject.name = "DiuAppChat"
 include(
     ":app",
     ":feature:album",
-    ":feature:settings",
-    ":feature:favourite",
     ":feature:base",
     ":library:test-utils",
     ":konsist-test",
@@ -34,3 +32,5 @@ dependencyResolutionManagement {
 // Before: implementation(project(":feature_album"))
 // After: implementation(projects.featureAlbum)
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
+
+include(":feature:onboarding")
