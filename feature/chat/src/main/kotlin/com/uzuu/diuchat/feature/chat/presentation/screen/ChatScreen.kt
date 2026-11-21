@@ -40,11 +40,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.uzuu.diuchat.feature.base.common.res.AppTheme
+import com.uzuu.diuchat.feature.chat.domain.model.ChatMessage
 import com.uzuu.diuchat.feature.chat.domain.model.Conversation
+import com.uzuu.diuchat.feature.chat.domain.model.MessageStatus
+import com.uzuu.diuchat.feature.chat.domain.model.MoodType
 import com.uzuu.diuchat.feature.chat.domain.model.VoiceRecordingState
 import com.uzuu.diuchat.feature.chat.presentation.composable.ChatComposer
 import com.uzuu.diuchat.feature.chat.presentation.composable.ForwardDialog
@@ -132,6 +136,85 @@ fun ChatScreen(
         return
     }
 
+    ChatContent(
+        state = state,
+        onBackClick = onBackClick,
+        onOpenChatInfo = { viewModel.onOpenChatInfo(true) },
+        onOpenNewGroup = { viewModel.onOpenNewGroup(true) },
+        onUnpinCurrentMessage = viewModel::onUnpinCurrentMessage,
+        onCancelReply = viewModel::onCancelReply,
+        onCancelVoiceRecording = viewModel::onCancelVoiceRecording,
+        onStopVoiceRecording = { viewModel.onStopVoiceRecording() },
+        onSendVoiceMessage = viewModel::onSendVoiceMessage,
+        onTogglePreviewPlay = viewModel::onTogglePreviewPlay,
+        onInputChange = viewModel::onInputChanged,
+        onSelectMood = viewModel::onSelectMood,
+        onToggleMoodTray = viewModel::onToggleMoodTray,
+        onAttachPhotoClick = {
+            try {
+                photoPickerLauncher.launch(
+                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
+                )
+            } catch (_: Exception) {
+                viewModel.onPhotoSelected("https://picsum.photos/400/300")
+            }
+        },
+        onClearPhoto = viewModel::onClearPhoto,
+        onStartVoiceRecording = viewModel::onStartVoiceRecording,
+        onSendMessage = viewModel::onSendMessage,
+        onReplyToMessage = viewModel::onReplyToMessage,
+        onToggleAudioPlayback = viewModel::onToggleAudioPlayback,
+        onToggleReaction = viewModel::onToggleReaction,
+        onOpenReactionDetail = viewModel::onOpenReactionDetail,
+        onCloseReactionDetail = viewModel::onCloseReactionDetail,
+        onTogglePinMessage = viewModel::onTogglePinMessage,
+        onOpenForwardDialog = viewModel::onOpenForwardDialog,
+        onCloseForwardDialog = viewModel::onCloseForwardDialog,
+        onConfirmForward = viewModel::onConfirmForward,
+        modifier = modifier,
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ChatContent(
+    state: ChatUiState,
+    onBackClick: () -> Unit,
+    onOpenChatInfo: () -> Unit = {},
+    onOpenNewGroup: () -> Unit = {},
+    onUnpinCurrentMessage: () -> Unit = {},
+    onCancelReply: () -> Unit = {},
+    onCancelVoiceRecording: () -> Unit = {},
+    onStopVoiceRecording: () -> Unit = {},
+    onSendVoiceMessage: () -> Unit = {},
+    onTogglePreviewPlay: () -> Unit = {},
+    onInputChange: (String) -> Unit = {},
+    onSelectMood: (MoodType) -> Unit = {},
+    onToggleMoodTray: () -> Unit = {},
+    onAttachPhotoClick: () -> Unit = {},
+    onClearPhoto: () -> Unit = {},
+    onStartVoiceRecording: () -> Unit = {},
+    onSendMessage: () -> Unit = {},
+    onReplyToMessage: (ChatMessage) -> Unit = {},
+    onToggleAudioPlayback: (ChatMessage) -> Unit = {},
+    onToggleReaction: (ChatMessage, MoodType) -> Unit = { _, _ -> },
+    onOpenReactionDetail: (ChatMessage) -> Unit = {},
+    onCloseReactionDetail: () -> Unit = {},
+    onTogglePinMessage: (ChatMessage) -> Unit = {},
+    onOpenForwardDialog: (ChatMessage) -> Unit = {},
+    onCloseForwardDialog: () -> Unit = {},
+    onConfirmForward: (List<String>) -> Unit = {},
+    modifier: Modifier = Modifier,
+) {
+    val listState = rememberLazyListState()
+    val partnerMoodColor = Color(state.partnerMood.colorHex)
+
+    LaunchedEffect(state.messages.size) {
+        if (state.messages.isNotEmpty()) {
+            listState.animateScrollToItem(state.messages.size - 1)
+        }
+    }
+
     Scaffold(
         modifier = modifier.fillMaxSize(),
         containerColor = AppTheme.colors.background,
@@ -141,11 +224,10 @@ fun ChatScreen(
                     title = {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.clickable { viewModel.onOpenChatInfo(true) },
+                            modifier = Modifier.clickable { onOpenChatInfo() },
                         ) {
                             Box(
-                                modifier =
-                                Modifier
+                                modifier = Modifier
                                     .size(12.dp)
                                     .clip(CircleShape)
                                     .background(partnerMoodColor),
@@ -187,14 +269,14 @@ fun ChatScreen(
                         }
                     },
                     actions = {
-                        IconButton(onClick = { viewModel.onOpenNewGroup(true) }) {
+                        IconButton(onClick = onOpenNewGroup) {
                             Icon(
                                 imageVector = Icons.Default.GroupAdd,
                                 contentDescription = "Tạo nhóm mới",
                                 tint = AppTheme.colors.ink,
                             )
                         }
-                        IconButton(onClick = { viewModel.onOpenChatInfo(true) }) {
+                        IconButton(onClick = onOpenChatInfo) {
                             Icon(
                                 imageVector = Icons.Default.Info,
                                 contentDescription = "Thông tin hội thoại",
@@ -202,8 +284,7 @@ fun ChatScreen(
                             )
                         }
                     },
-                    colors =
-                    TopAppBarDefaults.topAppBarColors(
+                    colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = AppTheme.colors.surfaceElevated,
                     ),
                 )
@@ -214,7 +295,7 @@ fun ChatScreen(
                         pinnedSnippet = snippet,
                         moodColor = partnerMoodColor,
                         onBarClick = { /* scroll to message */ },
-                        onUnpinClick = viewModel::onUnpinCurrentMessage,
+                        onUnpinClick = onUnpinCurrentMessage,
                     )
                 }
             }
@@ -224,7 +305,7 @@ fun ChatScreen(
                 state.replyingTo?.let { replyingMessage ->
                     ReplyQuoteBar(
                         replyingTo = replyingMessage,
-                        onCancelReply = viewModel::onCancelReply,
+                        onCancelReply = onCancelReply,
                     )
                 }
 
@@ -232,10 +313,10 @@ fun ChatScreen(
                     VoiceRecorderBar(
                         recordingState = state.voiceRecordingState,
                         selectedMood = state.selectedMood,
-                        onCancelRecording = viewModel::onCancelVoiceRecording,
-                        onStopRecording = { viewModel.onStopVoiceRecording() },
-                        onSendVoiceMessage = viewModel::onSendVoiceMessage,
-                        onTogglePreviewPlay = viewModel::onTogglePreviewPlay,
+                        onCancelRecording = onCancelVoiceRecording,
+                        onStopRecording = onStopVoiceRecording,
+                        onSendVoiceMessage = onSendVoiceMessage,
+                        onTogglePreviewPlay = onTogglePreviewPlay,
                     )
                 } else {
                     ChatComposer(
@@ -244,29 +325,20 @@ fun ChatScreen(
                         isMoodTrayOpen = state.isMoodTrayOpen,
                         isSending = state.isSending,
                         pendingPhotoUri = state.pendingPhotoUri,
-                        onInputChange = viewModel::onInputChanged,
-                        onSelectMood = viewModel::onSelectMood,
-                        onToggleMoodTray = viewModel::onToggleMoodTray,
-                        onAttachPhotoClick = {
-                            try {
-                                photoPickerLauncher.launch(
-                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
-                                )
-                            } catch (_: Exception) {
-                                viewModel.onPhotoSelected("https://picsum.photos/400/300")
-                            }
-                        },
-                        onClearPhotoClick = viewModel::onClearPhoto,
-                        onStartVoiceRecording = viewModel::onStartVoiceRecording,
-                        onSendClick = viewModel::onSendMessage,
+                        onInputChange = onInputChange,
+                        onSelectMood = onSelectMood,
+                        onToggleMoodTray = onToggleMoodTray,
+                        onAttachPhotoClick = onAttachPhotoClick,
+                        onClearPhotoClick = onClearPhoto,
+                        onStartVoiceRecording = onStartVoiceRecording,
+                        onSendClick = onSendMessage,
                     )
                 }
             }
         },
     ) { paddingValues ->
         Box(
-            modifier =
-            Modifier
+            modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues),
         ) {
@@ -280,16 +352,14 @@ fun ChatScreen(
                         modifier = Modifier.padding(24.dp),
                     ) {
                         Box(
-                            modifier =
-                            Modifier
+                            modifier = Modifier
                                 .size(48.dp)
                                 .clip(CircleShape)
                                 .background(partnerMoodColor.copy(alpha = 0.2f)),
                             contentAlignment = Alignment.Center,
                         ) {
                             Box(
-                                modifier =
-                                Modifier
+                                modifier = Modifier
                                     .size(24.dp)
                                     .clip(CircleShape)
                                     .background(partnerMoodColor),
@@ -319,14 +389,14 @@ fun ChatScreen(
                     ) { message ->
                         MessageBubble(
                             message = message,
-                            onReplyClick = viewModel::onReplyToMessage,
+                            onReplyClick = onReplyToMessage,
                             isPlayingAudio = state.playingAudioMessageId == message.id,
                             audioProgress = state.audioPlaybackProgress,
-                            onToggleAudioPlayback = viewModel::onToggleAudioPlayback,
-                            onReactionClick = viewModel::onToggleReaction,
-                            onViewReactions = viewModel::onOpenReactionDetail,
-                            onPinClick = viewModel::onTogglePinMessage,
-                            onForwardClick = viewModel::onOpenForwardDialog,
+                            onToggleAudioPlayback = onToggleAudioPlayback,
+                            onReactionClick = onToggleReaction,
+                            onViewReactions = onOpenReactionDetail,
+                            onPinClick = onTogglePinMessage,
+                            onForwardClick = onOpenForwardDialog,
                         )
                     }
                 }
@@ -336,7 +406,7 @@ fun ChatScreen(
             state.activeReactionDetailMessage?.let { detailMsg ->
                 ReactDetailDialog(
                     reactions = detailMsg.reactions,
-                    onDismiss = viewModel::onCloseReactionDetail,
+                    onDismiss = onCloseReactionDetail,
                 )
             }
 
@@ -345,10 +415,46 @@ fun ChatScreen(
                 ForwardDialog(
                     messageToForward = forwardMsg,
                     availableConversations = state.availableConversations,
-                    onDismiss = viewModel::onCloseForwardDialog,
-                    onConfirmForward = viewModel::onConfirmForward,
+                    onDismiss = onCloseForwardDialog,
+                    onConfirmForward = onConfirmForward,
                 )
             }
         }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun ChatScreenPreview() {
+    AppTheme {
+        ChatContent(
+            state = ChatUiState(
+                conversationTitle = "Linh Dịu",
+                partnerMood = MoodType.BINHYEN,
+                messages = listOf(
+                    ChatMessage(
+                        id = "msg_1",
+                        conversationId = "conv_1",
+                        senderId = "partner",
+                        senderName = "Linh",
+                        content = "Hôm nay trời xanh và dịu êm quá!",
+                        mood = MoodType.BINHYEN,
+                        status = MessageStatus.SENT,
+                        isFromMe = false,
+                    ),
+                    ChatMessage(
+                        id = "msg_2",
+                        conversationId = "conv_1",
+                        senderId = "me",
+                        senderName = "Mình",
+                        content = "Thương gửi đến em những tia nắng ấm áp.",
+                        mood = MoodType.THUONG,
+                        status = MessageStatus.SENT,
+                        isFromMe = true,
+                    ),
+                ),
+            ),
+            onBackClick = {},
+        )
     }
 }

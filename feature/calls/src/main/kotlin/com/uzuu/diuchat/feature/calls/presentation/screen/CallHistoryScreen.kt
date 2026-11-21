@@ -30,6 +30,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.uzuu.diuchat.feature.base.common.res.AppIcons
@@ -47,6 +48,24 @@ fun CallHistoryScreen(
     modifier: Modifier = Modifier,
 ) {
     val uiState by viewModel.uiStateFlow.collectAsState()
+
+    CallHistoryContent(
+        uiState = uiState,
+        onNavigateBack = onNavigateBack,
+        onSetFilter = { viewModel.setFilter(it) },
+        onRedial = { viewModel.redial(it) },
+        modifier = modifier,
+    )
+}
+
+@Composable
+fun CallHistoryContent(
+    uiState: CallHistoryUiState,
+    onNavigateBack: () -> Unit,
+    onSetFilter: (CallHistoryFilter) -> Unit,
+    onRedial: (CallLog) -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val colors = AppTheme.colors
 
     Column(
@@ -75,7 +94,7 @@ fun CallHistoryScreen(
         ) {
             Tab(
                 selected = uiState.filter == CallHistoryFilter.ALL,
-                onClick = { viewModel.setFilter(CallHistoryFilter.ALL) },
+                onClick = { onSetFilter(CallHistoryFilter.ALL) },
                 text = {
                     Text(
                         text = "Tất cả",
@@ -85,7 +104,7 @@ fun CallHistoryScreen(
             )
             Tab(
                 selected = uiState.filter == CallHistoryFilter.MISSED,
-                onClick = { viewModel.setFilter(CallHistoryFilter.MISSED) },
+                onClick = { onSetFilter(CallHistoryFilter.MISSED) },
                 text = {
                     Text(
                         text = "Cuộc gọi nhỡ",
@@ -121,7 +140,7 @@ fun CallHistoryScreen(
                 items(uiState.filteredLogs, key = { it.id }) { log ->
                     CallHistoryItem(
                         log = log,
-                        onRedial = { viewModel.redial(log) },
+                        onRedial = { onRedial(log) },
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                 }
@@ -207,5 +226,43 @@ private fun CallHistoryItem(
                 modifier = Modifier.size(18.dp),
             )
         }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun CallHistoryScreenPreview() {
+    AppTheme {
+        CallHistoryContent(
+            uiState = CallHistoryUiState(
+                callLogs = listOf(
+                    CallLog(
+                        id = "log_1",
+                        callId = "call_1",
+                        peerId = "peer_1",
+                        peerName = "Linh Dịu",
+                        type = CallType.AUDIO,
+                        isIncoming = true,
+                        durationSeconds = 180,
+                        timestampEpochMs = 1_700_000_000_000L,
+                        endReason = CallEndReason.COMPLETED,
+                    ),
+                    CallLog(
+                        id = "log_2",
+                        callId = "call_2",
+                        peerId = "peer_2",
+                        peerName = "Minh Trí",
+                        type = CallType.VIDEO,
+                        isIncoming = false,
+                        durationSeconds = 0,
+                        timestampEpochMs = 1_699_990_000_000L,
+                        endReason = CallEndReason.MISSED,
+                    ),
+                ),
+            ),
+            onNavigateBack = {},
+            onSetFilter = {},
+            onRedial = {},
+        )
     }
 }

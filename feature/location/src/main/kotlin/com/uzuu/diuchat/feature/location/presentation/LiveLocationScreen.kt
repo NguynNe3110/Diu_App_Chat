@@ -19,6 +19,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.uzuu.diuchat.feature.base.common.res.AppIcons
 import com.uzuu.diuchat.feature.base.common.res.AppTheme
@@ -28,6 +29,8 @@ import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuCard
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuIconButton
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuInlineNotice
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuTopBar
+import com.uzuu.diuchat.feature.location.domain.model.LiveLocationSession
+import com.uzuu.diuchat.feature.location.domain.model.LocationSnapshot
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
@@ -155,5 +158,34 @@ fun LiveLocationContent(
                 }
             }
         }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun LiveLocationScreenPreview() {
+    AppTheme {
+        LiveLocationContent(
+            uiState = LiveLocationUiState(
+                session = LiveLocationSession(
+                    sessionId = "live_1",
+                    conversationId = "conv_1",
+                    userId = "user_1",
+                    userName = "Minh",
+                    durationMinutes = 60,
+                    isActive = true,
+                    lastKnownLocation = LocationSnapshot(
+                        latitude = 21.0285,
+                        longitude = 105.8542,
+                        accuracyMeters = 10f,
+                        address = "Hồ Gươm, Hà Nội",
+                    ),
+                ),
+                isSharingActive = true,
+            ),
+            sessionId = "live_1",
+            onBackClick = {},
+            onStopSharing = {},
+        )
     }
 }

@@ -29,6 +29,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.uzuu.diuchat.feature.base.common.res.AppTheme
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuButton
@@ -220,5 +221,28 @@ fun MoodCheckinSheet(
                 )
             }
         }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun MoodCheckinSheetPreview() {
+    AppTheme {
+        MoodCheckinSheet(
+            selectedMood = JournalMoodType.BINH_YEN,
+            note = "Một ngày êm dịu và lòng thảnh thơi.",
+            allowlist = setOf("minh", "me"),
+            availableContacts = listOf(
+                "minh" to "Minh",
+                "me" to "Mẹ",
+                "thao" to "Thảo",
+            ),
+            isSaving = false,
+            onSelectMood = {},
+            onChangeNote = {},
+            onToggleContact = {},
+            onSaveClick = {},
+            onDismissRequest = {},
+        )
     }
 }

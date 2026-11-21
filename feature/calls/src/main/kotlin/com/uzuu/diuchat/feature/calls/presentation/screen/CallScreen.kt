@@ -19,10 +19,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.uzuu.diuchat.feature.base.common.res.AppTheme
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuOrbAvatar
+import com.uzuu.diuchat.feature.calls.domain.model.CallSession
 import com.uzuu.diuchat.feature.calls.domain.model.CallStatus
 import com.uzuu.diuchat.feature.calls.domain.model.CallType
 import com.uzuu.diuchat.feature.calls.presentation.composable.CallControls
@@ -36,6 +38,37 @@ fun CallScreen(
     modifier: Modifier = Modifier,
 ) {
     val uiState by viewModel.uiStateFlow.collectAsState()
+
+    CallContent(
+        uiState = uiState,
+        onAcceptCall = { viewModel.acceptIncomingCall() },
+        onRejectCall = { viewModel.rejectIncomingCall() },
+        onToggleMic = { viewModel.toggleMicrophone() },
+        onToggleSpeaker = { viewModel.toggleSpeakerphone() },
+        onToggleVideo = { viewModel.toggleCameraVideo() },
+        onFlipCamera = { viewModel.flipCamera() },
+        onToggleMinimize = { viewModel.toggleOverlayMinimized() },
+        onHangUp = {
+            viewModel.hangUpCall()
+            onNavigateBack()
+        },
+        modifier = modifier,
+    )
+}
+
+@Composable
+fun CallContent(
+    uiState: CallUiState,
+    onAcceptCall: () -> Unit,
+    onRejectCall: () -> Unit,
+    onToggleMic: () -> Unit,
+    onToggleSpeaker: () -> Unit,
+    onToggleVideo: () -> Unit,
+    onFlipCamera: () -> Unit,
+    onToggleMinimize: () -> Unit,
+    onHangUp: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val session = uiState.callSession
     val colors = AppTheme.colors
 
@@ -60,8 +93,8 @@ fun CallScreen(
             Box(modifier = Modifier.fillMaxSize()) {
                 IncomingCallBanner(
                     session = session,
-                    onAccept = { viewModel.acceptIncomingCall() },
-                    onDecline = { viewModel.rejectIncomingCall() },
+                    onAccept = onAcceptCall,
+                    onDecline = onRejectCall,
                     modifier = Modifier.align(Alignment.Center),
                 )
             }
@@ -141,8 +174,8 @@ fun CallScreen(
                     VideoOverlay(
                         isMinimized = uiState.isOverlayMinimized,
                         isFrontCamera = uiState.isFrontCamera,
-                        onToggleMinimize = { viewModel.toggleOverlayMinimized() },
-                        onFlipCamera = { viewModel.flipCamera() },
+                        onToggleMinimize = onToggleMinimize,
+                        onFlipCamera = onFlipCamera,
                         modifier = Modifier
                             .align(Alignment.TopEnd)
                             .padding(top = 48.dp, end = 20.dp),
@@ -154,19 +187,48 @@ fun CallScreen(
                     isMuted = uiState.isMuted,
                     isSpeakerOn = uiState.isSpeakerOn,
                     isVideoEnabled = uiState.isVideoEnabled,
-                    onToggleMic = { viewModel.toggleMicrophone() },
-                    onToggleSpeaker = { viewModel.toggleSpeakerphone() },
-                    onToggleVideo = { viewModel.toggleCameraVideo() },
-                    onFlipCamera = { viewModel.flipCamera() },
-                    onHangUp = {
-                        viewModel.hangUpCall()
-                        onNavigateBack()
-                    },
+                    onToggleMic = onToggleMic,
+                    onToggleSpeaker = onToggleSpeaker,
+                    onToggleVideo = onToggleVideo,
+                    onFlipCamera = onFlipCamera,
+                    onHangUp = onHangUp,
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .padding(bottom = 32.dp),
                 )
             }
         }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun CallScreenPreview() {
+    AppTheme {
+        CallContent(
+            uiState = CallUiState(
+                callSession = CallSession(
+                    callId = "call_preview_1",
+                    callerId = "u1",
+                    callerName = "Minh",
+                    calleeId = "u2",
+                    calleeName = "Linh Dịu",
+                    status = CallStatus.ACTIVE,
+                    type = CallType.AUDIO,
+                    isIncoming = false,
+                    durationSeconds = 125,
+                ),
+                formattedDuration = "02:05",
+                connectionQuality = "HD",
+            ),
+            onAcceptCall = {},
+            onRejectCall = {},
+            onToggleMic = {},
+            onToggleSpeaker = {},
+            onToggleVideo = {},
+            onFlipCamera = {},
+            onToggleMinimize = {},
+            onHangUp = {},
+        )
     }
 }
