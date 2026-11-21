@@ -1,8 +1,16 @@
 package com.uzuu.diuchat.feature.contacts.data.repository
 
+import com.uzuu.diuchat.feature.contacts.data.datasource.api.model.ConnectionRequestDto
+import com.uzuu.diuchat.feature.contacts.data.datasource.api.model.ContactDto
+import com.uzuu.diuchat.feature.contacts.data.datasource.api.model.InviteLinkDto
+import com.uzuu.diuchat.feature.contacts.data.datasource.api.response.ContactsSyncResponse
+import com.uzuu.diuchat.feature.contacts.data.datasource.api.service.ContactsSupabaseService
+import com.uzuu.diuchat.feature.contacts.data.datasource.api.service.ContactsSupabaseServiceImpl
 import com.uzuu.diuchat.feature.contacts.data.datasource.database.dao.ContactDao
 import com.uzuu.diuchat.feature.contacts.data.datasource.database.entity.ConnectionRequestEntity
 import com.uzuu.diuchat.feature.contacts.data.datasource.database.entity.ContactEntity
+import com.uzuu.diuchat.feature.contacts.data.mapper.ConnectionRequestMapper
+import com.uzuu.diuchat.feature.contacts.data.mapper.ContactMapper
 import com.uzuu.diuchat.feature.contacts.domain.model.ContactCircle
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -14,12 +22,17 @@ import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
 import org.amshove.kluent.shouldBeEqualTo
+import org.amshove.kluent.shouldBeFalse
+import org.amshove.kluent.shouldBeNull
 import org.amshove.kluent.shouldBeTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 
 class ContactsRepositoryImplTest {
     private val contactDao: ContactDao = mockk(relaxed = true)
+    private val contactsSupabaseService: ContactsSupabaseService = mockk(relaxed = true)
+    private val contactMapper = ContactMapper()
+    private val connectionRequestMapper = ConnectionRequestMapper()
     private val testDispatcher = StandardTestDispatcher()
     private val testScope = TestScope(testDispatcher)
 
@@ -53,11 +66,16 @@ class ContactsRepositoryImplTest {
     fun setUp() {
         coEvery { contactDao.getCount() } returns 1
         coEvery { contactDao.getRequestCount() } returns 1
+        coEvery { contactsSupabaseService.syncContacts() } returns null
+        coEvery { contactsSupabaseService.fetchMyInviteLink() } returns null
         every { contactDao.observeContacts() } returns flowOf(listOf(testContactEntity))
         every { contactDao.observeRequests() } returns flowOf(listOf(testRequestEntity))
 
         sut = ContactsRepositoryImpl(
             contactDao = contactDao,
+            contactsSupabaseService = contactsSupabaseService,
+            contactMapper = contactMapper,
+            connectionRequestMapper = connectionRequestMapper,
             coroutineScope = testScope,
         )
     }
@@ -81,13 +99,14 @@ class ContactsRepositoryImplTest {
     }
 
     @Test
-    fun `respondToRequest with accept delegates to acceptConnectionRequest`() = runTest {
+    fun `respondToRequest with accept delegates to service and acceptConnectionRequest`() = runTest {
         coEvery { contactDao.getRequestById("req_1") } returns testRequestEntity
 
         val result = sut.respondToRequest("req_1", accept = true, circle = ContactCircle.LOVE)
 
         result.isSuccess.shouldBeTrue()
         coVerify(exactly = 1) {
+            contactsSupabaseService.respondToRequest("req_1", true, "LOVE")
             contactDao.acceptConnectionRequest(
                 "req_1",
                 match {
@@ -98,13 +117,14 @@ class ContactsRepositoryImplTest {
     }
 
     @Test
-    fun `respondToRequest with decline delegates to deleteRequest`() = runTest {
+    fun `respondToRequest with decline delegates to service and deleteRequest`() = runTest {
         coEvery { contactDao.getRequestById("req_1") } returns testRequestEntity
 
         val result = sut.respondToRequest("req_1", accept = false, circle = ContactCircle.FRIENDS)
 
         result.isSuccess.shouldBeTrue()
         coVerify(exactly = 1) {
+            contactsSupabaseService.respondToRequest("req_1", false, "FRIENDS")
             contactDao.deleteRequest("req_1")
         }
     }
@@ -119,12 +139,83 @@ class ContactsRepositoryImplTest {
     }
 
     @Test
-    fun `searchUserByPhone finds matching contact`() = runTest {
+    fun `searchUserByPhone finds matching local contact`() = runTest {
         coEvery { contactDao.getAllContacts() } returns listOf(testContactEntity)
 
         val result = sut.searchUserByPhone("0912345678")
 
         result.isSuccess.shouldBeTrue()
         result.getOrNull()?.id shouldBeEqualTo "c1"
+    }
+
+    @Test
+    fun `searchUserByPhone falls back to remote service when not found locally`() = runTest {
+        coEvery { contactDao.getAllContacts() } returns emptyList()
+        coEvery { contactsSupabaseService.searchUserByPhone("0999888777") } returns ContactDto(
+            id = "remote_c",
+            name = "Remote Friend",
+            initials = "RF",
+            phone = "0999888777",
+            circle = "FRIENDS",
+        )
+
+        val result = sut.searchUserByPhone("0999 888 777")
+
+        result.isSuccess.shouldBeTrue()
+        result.getOrNull()?.id shouldBeEqualTo "remote_c"
+    }
+
+    @Test
+    fun `getMyInviteLink returns remote url when available and falls back otherwise`() = runTest {
+        sut.getMyInviteLink().first() shouldBeEqualTo "diu.vn/linh/7K2M9P"
+
+        coEvery { contactsSupabaseService.fetchMyInviteLink() } returns InviteLinkDto(
+            code = "ABC123",
+            url = "diu.vn/minh/ABC123",
+        )
+        sut.getMyInviteLink().first() shouldBeEqualTo "diu.vn/minh/ABC123"
+    }
+
+    @Test
+    fun `syncOrSeedInitialData inserts remote contacts and requests when sync succeeds`() = runTest {
+        coEvery { contactsSupabaseService.syncContacts() } returns ContactsSyncResponse(
+            contacts = listOf(
+                ContactDto(
+                    id = "c_remote",
+                    name = "Lan",
+                    initials = "L",
+                    phone = "0911000111",
+                    circle = "FAMILY",
+                ),
+            ),
+            pendingRequests = listOf(
+                ConnectionRequestDto(
+                    id = "req_remote",
+                    senderId = "u_remote",
+                    senderName = "Tùng",
+                    senderInitials = "T",
+                    senderPhone = "0922000222",
+                ),
+            ),
+        )
+
+        sut.syncOrSeedInitialData()
+
+        coVerify(exactly = 1) {
+            contactDao.insertAll(match { it.size == 1 && it.first().id == "c_remote" })
+            contactDao.insertAllRequests(match { it.size == 1 && it.first().id == "req_remote" })
+        }
+    }
+
+    @Test
+    fun `ContactsSupabaseServiceImpl handles null supabaseClient safely`() = runTest {
+        val service = ContactsSupabaseServiceImpl(supabaseClient = null)
+
+        service.syncContacts().shouldBeNull()
+        service.fetchContacts().shouldBeNull()
+        service.fetchPendingRequests().shouldBeNull()
+        service.respondToRequest("req_1", true, "FRIENDS").shouldBeFalse()
+        service.searchUserByPhone("0912345678").shouldBeNull()
+        service.fetchMyInviteLink().shouldBeNull()
     }
 }

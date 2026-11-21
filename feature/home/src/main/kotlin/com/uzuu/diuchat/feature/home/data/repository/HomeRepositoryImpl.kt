@@ -2,17 +2,33 @@ package com.uzuu.diuchat.feature.home.data.repository
 
 import androidx.compose.ui.unit.dp
 import com.uzuu.diuchat.feature.base.common.res.AppPalette
+import com.uzuu.diuchat.feature.home.data.datasource.api.service.HomeSupabaseService
+import com.uzuu.diuchat.feature.home.data.mapper.HomeMapper
 import com.uzuu.diuchat.feature.home.domain.model.RecentChat
 import com.uzuu.diuchat.feature.home.domain.model.StarPerson
 import com.uzuu.diuchat.feature.home.domain.repository.HomeRepository
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 
-class HomeRepositoryImpl : HomeRepository {
+class HomeRepositoryImpl(
+    private val homeSupabaseService: HomeSupabaseService,
+    private val homeMapper: HomeMapper,
+    coroutineScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
+) : HomeRepository {
     private val starsState = MutableStateFlow(seedStars())
     private val recentChatsState = MutableStateFlow(seedRecentChats())
+
+    init {
+        coroutineScope.launch {
+            syncFromRemote()
+        }
+    }
 
     override fun getStars(isQuiet: Boolean): Flow<List<StarPerson>> = starsState.map { stars ->
         stars.map { star ->
@@ -21,6 +37,16 @@ class HomeRepositoryImpl : HomeRepository {
     }
 
     override fun getRecentChats(): Flow<List<RecentChat>> = recentChatsState.asStateFlow()
+
+    suspend fun syncFromRemote() {
+        val overview = homeSupabaseService.fetchOverview() ?: return
+        if (overview.stars.isNotEmpty()) {
+            starsState.value = overview.stars.map(homeMapper::toDomain)
+        }
+        if (overview.recentChats.isNotEmpty()) {
+            recentChatsState.value = overview.recentChats.map(homeMapper::toDomain)
+        }
+    }
 
     companion object {
         private fun seedStars(): List<StarPerson> = listOf(
