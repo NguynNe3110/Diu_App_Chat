@@ -13,6 +13,9 @@ interface ConversationDao {
     fun observeConversations(): Flow<List<ConversationEntity>>
 
     @Query("SELECT * FROM conversations WHERE id = :id LIMIT 1")
+    fun observeConversation(id: String): Flow<ConversationEntity?>
+
+    @Query("SELECT * FROM conversations WHERE id = :id LIMIT 1")
     suspend fun getConversation(id: String): ConversationEntity?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)

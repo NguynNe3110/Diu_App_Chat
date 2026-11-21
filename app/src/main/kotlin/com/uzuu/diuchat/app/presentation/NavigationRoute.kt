@@ -53,6 +53,9 @@ sealed interface NavigationRoute {
     data object Settings : NavigationRoute
 
     @Serializable
+    data object Letters : NavigationRoute
+
+    @Serializable
     data object Journal : NavigationRoute
 
     @Serializable

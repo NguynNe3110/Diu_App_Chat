@@ -26,6 +26,7 @@ import com.uzuu.diuchat.feature.contacts.presentation.screen.ContactsScreen
 import com.uzuu.diuchat.feature.home.presentation.HomeScreen
 import com.uzuu.diuchat.feature.journal.presentation.journal.JournalScreen
 import com.uzuu.diuchat.feature.journal.presentation.search.SearchScreen
+import com.uzuu.diuchat.feature.letters.presentation.screen.LettersScreen
 import com.uzuu.diuchat.feature.media.presentation.storage.StorageScreen
 import com.uzuu.diuchat.feature.media.presentation.vault.MediaVaultScreen
 import com.uzuu.diuchat.feature.media.presentation.viewer.PhotoViewerScreen
@@ -165,6 +166,9 @@ fun MainShowcaseScreen(modifier: Modifier = Modifier) {
                 }
                 composable<NavigationRoute.Settings> {
                     SettingsScreen()
+                }
+                composable<NavigationRoute.Letters> {
+                    LettersScreen()
                 }
                 composable<NavigationRoute.Journal> {
                     JournalScreen(

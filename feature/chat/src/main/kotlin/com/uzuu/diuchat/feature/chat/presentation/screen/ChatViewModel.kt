@@ -3,20 +3,37 @@ package com.uzuu.diuchat.feature.chat.presentation.screen
 import androidx.lifecycle.viewModelScope
 import com.uzuu.diuchat.feature.base.presentation.viewmodel.BaseViewModel
 import com.uzuu.diuchat.feature.chat.domain.model.ChatMessage
+import com.uzuu.diuchat.feature.chat.domain.model.Conversation
+import com.uzuu.diuchat.feature.chat.domain.model.GroupError
+import com.uzuu.diuchat.feature.chat.domain.model.GroupRole
 import com.uzuu.diuchat.feature.chat.domain.model.MoodType
 import com.uzuu.diuchat.feature.chat.domain.model.VoiceRecordingState
+import com.uzuu.diuchat.feature.chat.domain.usecase.CreateGroupUseCase
+import com.uzuu.diuchat.feature.chat.domain.usecase.ForwardMessageUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.GetMessagesUseCase
+import com.uzuu.diuchat.feature.chat.domain.usecase.LeaveGroupUseCase
+import com.uzuu.diuchat.feature.chat.domain.usecase.ManageGroupMemberUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.SendMessageUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.SendPhotoMessageUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.SendVoiceMessageUseCase
+import com.uzuu.diuchat.feature.chat.domain.usecase.TogglePinMessageUseCase
+import com.uzuu.diuchat.feature.chat.domain.usecase.ToggleReactionUseCase
+import com.uzuu.diuchat.feature.chat.domain.usecase.UpdateGroupInfoUseCase
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
 
 class ChatViewModel(
+    private val createGroupUseCase: CreateGroupUseCase,
+    private val forwardMessageUseCase: ForwardMessageUseCase,
     private val getMessagesUseCase: GetMessagesUseCase,
+    private val leaveGroupUseCase: LeaveGroupUseCase,
+    private val manageGroupMemberUseCase: ManageGroupMemberUseCase,
     private val sendMessageUseCase: SendMessageUseCase,
     private val sendPhotoMessageUseCase: SendPhotoMessageUseCase,
     private val sendVoiceMessageUseCase: SendVoiceMessageUseCase,
+    private val togglePinMessageUseCase: TogglePinMessageUseCase,
+    private val toggleReactionUseCase: ToggleReactionUseCase,
+    private val updateGroupInfoUseCase: UpdateGroupInfoUseCase,
 ) : BaseViewModel<ChatUiState, ChatAction>(ChatUiState()) {
     init {
         loadMessages()
@@ -59,6 +76,10 @@ class ChatViewModel(
 
     fun onClearPhoto() {
         sendAction(ChatAction.SetPendingPhoto(null))
+    }
+
+    fun onSelectConversation(conversation: Conversation) {
+        sendAction(ChatAction.SetConversation(conversation))
     }
 
     fun onStartVoiceRecording() {
@@ -179,6 +200,130 @@ class ChatViewModel(
                 sendAction(ChatAction.ClearInput)
             } finally {
                 sendAction(ChatAction.SetSending(false))
+            }
+        }
+    }
+
+    // P7 Reactions, Pin, Forward & Groups
+    fun onToggleReaction(message: ChatMessage, mood: MoodType) {
+        viewModelScope.launch {
+            toggleReactionUseCase(message.id, mood)
+        }
+    }
+
+    fun onTogglePinMessage(message: ChatMessage) {
+        val currentConvoId = uiStateFlow.value.conversationId
+        viewModelScope.launch {
+            togglePinMessageUseCase(currentConvoId, message.id)
+            val updatedSnippet = if (uiStateFlow.value.pinnedSnippet == null) message.content.take(60) else null
+            sendAction(
+                ChatAction.SetConversation(
+                    uiStateFlow.value.currentConversation?.copy(
+                        pinnedMessageId = if (updatedSnippet != null) message.id else null,
+                        pinnedMessageSnippet = updatedSnippet,
+                    ),
+                ),
+            )
+        }
+    }
+
+    fun onUnpinCurrentMessage() {
+        val convo = uiStateFlow.value.currentConversation ?: return
+        val pinnedId = convo.pinnedMessageId ?: return
+        viewModelScope.launch {
+            togglePinMessageUseCase(convo.id, pinnedId)
+            sendAction(
+                ChatAction.SetConversation(
+                    convo.copy(pinnedMessageId = null, pinnedMessageSnippet = null),
+                ),
+            )
+        }
+    }
+
+    fun onOpenReactionDetail(message: ChatMessage) {
+        sendAction(ChatAction.SetActiveReactionDetail(message))
+    }
+
+    fun onCloseReactionDetail() {
+        sendAction(ChatAction.SetActiveReactionDetail(null))
+    }
+
+    fun onOpenForwardDialog(message: ChatMessage) {
+        sendAction(ChatAction.SetActiveForwardMessage(message))
+    }
+
+    fun onCloseForwardDialog() {
+        sendAction(ChatAction.SetActiveForwardMessage(null))
+    }
+
+    fun onConfirmForward(recipientIds: List<String>) {
+        val message = uiStateFlow.value.activeForwardMessage ?: return
+        viewModelScope.launch {
+            forwardMessageUseCase(message, recipientIds)
+            sendAction(ChatAction.SetActiveForwardMessage(null))
+        }
+    }
+
+    fun onOpenChatInfo(isOpen: Boolean) {
+        sendAction(ChatAction.SetChatInfoOpen(isOpen))
+    }
+
+    fun onOpenNewGroup(isOpen: Boolean) {
+        sendAction(ChatAction.SetNewGroupOpen(isOpen))
+    }
+
+    fun onCreateGroup(
+        title: String,
+        mood: MoodType,
+        memberIds: List<String>,
+        onSuccess: (String) -> Unit,
+    ) {
+        viewModelScope.launch {
+            val group = createGroupUseCase(title, mood, memberIds)
+            sendAction(ChatAction.SetNewGroupOpen(false))
+            onSuccess(group.id)
+        }
+    }
+
+    fun onUpdateNickname(nickname: String) {
+        val convo = uiStateFlow.value.currentConversation ?: return
+        viewModelScope.launch {
+            updateGroupInfoUseCase(convo.id, nickname = nickname)
+            sendAction(ChatAction.SetConversation(convo.copy(customNickname = nickname)))
+        }
+    }
+
+    fun onToggleMute(isMuted: Boolean) {
+        val convo = uiStateFlow.value.currentConversation ?: return
+        viewModelScope.launch {
+            updateGroupInfoUseCase(convo.id, isMuted = isMuted)
+            sendAction(ChatAction.SetConversation(convo.copy(isMuted = isMuted)))
+        }
+    }
+
+    fun onManageMemberRole(targetUserId: String, newRole: GroupRole) {
+        val convo = uiStateFlow.value.currentConversation ?: return
+        viewModelScope.launch {
+            manageGroupMemberUseCase(convo.id, targetUserId, newRole = newRole)
+        }
+    }
+
+    fun onRemoveMember(targetUserId: String) {
+        val convo = uiStateFlow.value.currentConversation ?: return
+        viewModelScope.launch {
+            manageGroupMemberUseCase(convo.id, targetUserId, isRemove = true)
+        }
+    }
+
+    fun onLeaveGroup(onSuccess: () -> Unit, onError: (String) -> Unit = {}) {
+        val convo = uiStateFlow.value.currentConversation ?: return
+        viewModelScope.launch {
+            try {
+                leaveGroupUseCase(convo.id)
+                sendAction(ChatAction.SetChatInfoOpen(false))
+                onSuccess()
+            } catch (e: GroupError.LastAdminCannotLeave) {
+                onError(e.message ?: "DEC-07: Quản trị viên cuối cùng không thể rời nhóm.")
             }
         }
     }

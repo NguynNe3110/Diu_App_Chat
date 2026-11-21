@@ -3,6 +3,7 @@ package com.uzuu.diuchat.feature.chat.presentation.screen
 import androidx.compose.runtime.Immutable
 import com.uzuu.diuchat.feature.base.presentation.viewmodel.BaseState
 import com.uzuu.diuchat.feature.chat.domain.model.ChatMessage
+import com.uzuu.diuchat.feature.chat.domain.model.Conversation
 import com.uzuu.diuchat.feature.chat.domain.model.MoodType
 import com.uzuu.diuchat.feature.chat.domain.model.VoiceRecordingState
 
@@ -22,4 +23,11 @@ data class ChatUiState(
     val pendingPhotoUri: String? = null,
     val playingAudioMessageId: String? = null,
     val audioPlaybackProgress: Float = 0f,
+    val currentConversation: Conversation? = null,
+    val pinnedSnippet: String? = null,
+    val activeReactionDetailMessage: ChatMessage? = null,
+    val activeForwardMessage: ChatMessage? = null,
+    val availableConversations: List<Conversation> = emptyList(),
+    val isChatInfoOpen: Boolean = false,
+    val isNewGroupOpen: Boolean = false,
 ) : BaseState

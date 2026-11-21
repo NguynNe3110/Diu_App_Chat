@@ -22,4 +22,6 @@ data class MessageEntity(
     val audioDurationMs: Long? = null,
     val audioWaveformCsv: String? = null,
     val caption: String? = null,
+    val isPinned: Boolean = false,
+    val reactionsCsv: String? = null,
 )
