@@ -411,4 +411,3 @@ private fun AuthScreenOtpVerificationPreview() {
         }
     }
 }
-

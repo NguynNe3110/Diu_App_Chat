@@ -37,6 +37,7 @@ import com.uzuu.diuchat.feature.album.R
 import com.uzuu.diuchat.feature.album.domain.model.Tag
 import com.uzuu.diuchat.feature.album.domain.model.Track
 import com.uzuu.diuchat.feature.album.presentation.util.TimeUtil
+import com.uzuu.diuchat.feature.base.common.res.AppTheme
 import com.uzuu.diuchat.feature.base.common.res.Dimen
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.ErrorAnim
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.LoadingIndicator
@@ -190,4 +191,25 @@ private fun TrackItemPreview() {
             duration = 180, // 3 minutes in seconds
         ),
     )
+}
+
+@Preview(name = "Album Detail Content", showBackground = true)
+@Composable
+private fun AlbumDetailContentPreview() {
+    AppTheme {
+        AlbumDetailContent(
+            content = AlbumDetailUiState.Content(
+                albumName = "Melodrama",
+                artistName = "Lorde",
+                tracks = listOf(
+                    Track(name = "Green Light", duration = 234),
+                    Track(name = "Sober", duration = 197),
+                ),
+                tags = listOf(
+                    Tag(name = "Pop"),
+                    Tag(name = "Indie"),
+                ),
+            ),
+        )
+    }
 }
