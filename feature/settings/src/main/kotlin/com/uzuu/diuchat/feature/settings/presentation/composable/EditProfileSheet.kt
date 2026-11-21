@@ -1,42 +1,57 @@
 package com.uzuu.diuchat.feature.settings.presentation.composable
 
+import android.net.Uri
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.PhotoCamera
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.uzuu.diuchat.feature.base.common.res.AppTheme
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuButton
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuFilterChip
+import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuMediaSourceSheet
+import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuOrbAvatar
+import com.uzuu.diuchat.feature.base.presentation.util.rememberMediaPickerController
 import com.uzuu.diuchat.feature.settings.domain.model.UserProfile
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditProfileSheet(
     currentProfile: UserProfile,
-    onSave: (displayName: String, bio: String, birthday: String, primaryMood: String) -> Unit,
+    onSave: (displayName: String, bio: String, birthday: String, primaryMood: String, avatarUrl: String?) -> Unit,
     onDismiss: () -> Unit,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -46,6 +61,14 @@ fun EditProfileSheet(
     var bio by remember { mutableStateOf(currentProfile.bio) }
     var birthday by remember { mutableStateOf(currentProfile.birthday) }
     var primaryMood by remember { mutableStateOf(currentProfile.primaryMood) }
+    var avatarUrl by remember { mutableStateOf(currentProfile.avatarUrl) }
+    var showMediaSourceSheet by remember { mutableStateOf(false) }
+
+    val mediaPickerController = rememberMediaPickerController(
+        onSelectImage = { uri: Uri ->
+            avatarUrl = uri.toString()
+        },
+    )
 
     val moods = listOf("Thương", "Vui", "Bình yên", "Nhớ", "Trầm", "Lo")
 
@@ -68,6 +91,48 @@ fun EditProfileSheet(
                 fontWeight = FontWeight.Bold,
                 color = colors.ink,
             )
+
+            // Ảnh đại diện
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .clip(CircleShape)
+                        .clickable { showMediaSourceSheet = true },
+                    contentAlignment = Alignment.BottomEnd,
+                ) {
+                    DiuOrbAvatar(
+                        initials = displayName.ifEmpty { "L" }.take(1).uppercase(),
+                        moodColor = colors.moods.vui,
+                        size = 80.dp,
+                        avatarUrl = avatarUrl,
+                    )
+                    Surface(
+                        shape = CircleShape,
+                        color = colors.accent,
+                        modifier = Modifier.size(26.dp),
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Outlined.PhotoCamera,
+                                contentDescription = "Đổi ảnh đại diện",
+                                tint = colors.background,
+                                modifier = Modifier.size(14.dp),
+                            )
+                        }
+                    }
+                }
+                TextButton(onClick = { showMediaSourceSheet = true }) {
+                    Text(
+                        text = "Đổi ảnh đại diện",
+                        style = AppTheme.typography.labelMedium,
+                        color = colors.accent,
+                    )
+                }
+            }
 
             // Tên hiển thị
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -162,7 +227,7 @@ fun EditProfileSheet(
 
             DiuButton(
                 onClick = {
-                    onSave(displayName.trim(), bio.trim(), birthday.trim(), primaryMood)
+                    onSave(displayName.trim(), bio.trim(), birthday.trim(), primaryMood, avatarUrl)
                 },
                 modifier = Modifier.fillMaxWidth(),
                 enabled = displayName.isNotBlank(),
@@ -174,6 +239,15 @@ fun EditProfileSheet(
                 )
             }
         }
+    }
+
+    if (showMediaSourceSheet) {
+        DiuMediaSourceSheet(
+            title = "Đổi ảnh đại diện",
+            onPickFromGallery = mediaPickerController::launchPhotoPicker,
+            onTakePhoto = mediaPickerController::launchCamera,
+            onDismiss = { showMediaSourceSheet = false },
+        )
     }
 }
 
@@ -192,7 +266,7 @@ private fun EditProfileSheetPreview() {
                 primaryMood = "Bình yên",
                 avatarUrl = null,
             ),
-            onSave = { _, _, _, _ -> },
+            onSave = { _, _, _, _, _ -> },
             onDismiss = {},
         )
     }

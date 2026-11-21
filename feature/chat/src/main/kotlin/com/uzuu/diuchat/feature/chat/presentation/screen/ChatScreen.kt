@@ -1,9 +1,6 @@
 package com.uzuu.diuchat.feature.chat.presentation.screen
 
 import android.net.Uri
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.PickVisualMediaRequest
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -35,6 +32,9 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -45,6 +45,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.uzuu.diuchat.feature.base.common.res.AppTheme
+import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuMediaSourceSheet
+import com.uzuu.diuchat.feature.base.presentation.util.rememberMediaPickerController
 import com.uzuu.diuchat.feature.chat.domain.model.ChatMessage
 import com.uzuu.diuchat.feature.chat.domain.model.Conversation
 import com.uzuu.diuchat.feature.chat.domain.model.MessageStatus
@@ -74,14 +76,13 @@ fun ChatScreen(
 
     val state by viewModel.uiStateFlow.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
+    var showMediaSourceSheet by remember { mutableStateOf(false) }
 
-    val photoPickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.PickVisualMedia(),
-    ) { uri: Uri? ->
-        if (uri != null) {
+    val mediaPickerController = rememberMediaPickerController(
+        onSelectImage = { uri: Uri ->
             viewModel.onPhotoSelected(uri.toString())
-        }
-    }
+        },
+    )
 
     // Scroll to bottom on new message
     LaunchedEffect(state.messages.size) {
@@ -156,13 +157,7 @@ fun ChatScreen(
         onSelectMood = viewModel::onSelectMood,
         onToggleMoodTray = viewModel::onToggleMoodTray,
         onAttachPhotoClick = {
-            try {
-                photoPickerLauncher.launch(
-                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
-                )
-            } catch (_: Exception) {
-                viewModel.onPhotoSelected("https://picsum.photos/400/300")
-            }
+            showMediaSourceSheet = true
         },
         onClearPhoto = viewModel::onClearPhoto,
         onStartVoiceRecording = viewModel::onStartVoiceRecording,
@@ -178,6 +173,15 @@ fun ChatScreen(
         onConfirmForward = viewModel::onConfirmForward,
         modifier = modifier,
     )
+
+    if (showMediaSourceSheet) {
+        DiuMediaSourceSheet(
+            title = "Gửi ảnh trong trò chuyện",
+            onPickFromGallery = mediaPickerController::launchPhotoPicker,
+            onTakePhoto = mediaPickerController::launchCamera,
+            onDismiss = { showMediaSourceSheet = false },
+        )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

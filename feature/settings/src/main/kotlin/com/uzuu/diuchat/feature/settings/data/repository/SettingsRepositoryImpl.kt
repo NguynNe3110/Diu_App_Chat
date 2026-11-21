@@ -64,6 +64,7 @@ class SettingsRepositoryImpl(
         }
     }
 
+    @Suppress("MaxLineLength")
     override fun getQuietSchedule(): Flow<QuietSchedule> = preferencesDataSource?.quietScheduleFlow ?: inMemoryQuietScheduleFlow.asStateFlow()
 
     override suspend fun updateQuietSchedule(quietSchedule: QuietSchedule) {
@@ -72,6 +73,7 @@ class SettingsRepositoryImpl(
         }
     }
 
+    @Suppress("MaxLineLength")
     override fun getNotificationPrivacy(): Flow<NotificationPrivacy> = preferencesDataSource?.notificationPrivacyFlow ?: inMemoryNotificationPrivacyFlow.asStateFlow()
 
     override suspend fun updateNotificationPrivacy(notificationPrivacy: NotificationPrivacy) {
@@ -80,6 +82,7 @@ class SettingsRepositoryImpl(
         }
     }
 
+    @Suppress("MaxLineLength")
     override fun getBlockedContacts(): Flow<List<BlockedContact>> = preferencesDataSource?.blockedContactsFlow ?: inMemoryBlockedContactsFlow.asStateFlow()
 
     override suspend fun unblockContact(contactId: String) {

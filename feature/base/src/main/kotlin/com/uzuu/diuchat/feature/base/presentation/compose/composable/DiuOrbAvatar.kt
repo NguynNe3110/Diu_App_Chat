@@ -3,6 +3,7 @@ package com.uzuu.diuchat.feature.base.presentation.compose.composable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -19,6 +20,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -28,6 +30,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import com.uzuu.diuchat.feature.base.R
 import com.uzuu.diuchat.feature.base.common.res.AppTheme
 
@@ -39,6 +42,7 @@ fun DiuOrbAvatar(
     size: Dp = 48.dp,
     floatOffsetY: Dp = 0.dp,
     contentDescription: String? = null,
+    avatarUrl: String? = null,
     content: (@Composable () -> Unit)? = null,
 ) {
     require(size.value.isFinite() && size > 0.dp) { "Avatar size must be finite and positive" }
@@ -80,6 +84,13 @@ fun DiuOrbAvatar(
     ) {
         if (content != null) {
             content()
+        } else if (!avatarUrl.isNullOrBlank()) {
+            AsyncImage(
+                model = avatarUrl,
+                contentDescription = contentDescription,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize(),
+            )
         } else {
             Text(
                 text = initials,
