@@ -40,7 +40,6 @@ dependencies {
 
     // "projects." Syntax utilizes Gradle TYPESAFE_PROJECT_ACCESSORS feature
     implementation(projects.feature.base)
-    implementation(projects.feature.album)
     implementation(projects.feature.onboarding)
     implementation(projects.feature.auth)
     implementation(projects.feature.contacts)

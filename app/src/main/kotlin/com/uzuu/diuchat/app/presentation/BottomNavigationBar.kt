@@ -70,6 +70,7 @@ fun BottomNavigationBar(
             if (selectedNavigationIndex != index) {
                 navController.navigate(item.route) {
                     popUpTo(0)
+                    launchSingleTop = true
                     restoreState = true
                 }
             }
