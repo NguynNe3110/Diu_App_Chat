@@ -41,6 +41,8 @@ detekt = "1.23.8"
 android-gradle-plugin = "9.2.0"
 easylauncher = "6.4.1"
 about-libraries = "15.2.0"
+credentials = "1.6.0"
+googleid = "1.2.1"
 
 # ktlint-rules
 ktlint-ruleset-standard = "1.8.0"
@@ -123,6 +125,9 @@ room-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }
 room-compiler = { module = "androidx.room:room-compiler", version.ref = "room" }
 datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastore" }
 konsist = { module = "com.lemonappdev:konsist", version.ref = "konsist" }
+androidx-credentials = { module = "androidx.credentials:credentials", version.ref = "credentials" }
+androidx-credentials-play-services-auth = { module = "androidx.credentials:credentials-play-services-auth", version.ref = "credentials" }
+googleid = { module = "com.google.android.libraries.identity.googleid:googleid", version.ref = "googleid" }
 
 # Ktlint Rules
 ktlint-ruleset-standard = { module = "com.pinterest.ktlint:ktlint-ruleset-standard", version.ref = "ktlint-ruleset-standard" }
@@ -172,6 +177,12 @@ compose = [
 room = [
     "room-ktx",
     "room-runtime"
+]
+
+credentials = [
+    "androidx-credentials",
+    "androidx-credentials-play-services-auth",
+    "googleid"
 ]
 
 test = [

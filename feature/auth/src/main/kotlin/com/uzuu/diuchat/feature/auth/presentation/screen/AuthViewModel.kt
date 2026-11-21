@@ -2,7 +2,10 @@ package com.uzuu.diuchat.feature.auth.presentation.screen
 
 import androidx.lifecycle.viewModelScope
 import com.uzuu.diuchat.feature.auth.domain.model.OtpState
+import com.uzuu.diuchat.feature.auth.domain.usecase.CheckHasUsernameUseCase
+import com.uzuu.diuchat.feature.auth.domain.usecase.ClaimUsernameUseCase
 import com.uzuu.diuchat.feature.auth.domain.usecase.SendOtpUseCase
+import com.uzuu.diuchat.feature.auth.domain.usecase.SignInWithGoogleUseCase
 import com.uzuu.diuchat.feature.auth.domain.usecase.VerifyOtpUseCase
 import com.uzuu.diuchat.feature.base.presentation.viewmodel.BaseViewModel
 import kotlinx.coroutines.Job
@@ -12,6 +15,9 @@ import kotlinx.coroutines.launch
 class AuthViewModel(
     private val sendOtpUseCase: SendOtpUseCase,
     private val verifyOtpUseCase: VerifyOtpUseCase,
+    private val signInWithGoogleUseCase: SignInWithGoogleUseCase,
+    private val checkHasUsernameUseCase: CheckHasUsernameUseCase,
+    private val claimUsernameUseCase: ClaimUsernameUseCase,
 ) : BaseViewModel<AuthUiState, AuthAction>(AuthUiState()) {
     private var cooldownJob: Job? = null
 
@@ -86,7 +92,7 @@ class AuthViewModel(
                 .onSuccess {
                     cooldownJob?.cancel()
                     sendAction(AuthAction.SetSuccess(phone))
-                    onAuthSuccess()
+                    checkUsernameAndNavigate(onAuthSuccess)
                 }.onFailure { error ->
                     val awaiting = uiStateFlow.value.otpState as? OtpState.AwaitingCode
                     val deadline = awaiting?.resendDeadlineEpochMs ?: (System.currentTimeMillis() + RESEND_COOLDOWN_MS)
@@ -96,6 +102,95 @@ class AuthViewModel(
                             code = "",
                             deadlineEpochMs = deadline,
                             error = error.message ?: "Mã xác thực không đúng. Vui lòng thử lại.",
+                        ),
+                    )
+                }
+        }
+    }
+
+    fun onStartGoogleSignIn() {
+        sendAction(AuthAction.SetGoogleLoading(isLoading = true))
+    }
+
+    fun onGoogleIdTokenReceived(
+        idToken: String,
+        onAuthSuccess: () -> Unit,
+    ) {
+        sendAction(AuthAction.SetGoogleLoading(isLoading = true))
+        viewModelScope.launch {
+            signInWithGoogleUseCase(idToken)
+                .onSuccess {
+                    checkUsernameAndNavigate(onAuthSuccess)
+                }.onFailure { error ->
+                    sendAction(
+                        AuthAction.SetGoogleLoading(
+                            isLoading = false,
+                            error = error.message ?: "Đăng nhập Google thất bại. Vui lòng thử lại.",
+                        ),
+                    )
+                }
+        }
+    }
+
+    fun onGoogleSignInError(message: String) {
+        sendAction(AuthAction.SetGoogleLoading(isLoading = false, error = message))
+    }
+
+    fun onDismissGoogleError() {
+        sendAction(AuthAction.ClearGoogleError)
+    }
+
+    private suspend fun checkUsernameAndNavigate(onAuthSuccess: () -> Unit) {
+        checkHasUsernameUseCase()
+            .onSuccess { hasUsername ->
+                sendAction(AuthAction.SetGoogleLoading(isLoading = false))
+                if (hasUsername) {
+                    onAuthSuccess()
+                } else {
+                    sendAction(AuthAction.ShowChooseUsername())
+                }
+            }.onFailure {
+                sendAction(AuthAction.SetGoogleLoading(isLoading = false))
+                sendAction(AuthAction.ShowChooseUsername())
+            }
+    }
+
+    fun onUsernameInputChanged(input: String) {
+        sendAction(AuthAction.UpdateUsernameInput(input))
+    }
+
+    fun onConfirmUsernameClicked(onAuthSuccess: () -> Unit) {
+        val state = uiStateFlow.value
+        val canonical = state.canonicalUsername
+        if (!state.isUsernameValid) {
+            sendAction(
+                AuthAction.SetClaimingUsername(
+                    isClaiming = false,
+                    error = "Username phải từ 3 đến 30 ký tự, chỉ gồm chữ thường (a-z), số (0-9) và gạch dưới (_)",
+                ),
+            )
+            return
+        }
+
+        sendAction(AuthAction.SetClaimingUsername(isClaiming = true))
+        viewModelScope.launch {
+            claimUsernameUseCase(canonical)
+                .onSuccess {
+                    sendAction(AuthAction.SetClaimingUsername(isClaiming = false))
+                    onAuthSuccess()
+                }.onFailure { error ->
+                    val errorMsg = if (error.message?.contains("duplicate", ignoreCase = true) == true ||
+                        error.message?.contains("unique", ignoreCase = true) == true ||
+                        error.message?.contains("username", ignoreCase = true) == true
+                    ) {
+                        "Tên định danh @$canonical đã được sử dụng. Vui lòng chọn tên khác."
+                    } else {
+                        error.message ?: "Không thể lưu username. Vui lòng thử lại."
+                    }
+                    sendAction(
+                        AuthAction.SetClaimingUsername(
+                            isClaiming = false,
+                            error = errorMsg,
                         ),
                     )
                 }
