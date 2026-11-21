@@ -1,14 +1,21 @@
 package com.uzuu.diuchat.feature.letters.data.repository
 
+import com.uzuu.diuchat.feature.letters.data.datasource.api.service.LettersSupabaseService
+import com.uzuu.diuchat.feature.letters.data.datasource.api.service.LettersSupabaseServiceImpl
+import com.uzuu.diuchat.feature.letters.data.mapper.LetterMapper
 import com.uzuu.diuchat.feature.letters.domain.model.LetterStatus
 import com.uzuu.diuchat.feature.letters.domain.model.SealedLetter
 import com.uzuu.diuchat.feature.letters.domain.repository.LettersRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.update
 
-class LettersRepositoryImpl : LettersRepository {
+class LettersRepositoryImpl(
+    private val letterMapper: LetterMapper = LetterMapper(),
+    private val supabaseService: LettersSupabaseService = LettersSupabaseServiceImpl(null),
+) : LettersRepository {
 
     private val lettersFlow = MutableStateFlow(
         listOf(
@@ -73,10 +80,19 @@ class LettersRepositoryImpl : LettersRepository {
         ),
     )
 
-    override fun getLetters(): Flow<List<SealedLetter>> = lettersFlow.asStateFlow()
+    override fun getLetters(): Flow<List<SealedLetter>> = lettersFlow
+        .asStateFlow()
+        .onStart {
+            supabaseService.fetchLetters().onSuccess { response ->
+                if (response.letters.isNotEmpty()) {
+                    lettersFlow.value = response.letters.map(letterMapper::dtoToDomain)
+                }
+            }
+        }
 
     override suspend fun sendSealedLetter(letter: SealedLetter) {
         lettersFlow.update { current -> listOf(letter) + current }
+        supabaseService.upsertLetter(letterMapper.domainToDto(letter))
     }
 
     override suspend fun updateSealedLetter(letter: SealedLetter) {
@@ -85,6 +101,7 @@ class LettersRepositoryImpl : LettersRepository {
                 if (existing.id == letter.id) letter else existing
             }
         }
+        supabaseService.upsertLetter(letterMapper.domainToDto(letter))
     }
 
     override suspend fun openSealedLetter(letterId: String) {
@@ -96,45 +113,40 @@ class LettersRepositoryImpl : LettersRepository {
             "Thư chưa đến thời điểm mở khoá"
         }
 
+        val updatedLetter = targetLetter.copy(
+            status = LetterStatus.OPENED,
+            openedAtEpochMs = now,
+            openedAtFormatted = "Vừa xong",
+        )
         lettersFlow.update { current ->
             current.map { letter ->
-                if (letter.id == letterId) {
-                    letter.copy(
-                        status = LetterStatus.OPENED,
-                        openedAtEpochMs = now,
-                        openedAtFormatted = "Vừa xong",
-                    )
-                } else {
-                    letter
-                }
+                if (letter.id == letterId) updatedLetter else letter
             }
         }
+        supabaseService.upsertLetter(letterMapper.domainToDto(updatedLetter))
     }
 
     override suspend fun cancelSealedLetter(letterId: String) {
         lettersFlow.update { current ->
-            current.map { letter ->
-                if (letter.id == letterId) {
-                    letter.copy(status = LetterStatus.CANCELLED)
-                } else {
-                    letter
-                }
-            }.filterNot { it.id == letterId && it.status == LetterStatus.CANCELLED }
+            current.filterNot { it.id == letterId }
         }
+        supabaseService.deleteLetter(letterId)
     }
 
     override suspend fun sendLetterImmediately(letterId: String) {
+        var updatedLetter: SealedLetter? = null
         lettersFlow.update { current ->
             current.map { letter ->
                 if (letter.id == letterId) {
                     letter.copy(
                         status = LetterStatus.READY_TO_OPEN,
                         scheduledUnlockFormatted = "Gửi ngay (Sẵn sàng mở)",
-                    )
+                    ).also { updatedLetter = it }
                 } else {
                     letter
                 }
             }
         }
+        updatedLetter?.let { supabaseService.upsertLetter(letterMapper.domainToDto(it)) }
     }
 }

@@ -2,7 +2,10 @@ package com.uzuu.diuchat.feature.media.data.repository
 
 import android.content.Context
 import com.uzuu.diuchat.feature.base.common.res.AppPalette
+import com.uzuu.diuchat.feature.media.data.datasource.api.service.MediaSupabaseService
+import com.uzuu.diuchat.feature.media.data.datasource.api.service.MediaSupabaseServiceImpl
 import com.uzuu.diuchat.feature.media.data.datasource.preferences.MediaPreferencesDataSource
+import com.uzuu.diuchat.feature.media.data.mapper.MediaMapper
 import com.uzuu.diuchat.feature.media.domain.model.AutoDownloadPolicy
 import com.uzuu.diuchat.feature.media.domain.model.ConversationStorage
 import com.uzuu.diuchat.feature.media.domain.model.MediaType
@@ -15,11 +18,14 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.withContext
 
 class MediaRepositoryImpl(
     private val context: Context,
     private val preferencesDataSource: MediaPreferencesDataSource,
+    private val mediaMapper: MediaMapper = MediaMapper(),
+    private val supabaseService: MediaSupabaseService = MediaSupabaseServiceImpl(null),
 ) : MediaRepository {
 
     private val mediaItemsFlow = MutableStateFlow(createInitialMediaItems())
@@ -62,13 +68,22 @@ class MediaRepositoryImpl(
         ),
     )
 
-    override fun getVaultMedia(conversationId: String): Flow<List<MediaVaultItem>> = mediaItemsFlow.asStateFlow().map { items ->
-        if (conversationId.isBlank() || conversationId == "all") {
-            items
-        } else {
-            items.filter { it.conversationId == conversationId }
+    override fun getVaultMedia(conversationId: String): Flow<List<MediaVaultItem>> = mediaItemsFlow
+        .asStateFlow()
+        .onStart {
+            supabaseService.fetchVaultMedia(conversationId).onSuccess { response ->
+                if (response.items.isNotEmpty()) {
+                    val mapped = response.items.map(mediaMapper::dtoToDomain)
+                    mediaItemsFlow.value = mapped
+                }
+            }
+        }.map { items ->
+            if (conversationId.isBlank() || conversationId == "all") {
+                items
+            } else {
+                items.filter { it.conversationId == conversationId }
+            }
         }
-    }
 
     override fun getStorageStats(): Flow<StorageStats> = storageStatsFlow.asStateFlow()
 
@@ -129,6 +144,7 @@ class MediaRepositoryImpl(
 
         // Clear local cached files for this conversation without deleting outbox or remote items
         mediaItemsFlow.value = mediaItemsFlow.value.filterNot { it.conversationId == conversationId }
+        supabaseService.deleteConversationMedia(conversationId)
 
         return Result.success(clearedBytes)
     }
