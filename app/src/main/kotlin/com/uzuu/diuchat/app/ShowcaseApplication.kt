@@ -7,6 +7,7 @@ import com.uzuu.diuchat.feature.auth.featureAuthModules
 import com.uzuu.diuchat.feature.chat.featureChatModules
 import com.uzuu.diuchat.feature.contacts.featureContactsModules
 import com.uzuu.diuchat.feature.home.di.featureHomeModule
+import com.uzuu.diuchat.feature.journal.featureJournalModules
 import com.uzuu.diuchat.feature.media.featureMediaModule
 import com.uzuu.diuchat.feature.onboarding.featureOnboardingModules
 import com.uzuu.diuchat.feature.settings.featureSettingsModules
@@ -37,6 +38,7 @@ class ShowcaseApplication : Application() {
             modules(featureHomeModule)
             modules(featureMediaModule)
             modules(featureSettingsModules)
+            modules(featureJournalModules)
         }
     }
 

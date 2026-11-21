@@ -53,5 +53,14 @@ sealed interface NavigationRoute {
     data object Settings : NavigationRoute
 
     @Serializable
+    data object Journal : NavigationRoute
+
+    @Serializable
+    data class Search(
+        val conversationId: String? = null,
+        val conversationName: String? = null,
+    ) : NavigationRoute
+
+    @Serializable
     data object AboutLibraries : NavigationRoute
 }
