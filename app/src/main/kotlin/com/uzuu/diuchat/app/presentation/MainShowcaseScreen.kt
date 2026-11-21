@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.navigation.NavController
@@ -35,15 +36,20 @@ import com.uzuu.diuchat.feature.letters.presentation.screen.LettersScreen
 import com.uzuu.diuchat.feature.location.presentation.LiveLocationScreen
 import com.uzuu.diuchat.feature.location.presentation.LocationPickerScreen
 import com.uzuu.diuchat.feature.media.presentation.storage.StorageScreen
-import org.koin.androidx.compose.koinViewModel
 import com.uzuu.diuchat.feature.media.presentation.vault.MediaVaultScreen
 import com.uzuu.diuchat.feature.media.presentation.viewer.PhotoViewerScreen
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuAmbientBackground
+import com.uzuu.diuchat.feature.onboarding.domain.repository.OnBoardingRepository
 import com.uzuu.diuchat.feature.onboarding.presentation.screen.OnBoardingScreen
 import com.uzuu.diuchat.feature.settings.presentation.screen.SettingsScreen
+import org.koin.androidx.compose.koinViewModel
+import org.koin.core.context.GlobalContext
 
 @Composable
-fun MainShowcaseScreen(modifier: Modifier = Modifier) {
+fun MainShowcaseScreen(
+    modifier: Modifier = Modifier,
+    onBoardingRepository: OnBoardingRepository = remember { GlobalContext.get().get() },
+) {
     // tạo và lưu trữ trạng thái của NavController
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
@@ -51,6 +57,9 @@ fun MainShowcaseScreen(modifier: Modifier = Modifier) {
     if (BuildConfig.DEBUG) {
         addOnDestinationChangedListener(navController)
     }
+
+    val isOnboardingCompleted = remember { onBoardingRepository.isOnboardingCompleted() }
+    val startDestination = if (isOnboardingCompleted) NavigationRoute.Auth else NavigationRoute.OnBoarding
 
     DiuAmbientBackground(modifier = modifier) {
         Scaffold(
@@ -78,13 +87,13 @@ fun MainShowcaseScreen(modifier: Modifier = Modifier) {
         ) { innerPadding ->
             NavHost(
                 navController = navController,
-                // ponytail: luôn mở onboarding; lưu cờ hoàn tất khi cần chỉ hiện lần đầu.
-                startDestination = NavigationRoute.OnBoarding,
+                startDestination = startDestination,
                 modifier = Modifier.padding(innerPadding),
             ) {
                 composable<NavigationRoute.OnBoarding> {
                     OnBoardingScreen(
                         onFinish = {
+                            onBoardingRepository.setOnboardingCompleted(true)
                             navController.navigate(NavigationRoute.Auth) {
                                 popUpTo<NavigationRoute.OnBoarding> { inclusive = true }
                                 launchSingleTop = true
