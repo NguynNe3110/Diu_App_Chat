@@ -5,24 +5,30 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.navigation.NavController
 import androidx.navigation.NavDestination
+import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import com.uzuu.diuchat.app.BuildConfig
 import com.uzuu.diuchat.app.presentation.util.NavigationDestinationLogger
 import com.uzuu.diuchat.feature.album.presentation.screen.albumdetail.AlbumDetailScreen
 import com.uzuu.diuchat.feature.album.presentation.screen.albumlist.AlbumListScreen
+import com.uzuu.diuchat.feature.auth.presentation.screen.AuthScreen
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuAmbientBackground
+import com.uzuu.onboarding.presentation.screen.OnBoardingScreen
 
 @Composable
 fun MainShowcaseScreen(modifier: Modifier = Modifier) {
     // tạo và lưu trữ trạng thái của NavController
     val navController = rememberNavController()
+    val backStackEntry by navController.currentBackStackEntryAsState()
 
     if (BuildConfig.DEBUG) {
         addOnDestinationChangedListener(navController)
@@ -32,13 +38,40 @@ fun MainShowcaseScreen(modifier: Modifier = Modifier) {
         Scaffold(
             modifier = Modifier.fillMaxSize(),
             containerColor = Color.Transparent,
-            bottomBar = { BottomNavigationBar(navController) }, // thanh bottom nav
+            bottomBar = {
+                val isAuthOrOnboarding = backStackEntry?.destination?.hasRoute<NavigationRoute.OnBoarding>() == true ||
+                    backStackEntry?.destination?.hasRoute<NavigationRoute.Auth>() == true
+                if (!isAuthOrOnboarding) {
+                    BottomNavigationBar(navController)
+                }
+            },
         ) { innerPadding ->
         NavHost(
             navController = navController,
-            startDestination = NavigationRoute.AlbumList,
+            // ponytail: luôn mở onboarding; lưu cờ hoàn tất khi cần chỉ hiện lần đầu.
+            startDestination = NavigationRoute.OnBoarding,
             modifier = Modifier.padding(innerPadding),
         ) {
+            composable<NavigationRoute.OnBoarding> {
+                OnBoardingScreen(
+                    onFinish = {
+                        navController.navigate(NavigationRoute.Auth) {
+                            popUpTo<NavigationRoute.OnBoarding> { inclusive = true }
+                            launchSingleTop = true
+                        }
+                    },
+                )
+            }
+            composable<NavigationRoute.Auth> {
+                AuthScreen(
+                    onAuthSuccess = {
+                        navController.navigate(NavigationRoute.AlbumList) {
+                            popUpTo<NavigationRoute.Auth> { inclusive = true }
+                            launchSingleTop = true
+                        }
+                    },
+                )
+            }
             composable<NavigationRoute.AlbumList> {
                 AlbumListScreen(
                     // artistName: String, albumName: String, mbId: String?

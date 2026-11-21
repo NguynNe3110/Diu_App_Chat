@@ -4,6 +4,12 @@ import kotlinx.serialization.Serializable
 
 sealed interface NavigationRoute {
     @Serializable
+    data object OnBoarding : NavigationRoute
+
+    @Serializable
+    data object Auth : NavigationRoute
+
+    @Serializable
     data object AlbumList : NavigationRoute
 
     @Serializable

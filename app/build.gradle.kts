@@ -42,5 +42,6 @@ dependencies {
     implementation(projects.feature.base)
     implementation(projects.feature.album)
     implementation(projects.feature.onboarding)
+    implementation(projects.feature.auth)
 
 }
