@@ -48,4 +48,6 @@ dependencies {
     implementation(projects.feature.chat)
     implementation(projects.feature.settings)
     implementation(projects.feature.media)
+    implementation(projects.feature.letters)
+    implementation(projects.feature.journal)
 }
