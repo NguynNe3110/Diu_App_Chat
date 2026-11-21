@@ -18,4 +18,9 @@ interface SettingsRepository {
     suspend fun updateUserProfile(userProfile: UserProfile)
     suspend fun logout()
     suspend fun deleteAccount(confirmPhone: String)
+
+    fun getThemeMode(): Flow<String>
+    suspend fun updateThemeMode(themeMode: String)
+    fun getReadReceiptsEnabled(): Flow<Boolean>
+    suspend fun updateReadReceiptsEnabled(enabled: Boolean)
 }

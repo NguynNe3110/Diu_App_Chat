@@ -12,11 +12,15 @@ val presentationModule = module {
             getNotificationPrivacyUseCase = get(),
             getProfileUseCase = get(),
             getQuietScheduleUseCase = get(),
+            getReadReceiptsEnabledUseCase = get(),
+            getThemeModeUseCase = get(),
             logoutUseCase = get(),
             unblockContactUseCase = get(),
             updateNotificationPrivacyUseCase = get(),
             updateProfileUseCase = get(),
             updateQuietScheduleUseCase = get(),
+            updateReadReceiptsEnabledUseCase = get(),
+            updateThemeModeUseCase = get(),
         )
     }
 }

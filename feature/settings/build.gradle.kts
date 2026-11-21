@@ -5,3 +5,7 @@ plugins {
 android {
     namespace = "com.uzuu.diuchat.feature.settings"
 }
+
+dependencies {
+    implementation(libs.datastore.preferences)
+}

@@ -9,11 +9,15 @@ import com.uzuu.diuchat.feature.settings.domain.usecase.GetBlockedContactsUseCas
 import com.uzuu.diuchat.feature.settings.domain.usecase.GetNotificationPrivacyUseCase
 import com.uzuu.diuchat.feature.settings.domain.usecase.GetProfileUseCase
 import com.uzuu.diuchat.feature.settings.domain.usecase.GetQuietScheduleUseCase
+import com.uzuu.diuchat.feature.settings.domain.usecase.GetReadReceiptsEnabledUseCase
+import com.uzuu.diuchat.feature.settings.domain.usecase.GetThemeModeUseCase
 import com.uzuu.diuchat.feature.settings.domain.usecase.LogoutUseCase
 import com.uzuu.diuchat.feature.settings.domain.usecase.UnblockContactUseCase
 import com.uzuu.diuchat.feature.settings.domain.usecase.UpdateNotificationPrivacyUseCase
 import com.uzuu.diuchat.feature.settings.domain.usecase.UpdateProfileUseCase
 import com.uzuu.diuchat.feature.settings.domain.usecase.UpdateQuietScheduleUseCase
+import com.uzuu.diuchat.feature.settings.domain.usecase.UpdateReadReceiptsEnabledUseCase
+import com.uzuu.diuchat.feature.settings.domain.usecase.UpdateThemeModeUseCase
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
@@ -24,11 +28,15 @@ class SettingsViewModel(
     private val getNotificationPrivacyUseCase: GetNotificationPrivacyUseCase,
     private val getProfileUseCase: GetProfileUseCase,
     private val getQuietScheduleUseCase: GetQuietScheduleUseCase,
+    private val getReadReceiptsEnabledUseCase: GetReadReceiptsEnabledUseCase,
+    private val getThemeModeUseCase: GetThemeModeUseCase,
     private val logoutUseCase: LogoutUseCase,
     private val unblockContactUseCase: UnblockContactUseCase,
     private val updateNotificationPrivacyUseCase: UpdateNotificationPrivacyUseCase,
     private val updateProfileUseCase: UpdateProfileUseCase,
     private val updateQuietScheduleUseCase: UpdateQuietScheduleUseCase,
+    private val updateReadReceiptsEnabledUseCase: UpdateReadReceiptsEnabledUseCase,
+    private val updateThemeModeUseCase: UpdateThemeModeUseCase,
 ) : BaseViewModel<SettingsUiState, SettingsAction>(SettingsUiState()) {
 
     init {
@@ -50,6 +58,14 @@ class SettingsViewModel(
 
         getBlockedContactsUseCase()
             .onEach { sendAction(SettingsAction.SetBlockedContacts(it)) }
+            .launchIn(viewModelScope)
+
+        getReadReceiptsEnabledUseCase()
+            .onEach { sendAction(SettingsAction.ToggleReadReceipts(it)) }
+            .launchIn(viewModelScope)
+
+        getThemeModeUseCase()
+            .onEach { sendAction(SettingsAction.SetThemeMode(it)) }
             .launchIn(viewModelScope)
     }
 
@@ -77,7 +93,15 @@ class SettingsViewModel(
     }
 
     fun toggleReadReceipts(enabled: Boolean) {
-        sendAction(SettingsAction.ToggleReadReceipts(enabled))
+        viewModelScope.launch {
+            updateReadReceiptsEnabledUseCase(enabled)
+        }
+    }
+
+    fun setThemeMode(themeMode: String) {
+        viewModelScope.launch {
+            updateThemeModeUseCase(themeMode)
+        }
     }
 
     fun unblockContact(contactId: String) {
