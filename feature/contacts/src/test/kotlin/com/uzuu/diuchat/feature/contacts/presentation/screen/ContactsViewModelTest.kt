@@ -36,7 +36,7 @@ class ContactsViewModelTest {
                 initials = "MA",
                 phone = "0912 345 678",
                 circle = ContactCircle.LOVE,
-                moodColorHex = "#F5A894",
+                moodColorHex = "#F7A3A9",
                 nickname = "Anh thương",
             ),
             Contact(
@@ -45,7 +45,7 @@ class ContactsViewModelTest {
                 initials = "M",
                 phone = "0903 111 222",
                 circle = ContactCircle.FAMILY,
-                moodColorHex = "#F1C574",
+                moodColorHex = "#F4CA84",
             ),
         )
 
@@ -142,5 +142,38 @@ class ContactsViewModelTest {
         coVerify(exactly = 1) {
             mockRespondConnectionRequestUseCase("req_1", false, any())
         }
+    }
+
+    @Test
+    fun `onSelectMood filters contacts by mood hex and toggles off`() = runTest {
+        advanceUntilIdle()
+
+        sut.onSelectMood("#F7A3A9")
+
+        val filtered = sut.uiStateFlow.value
+        filtered.selectedMoodHex shouldBeEqualTo "#F7A3A9"
+        filtered.filteredContacts.size shouldBeEqualTo 1
+        filtered.filteredContacts.first().name shouldBeEqualTo "Minh An"
+
+        sut.onSelectMood("#F7A3A9")
+
+        val cleared = sut.uiStateFlow.value
+        cleared.selectedMoodHex shouldBeEqualTo null
+        cleared.filteredContacts.size shouldBeEqualTo 2
+    }
+
+    @Test
+    fun `onSubmitInviteCode handles blank and valid codes`() = runTest {
+        advanceUntilIdle()
+
+        sut.onSubmitInviteCode("   ")
+        sut.uiStateFlow.value.scanResultMessage shouldBeEqualTo "Vui lòng nhập mã kết nối"
+
+        sut.onInviteCodeInputChange("diu.vn/minh/8X3K2P")
+        sut.onSubmitInviteCode()
+
+        val state = sut.uiStateFlow.value
+        state.inviteCodeInput shouldBeEqualTo ""
+        state.scanResultMessage shouldBeEqualTo "Đã gửi lời mời kết nối tới diu.vn/minh/8X3K2P"
     }
 }

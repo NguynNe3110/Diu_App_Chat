@@ -24,6 +24,19 @@ sealed interface ContactsAction : BaseAction<ContactsUiState> {
         override fun reduce(state: ContactsUiState): ContactsUiState = state.copy(selectedCircle = circle)
     }
 
+    data class SelectMood(
+        val moodHex: String?,
+    ) : ContactsAction {
+        override fun reduce(state: ContactsUiState): ContactsUiState = state.copy(
+            selectedMoodHex =
+            if (moodHex != null && state.selectedMoodHex.equals(moodHex, ignoreCase = true)) {
+                null
+            } else {
+                moodHex
+            },
+        )
+    }
+
     data class UpdateSearchQuery(
         val query: String,
     ) : ContactsAction {
@@ -33,7 +46,32 @@ sealed interface ContactsAction : BaseAction<ContactsUiState> {
     data class SetQrSheetVisible(
         val visible: Boolean,
     ) : ContactsAction {
-        override fun reduce(state: ContactsUiState): ContactsUiState = state.copy(isQrSheetVisible = visible)
+        override fun reduce(state: ContactsUiState): ContactsUiState = state.copy(
+            isQrSheetVisible = visible,
+            scanResultMessage = if (visible) state.scanResultMessage else null,
+        )
+    }
+
+    data class SelectQrTab(
+        val tab: QrSheetTab,
+    ) : ContactsAction {
+        override fun reduce(state: ContactsUiState): ContactsUiState = state.copy(selectedQrTab = tab)
+    }
+
+    data class UpdateInviteCodeInput(
+        val code: String,
+    ) : ContactsAction {
+        override fun reduce(state: ContactsUiState): ContactsUiState = state.copy(inviteCodeInput = code, scanResultMessage = null)
+    }
+
+    data class SetScanResultMessage(
+        val message: String?,
+        val clearInput: Boolean = false,
+    ) : ContactsAction {
+        override fun reduce(state: ContactsUiState): ContactsUiState = state.copy(
+            scanResultMessage = message,
+            inviteCodeInput = if (clearInput) "" else state.inviteCodeInput,
+        )
     }
 
     data class SetCopiedLink(
