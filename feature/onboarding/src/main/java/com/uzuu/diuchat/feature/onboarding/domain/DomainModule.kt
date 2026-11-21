@@ -1,4 +1,4 @@
-package com.uzuu.diuchat.feature.template.domain
+package com.uzuu.diuchat.feature.onboarding.domain
 
 import org.koin.dsl.module
 

@@ -34,8 +34,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.igorwojda.showcase.feature.base.domain.domain.Mood
-import com.igorwojda.showcase.feature.base.presentation.compose.composable.DiuMoodDot
+import com.uzuu.diuchat.feature.base.domain.domain.Mood
+import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuMoodDot
 import com.uzuu.diuchat.feature.base.R
 import com.uzuu.diuchat.feature.base.common.res.AppPalette
 import com.uzuu.diuchat.feature.base.common.res.AppTheme
