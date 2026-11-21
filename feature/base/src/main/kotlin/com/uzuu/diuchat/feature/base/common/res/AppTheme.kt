@@ -8,6 +8,54 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 
+// ═══════════════════════════════════════════════
+// Material 3 ColorScheme mapping
+// ═══════════════════════════════════════════════
+
+private val DiuLightColorScheme =
+    lightColorScheme(
+        primary = AppPalette.LightAccent,
+        onPrimary = AppPalette.LightOnAccent,
+        primaryContainer = AppPalette.Peach,
+        onPrimaryContainer = AppPalette.LightInk,
+        secondary = AppPalette.Peach,
+        onSecondary = AppPalette.LightInk,
+        background = AppPalette.LightBg,
+        onBackground = AppPalette.LightInk,
+        surface = AppPalette.LightBg,
+        onSurface = AppPalette.LightInk,
+        surfaceVariant = AppPalette.LightSurface2,
+        onSurfaceVariant = AppPalette.LightInk2,
+        outline = AppPalette.LightLine,
+        outlineVariant = AppPalette.LightLine,
+        error = AppPalette.Danger,
+        onError = AppPalette.LightOnAccent,
+    )
+
+private val DiuDarkColorScheme =
+    darkColorScheme(
+        primary = AppPalette.DarkAccent,
+        onPrimary = AppPalette.DarkOnAccent,
+        primaryContainer = AppPalette.DarkPeach,
+        onPrimaryContainer = AppPalette.DarkInk,
+        secondary = AppPalette.DarkPeach,
+        onSecondary = AppPalette.DarkInk,
+        background = AppPalette.DarkBg,
+        onBackground = AppPalette.DarkInk,
+        surface = AppPalette.DarkBg,
+        onSurface = AppPalette.DarkInk,
+        surfaceVariant = AppPalette.DarkSurface2,
+        onSurfaceVariant = AppPalette.DarkInk2,
+        outline = AppPalette.DarkLine,
+        outlineVariant = AppPalette.DarkLine,
+        error = AppPalette.Danger,
+        onError = AppPalette.DarkOnAccent,
+    )
+
+// ═══════════════════════════════════════════════
+// Theme Composable
+// ═══════════════════════════════════════════════
+
 /**
  * AppTheme — Theme wrapper chính của ứng dụng Dịu.
  *
@@ -34,53 +82,6 @@ import androidx.compose.runtime.CompositionLocalProvider
  *
  * Tương đương: app_themes.dart trong Flutter.
  */
-
-// ═══════════════════════════════════════════════
-// Material 3 ColorScheme mapping
-// ═══════════════════════════════════════════════
-
-private val DiuLightColorScheme = lightColorScheme(
-    primary = AppPalette.LightAccent,
-    onPrimary = AppPalette.LightOnAccent,
-    primaryContainer = AppPalette.Peach,
-    onPrimaryContainer = AppPalette.LightInk,
-    secondary = AppPalette.Peach,
-    onSecondary = AppPalette.LightInk,
-    background = AppPalette.LightBg,
-    onBackground = AppPalette.LightInk,
-    surface = AppPalette.LightBg,
-    onSurface = AppPalette.LightInk,
-    surfaceVariant = AppPalette.LightSurface2,
-    onSurfaceVariant = AppPalette.LightInk2,
-    outline = AppPalette.LightLine,
-    outlineVariant = AppPalette.LightLine,
-    error = AppPalette.Danger,
-    onError = AppPalette.LightOnAccent,
-)
-
-private val DiuDarkColorScheme = darkColorScheme(
-    primary = AppPalette.DarkAccent,
-    onPrimary = AppPalette.DarkOnAccent,
-    primaryContainer = AppPalette.DarkPeach,
-    onPrimaryContainer = AppPalette.DarkInk,
-    secondary = AppPalette.DarkPeach,
-    onSecondary = AppPalette.DarkInk,
-    background = AppPalette.DarkBg,
-    onBackground = AppPalette.DarkInk,
-    surface = AppPalette.DarkBg,
-    onSurface = AppPalette.DarkInk,
-    surfaceVariant = AppPalette.DarkSurface2,
-    onSurfaceVariant = AppPalette.DarkInk2,
-    outline = AppPalette.DarkLine,
-    outlineVariant = AppPalette.DarkLine,
-    error = AppPalette.Danger,
-    onError = AppPalette.DarkOnAccent,
-)
-
-// ═══════════════════════════════════════════════
-// Theme Composable
-// ═══════════════════════════════════════════════
-
 @Composable
 fun AppTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),

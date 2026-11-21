@@ -5,18 +5,15 @@ import com.uzuu.diuchat.feature.album.data.datasource.database.model.TagRoomMode
 import com.uzuu.diuchat.feature.album.domain.model.Tag
 
 internal class TagMapper {
-    fun apiToDomain(apiModel: TagApiModel): Tag =
-        Tag(
-            name = apiModel.name,
-        )
+    fun apiToDomain(apiModel: TagApiModel): Tag = Tag(
+        name = apiModel.name,
+    )
 
-    fun apiToRoom(apiModel: TagApiModel): TagRoomModel =
-        TagRoomModel(
-            name = apiModel.name,
-        )
+    fun apiToRoom(apiModel: TagApiModel): TagRoomModel = TagRoomModel(
+        name = apiModel.name,
+    )
 
-    fun roomToDomain(roomModel: TagRoomModel): Tag =
-        Tag(
-            name = roomModel.name,
-        )
+    fun roomToDomain(roomModel: TagRoomModel): Tag = Tag(
+        name = roomModel.name,
+    )
 }

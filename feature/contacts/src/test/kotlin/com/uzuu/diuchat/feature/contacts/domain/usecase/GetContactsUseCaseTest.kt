@@ -12,7 +12,6 @@ import org.amshove.kluent.shouldBeEqualTo
 import org.junit.jupiter.api.Test
 
 class GetContactsUseCaseTest {
-
     private val mockContactsRepository: ContactsRepository = mockk()
 
     private val sut = GetContactsUseCase(mockContactsRepository)
@@ -20,16 +19,17 @@ class GetContactsUseCaseTest {
     @Test
     fun `returns contacts flow from repository`() {
         runBlocking {
-            val expected = listOf(
-                Contact(
-                    id = "1",
-                    name = "Minh An",
-                    initials = "MA",
-                    phone = "0912 345 678",
-                    circle = ContactCircle.LOVE,
-                    moodColorHex = "#F5A894",
-                ),
-            )
+            val expected =
+                listOf(
+                    Contact(
+                        id = "1",
+                        name = "Minh An",
+                        initials = "MA",
+                        phone = "0912 345 678",
+                        circle = ContactCircle.LOVE,
+                        moodColorHex = "#F5A894",
+                    ),
+                )
             every { mockContactsRepository.getContacts() } returns flowOf(expected)
 
             val actual = sut().first()

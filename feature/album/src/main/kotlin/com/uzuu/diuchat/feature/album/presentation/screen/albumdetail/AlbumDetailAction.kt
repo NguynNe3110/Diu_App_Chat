@@ -11,14 +11,13 @@ internal sealed interface AlbumDetailAction : BaseAction<AlbumDetailUiState> {
     class AlbumLoadSuccess(
         private val album: Album,
     ) : AlbumDetailAction {
-        override fun reduce(state: AlbumDetailUiState) =
-            AlbumDetailUiState.Content(
-                artistName = album.artist,
-                albumName = album.name,
-                coverImageUrl = album.getDefaultImageUrl() ?: "",
-                tracks = album.tracks,
-                tags = album.tags,
-            )
+        override fun reduce(state: AlbumDetailUiState) = AlbumDetailUiState.Content(
+            artistName = album.artist,
+            albumName = album.name,
+            coverImageUrl = album.getDefaultImageUrl() ?: "",
+            tracks = album.tracks,
+            tags = album.tags,
+        )
     }
 
     object AlbumLoadFailure : AlbumDetailAction {

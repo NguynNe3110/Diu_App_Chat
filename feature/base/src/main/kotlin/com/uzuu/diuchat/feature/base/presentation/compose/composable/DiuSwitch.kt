@@ -53,7 +53,8 @@ fun DiuSwitch(
     )
 
     Box(
-        modifier = modifier
+        modifier =
+        modifier
             .sizeIn(minWidth = 50.dp, minHeight = 48.dp)
             .semantics { this.contentDescription = contentDescription }
             .toggleable(
@@ -67,7 +68,8 @@ fun DiuSwitch(
         contentAlignment = Alignment.Center,
     ) {
         Box(
-            modifier = Modifier
+            modifier =
+            Modifier
                 .alpha(if (enabled) 1f else 0.35f)
                 .size(width = 50.dp, height = 30.dp)
                 .background(trackColor, CircleShape)
@@ -75,7 +77,8 @@ fun DiuSwitch(
             contentAlignment = Alignment.CenterStart,
         ) {
             Box(
-                modifier = Modifier
+                modifier =
+                Modifier
                     .offset(x = thumbOffset)
                     .size(24.dp)
                     .shadow(2.dp, CircleShape)

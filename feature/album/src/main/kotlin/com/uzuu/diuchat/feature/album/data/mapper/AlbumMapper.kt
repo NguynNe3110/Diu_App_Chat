@@ -10,15 +10,14 @@ internal class AlbumMapper(
     private val trackMapper: TrackMapper,
     private val tagMapper: TagMapper,
 ) {
-    fun apiToRoom(apiModel: AlbumApiModel) =
-        AlbumRoomModel(
-            mbId = apiModel.mbId ?: "",
-            name = apiModel.name,
-            artist = apiModel.artist,
-            images = apiModel.images?.mapNotNull { imageMapper.apiToRoom(it) } ?: listOf(),
-            tracks = apiModel.tracks?.track?.map { trackMapper.apiToRoom(it) },
-            tags = apiModel.tags?.tag?.map { tagMapper.apiToRoom(it) },
-        )
+    fun apiToRoom(apiModel: AlbumApiModel) = AlbumRoomModel(
+        mbId = apiModel.mbId ?: "",
+        name = apiModel.name,
+        artist = apiModel.artist,
+        images = apiModel.images?.mapNotNull { imageMapper.apiToRoom(it) } ?: listOf(),
+        tracks = apiModel.tracks?.track?.map { trackMapper.apiToRoom(it) },
+        tags = apiModel.tags?.tag?.map { tagMapper.apiToRoom(it) },
+    )
 
     fun apiToDomain(apiModel: AlbumApiModel): Album {
         val images =
@@ -36,13 +35,12 @@ internal class AlbumMapper(
         )
     }
 
-    fun roomToDomain(roomModel: AlbumRoomModel) =
-        Album(
-            roomModel.name,
-            roomModel.artist,
-            roomModel.mbId,
-            roomModel.images.mapNotNull { imageMapper.roomToDomain(it) },
-            roomModel.tracks?.map { trackMapper.roomToDomain(it) },
-            roomModel.tags?.map { tagMapper.roomToDomain(it) },
-        )
+    fun roomToDomain(roomModel: AlbumRoomModel) = Album(
+        roomModel.name,
+        roomModel.artist,
+        roomModel.mbId,
+        roomModel.images.mapNotNull { imageMapper.roomToDomain(it) },
+        roomModel.tracks?.map { trackMapper.roomToDomain(it) },
+        roomModel.tags?.map { tagMapper.roomToDomain(it) },
+    )
 }

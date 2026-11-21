@@ -18,8 +18,8 @@ fun LoadingIndicator(modifier: Modifier = Modifier) {
     ) {
         CircularProgressIndicator(
             modifier =
-                Modifier
-                    .size(Dimen.spaceXXL),
+            Modifier
+                .size(Dimen.spaceXXL),
         )
     }
 }

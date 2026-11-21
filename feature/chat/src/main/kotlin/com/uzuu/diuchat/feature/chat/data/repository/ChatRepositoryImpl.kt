@@ -20,16 +20,15 @@ class ChatRepositoryImpl(
     private val messageDao: MessageDao,
     private val outboxDao: OutboxDao,
 ) : ChatRepository {
+    override fun observeMessages(
+        conversationId: String,
+    ): Flow<List<ChatMessage>> = messageDao.observeMessages(conversationId).map { entities ->
+        entities.map { it.toDomain() }
+    }
 
-    override fun observeMessages(conversationId: String): Flow<List<ChatMessage>> =
-        messageDao.observeMessages(conversationId).map { entities ->
-            entities.map { it.toDomain() }
-        }
-
-    override fun observeConversations(): Flow<List<Conversation>> =
-        conversationDao.observeConversations().map { entities ->
-            entities.map { it.toDomain() }
-        }
+    override fun observeConversations(): Flow<List<Conversation>> = conversationDao.observeConversations().map { entities ->
+        entities.map { it.toDomain() }
+    }
 
     override suspend fun sendMessage(
         conversationId: String,
@@ -43,28 +42,30 @@ class ChatRepositoryImpl(
         val now = System.currentTimeMillis()
 
         // 1. Transactional Outbox: Write Pending message and outbox operation atomically to Room
-        val messageEntity = MessageEntity(
-            id = messageId,
-            conversationId = conversationId,
-            senderId = "me",
-            senderName = "Tôi",
-            content = content,
-            mood = mood.id,
-            status = MessageStatus.PENDING.value,
-            replyToId = replyToId,
-            replyQuote = replyQuote,
-            createdAtEpochMs = now,
-            isFromMe = true,
-        )
+        val messageEntity =
+            MessageEntity(
+                id = messageId,
+                conversationId = conversationId,
+                senderId = "me",
+                senderName = "Tôi",
+                content = content,
+                mood = mood.id,
+                status = MessageStatus.PENDING.value,
+                replyToId = replyToId,
+                replyQuote = replyQuote,
+                createdAtEpochMs = now,
+                isFromMe = true,
+            )
 
-        val outboxEntity = OutboxOperationEntity(
-            id = operationId,
-            conversationId = conversationId,
-            messageId = messageId,
-            status = MessageStatus.PENDING.value,
-            attemptCount = 0,
-            createdAtEpochMs = now,
-        )
+        val outboxEntity =
+            OutboxOperationEntity(
+                id = operationId,
+                conversationId = conversationId,
+                messageId = messageId,
+                status = MessageStatus.PENDING.value,
+                attemptCount = 0,
+                createdAtEpochMs = now,
+            )
 
         messageDao.insert(messageEntity)
         outboxDao.insert(outboxEntity)

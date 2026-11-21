@@ -21,7 +21,8 @@ fun DiuTextButton(
         onClick = onClick,
         modifier = modifier,
         enabled = enabled,
-        colors = ButtonDefaults.textButtonColors(
+        colors =
+        ButtonDefaults.textButtonColors(
             contentColor = colors.inkSecondary,
             disabledContentColor = colors.inkTertiary,
         ),

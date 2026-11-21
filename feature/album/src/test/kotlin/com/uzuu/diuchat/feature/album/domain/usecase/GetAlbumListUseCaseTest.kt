@@ -29,16 +29,15 @@ class GetAlbumListUseCaseTest {
     }
 
     @Test
-    fun `WHEN onInit is called with no value then the default query search term is null`() =
-        runBlocking {
-            // given
-            val albums = listOf(DomainFixtures.getAlbum(), DomainFixtures.getAlbum())
-            coEvery { mockAlbumRepository.searchAlbum(any()) } returns Result.Success(albums)
+    fun `WHEN onInit is called with no value then the default query search term is null`() = runBlocking {
+        // given
+        val albums = listOf(DomainFixtures.getAlbum(), DomainFixtures.getAlbum())
+        coEvery { mockAlbumRepository.searchAlbum(any()) } returns Result.Success(albums)
 
-            sut(null)
+        sut(null)
 
-            coVerify { mockAlbumRepository.searchAlbum(null) }
-        }
+        coVerify { mockAlbumRepository.searchAlbum(null) }
+    }
 
     @Test
     fun `filter albums with default image`() {

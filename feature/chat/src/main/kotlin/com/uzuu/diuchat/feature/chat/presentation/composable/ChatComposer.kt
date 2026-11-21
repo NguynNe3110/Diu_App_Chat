@@ -49,10 +49,10 @@ fun ChatComposer(
     selectedMood: MoodType,
     isMoodTrayOpen: Boolean,
     isSending: Boolean,
-    onInputChanged: (String) -> Unit,
+    onInputChange: (String) -> Unit,
     onSelectMood: (MoodType) -> Unit,
     onToggleMoodTray: () -> Unit,
-    onSendClicked: () -> Unit,
+    onSendClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val selectedColor = Color(selectedMood.colorHex)
@@ -79,7 +79,8 @@ fun ChatComposer(
                     )
 
                     Row(
-                        modifier = Modifier
+                        modifier =
+                        Modifier
                             .fillMaxWidth()
                             .horizontalScroll(rememberScrollState()),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -91,7 +92,8 @@ fun ChatComposer(
                             val chipBorder = if (isSelected) moodColor else AppTheme.colors.line
 
                             Box(
-                                modifier = Modifier
+                                modifier =
+                                Modifier
                                     .clip(RoundedCornerShape(16.dp))
                                     .background(chipBg)
                                     .border(1.dp, chipBorder, RoundedCornerShape(16.dp))
@@ -103,14 +105,16 @@ fun ChatComposer(
                                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                                 ) {
                                     Box(
-                                        modifier = Modifier
+                                        modifier =
+                                        Modifier
                                             .size(10.dp)
                                             .clip(CircleShape)
                                             .background(moodColor),
                                     )
                                     Text(
                                         text = mood.displayName,
-                                        style = AppTheme.typography.labelMedium.copy(
+                                        style =
+                                        AppTheme.typography.labelMedium.copy(
                                             fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
                                         ),
                                         color = if (isSelected) AppTheme.colors.ink else AppTheme.colors.inkSecondary,
@@ -133,7 +137,8 @@ fun ChatComposer(
                     modifier = Modifier.size(40.dp),
                 ) {
                     Box(
-                        modifier = Modifier
+                        modifier =
+                        Modifier
                             .size(28.dp)
                             .clip(CircleShape)
                             .background(selectedColor.copy(alpha = 0.2f))
@@ -154,7 +159,7 @@ fun ChatComposer(
                 // Input Text Field
                 OutlinedTextField(
                     value = inputContent,
-                    onValueChange = onInputChanged,
+                    onValueChange = onInputChange,
                     placeholder = {
                         Text(
                             text = "Gửi lời dịu êm...",
@@ -162,11 +167,13 @@ fun ChatComposer(
                             fontSize = 14.sp,
                         )
                     },
-                    modifier = Modifier
+                    modifier =
+                    Modifier
                         .weight(1f)
                         .height(52.dp),
                     shape = RoundedCornerShape(26.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
+                    colors =
+                    OutlinedTextFieldDefaults.colors(
                         focusedContainerColor = AppTheme.colors.surface,
                         unfocusedContainerColor = AppTheme.colors.surface,
                         focusedBorderColor = selectedColor,
@@ -182,9 +189,10 @@ fun ChatComposer(
                 // Send Button
                 val canSend = inputContent.trim().isNotEmpty() && !isSending
                 IconButton(
-                    onClick = onSendClicked,
+                    onClick = onSendClick,
                     enabled = canSend,
-                    modifier = Modifier
+                    modifier =
+                    Modifier
                         .size(44.dp)
                         .clip(CircleShape)
                         .background(if (canSend) selectedColor else AppTheme.colors.line),

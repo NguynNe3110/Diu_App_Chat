@@ -13,16 +13,16 @@ class AuthViewModel(
     private val sendOtpUseCase: SendOtpUseCase,
     private val verifyOtpUseCase: VerifyOtpUseCase,
 ) : BaseViewModel<AuthUiState, AuthAction>(AuthUiState()) {
-
     private var cooldownJob: Job? = null
 
     fun onKeypadPhonePress(key: String) {
         val currentPhone = uiStateFlow.value.rawPhone
-        val newPhone = if (key == "del") {
-            currentPhone.dropLast(1)
-        } else {
-            if (key.all { it.isDigit() } && currentPhone.length < PHONE_DIGITS) currentPhone + key else currentPhone
-        }
+        val newPhone =
+            if (key == "del") {
+                currentPhone.dropLast(1)
+            } else {
+                if (key.all { it.isDigit() } && currentPhone.length < PHONE_DIGITS) currentPhone + key else currentPhone
+            }
         sendAction(AuthAction.UpdatePhone(newPhone))
     }
 
@@ -42,8 +42,7 @@ class AuthViewModel(
                         ),
                     )
                     startCooldownTimer(deadlineEpochMs)
-                }
-                .onFailure { error ->
+                }.onFailure { error ->
                     sendAction(
                         AuthAction.SetError(
                             phone = phone,
@@ -55,15 +54,19 @@ class AuthViewModel(
         }
     }
 
-    fun onKeypadOtpPress(key: String, onAuthSuccess: () -> Unit = {}) {
+    fun onKeypadOtpPress(
+        key: String,
+        onAuthSuccess: () -> Unit = {},
+    ) {
         val currentState = uiStateFlow.value.otpState as? OtpState.AwaitingCode ?: return
         val currentCode = currentState.code
 
-        val newCode = if (key == "del") {
-            currentCode.dropLast(1)
-        } else {
-            if (key.all { it.isDigit() } && currentCode.length < OTP_DIGITS) currentCode + key else currentCode
-        }
+        val newCode =
+            if (key == "del") {
+                currentCode.dropLast(1)
+            } else {
+                if (key.all { it.isDigit() } && currentCode.length < OTP_DIGITS) currentCode + key else currentCode
+            }
 
         sendAction(AuthAction.UpdateCode(newCode))
 
@@ -72,7 +75,11 @@ class AuthViewModel(
         }
     }
 
-    private fun verifyOtp(phone: String, code: String, onAuthSuccess: () -> Unit) {
+    private fun verifyOtp(
+        phone: String,
+        code: String,
+        onAuthSuccess: () -> Unit,
+    ) {
         sendAction(AuthAction.SetVerifying(phone, code))
         viewModelScope.launch {
             verifyOtpUseCase(phone, code)
@@ -80,8 +87,7 @@ class AuthViewModel(
                     cooldownJob?.cancel()
                     sendAction(AuthAction.SetSuccess(phone))
                     onAuthSuccess()
-                }
-                .onFailure { error ->
+                }.onFailure { error ->
                     val awaiting = uiStateFlow.value.otpState as? OtpState.AwaitingCode
                     val deadline = awaiting?.resendDeadlineEpochMs ?: (System.currentTimeMillis() + RESEND_COOLDOWN_MS)
                     sendAction(
@@ -112,8 +118,7 @@ class AuthViewModel(
                         ),
                     )
                     startCooldownTimer(deadlineEpochMs)
-                }
-                .onFailure { error ->
+                }.onFailure { error ->
                     sendAction(
                         AuthAction.SetError(
                             phone = phone,
@@ -133,15 +138,16 @@ class AuthViewModel(
 
     fun startCooldownTimer(deadlineEpochMs: Long) {
         cooldownJob?.cancel()
-        cooldownJob = viewModelScope.launch {
-            while (true) {
-                val remainingMs = deadlineEpochMs - System.currentTimeMillis()
-                val remainingSec = (remainingMs / 1000).coerceAtLeast(0).toInt()
-                sendAction(AuthAction.TickCooldown(remainingSec))
-                if (remainingSec <= 0) break
-                delay(1000)
+        cooldownJob =
+            viewModelScope.launch {
+                while (true) {
+                    val remainingMs = deadlineEpochMs - System.currentTimeMillis()
+                    val remainingSec = (remainingMs / 1000).coerceAtLeast(0).toInt()
+                    sendAction(AuthAction.TickCooldown(remainingSec))
+                    if (remainingSec <= 0) break
+                    delay(1000)
+                }
             }
-        }
     }
 
     override fun onCleared() {

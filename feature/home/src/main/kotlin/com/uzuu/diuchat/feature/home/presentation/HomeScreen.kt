@@ -433,7 +433,16 @@ private fun HomeScreenPreview() {
                     StarPerson("vy", "Bảo Vy", "V", AppPalette.MoodTram, 40.dp, 0.70f, 0.72f),
                 ),
                 recentChats = listOf(
-                    RecentChat("minh", "Minh", "M", AppPalette.MoodThuong, "Thật hả!! Em vui quá", "21:14", unreadCount = 0, isPendingLetter = true),
+                    RecentChat(
+                        id = "minh",
+                        contactName = "Minh",
+                        initials = "M",
+                        moodColor = AppPalette.MoodThuong,
+                        lastMessage = "Thật hả!! Em vui quá",
+                        timestamp = "21:14",
+                        unreadCount = 0,
+                        isPendingLetter = true,
+                    ),
                     RecentChat("nha", "Nhà mình", "N", AppPalette.MoodVui, "Mẹ: Cuối tuần về ăn cơm nha con", "19:30", unreadCount = 2),
                     RecentChat("thao", "Thảo", "T", AppPalette.MoodNho, "Mai mình đi cà phê nha?", "Hôm qua", unreadCount = 0),
                 ),
@@ -445,14 +454,14 @@ private fun HomeScreenPreview() {
 @Preview(name = "Home Screen Empty — Light", showBackground = true, widthDp = 412, heightDp = 840)
 @Composable
 private fun HomeScreenEmptyPreview() {
-    AppTheme {
-        HomeScreenContent(
-            state = HomeUiState(
-                greeting = "Chào buổi sáng",
-                userName = "Lan",
-                stars = emptyList(),
-                recentChats = emptyList(),
-            ),
+    val emptyState =
+        HomeUiState(
+            greeting = "Chào buổi sáng",
+            userName = "Lan",
+            stars = emptyList(),
+            recentChats = emptyList(),
         )
+    AppTheme {
+        HomeScreenContent(state = emptyState)
     }
 }

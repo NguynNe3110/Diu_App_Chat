@@ -28,7 +28,8 @@ fun DiuCheckbox(
         onCheckedChange = onCheckedChange,
         modifier = modifier.semantics { this.contentDescription = contentDescription },
         enabled = enabled,
-        colors = CheckboxDefaults.colors(
+        colors =
+        CheckboxDefaults.colors(
             checkedColor = colors.ink,
             uncheckedColor = colors.line,
             checkmarkColor = colors.background,

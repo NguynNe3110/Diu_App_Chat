@@ -7,6 +7,8 @@ import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.kotlin.dsl.configure
 
+private const val RULE_DISABLED = "disabled"
+
 class SpotlessConventionPlugin : Plugin<Project> {
     override fun apply(target: Project) {
         with(target) {
@@ -30,6 +32,13 @@ class SpotlessConventionPlugin : Plugin<Project> {
 
                     ktlint()
                         .customRuleSets(customRuleSets)
+                        .editorConfigOverride(
+                            mapOf(
+                                "ktlint_standard_no-consecutive-comments" to RULE_DISABLED,
+                                "ktlint_compose_compositionlocal-allowlist" to RULE_DISABLED,
+                                "ktlint_standard_max-line-length" to RULE_DISABLED,
+                            ),
+                        )
 
                     endWithNewline()
                 }

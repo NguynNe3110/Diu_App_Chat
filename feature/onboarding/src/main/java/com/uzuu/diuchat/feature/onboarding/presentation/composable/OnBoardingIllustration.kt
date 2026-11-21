@@ -39,14 +39,14 @@ import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuOrbAvata
 
 // ─── Màu 5 cảm xúc ───────────────────────────────────────────────────────────
 
-private val moods = listOf(
-    Mood("Thương", AppPalette.MoodThuong),
-    Mood("Vui", AppPalette.MoodVui),
-    Mood("Bình yên", AppPalette.MoodBinhYen),
-    Mood("Nhớ", AppPalette.MoodNho),
-    Mood("Trầm", AppPalette.MoodTram),
-)
-
+private val moods =
+    listOf(
+        Mood("Thương", AppPalette.MoodThuong),
+        Mood("Vui", AppPalette.MoodVui),
+        Mood("Bình yên", AppPalette.MoodBinhYen),
+        Mood("Nhớ", AppPalette.MoodNho),
+        Mood("Trầm", AppPalette.MoodTram),
+    )
 
 // ─── Slide 0: Chòm sao Orb bồng bềnh ─────────────────────────────────────────
 @Composable
@@ -54,23 +54,27 @@ private fun Slide0Illustration() {
     val infiniteTransition = rememberInfiniteTransition(label = "orb_float")
 
     val float1 by infiniteTransition.animateFloat(
-        initialValue = 0f, targetValue = -14f,
+        initialValue = 0f,
+        targetValue = -14f,
         animationSpec = infiniteRepeatable(tween(3500, easing = FastOutSlowInEasing), RepeatMode.Reverse),
         label = "f1",
     )
     val float2 by infiniteTransition.animateFloat(
-        initialValue = 0f, targetValue = -10f,
+        initialValue = 0f,
+        targetValue = -10f,
         animationSpec = infiniteRepeatable(tween(4200, 800, easing = FastOutSlowInEasing), RepeatMode.Reverse),
         label = "f2",
     )
     val float3 by infiniteTransition.animateFloat(
-        initialValue = 0f, targetValue = -12f,
+        initialValue = 0f,
+        targetValue = -12f,
         animationSpec = infiniteRepeatable(tween(5000, 1600, easing = FastOutSlowInEasing), RepeatMode.Reverse),
         label = "f3",
     )
 
     Box(
-        modifier = Modifier
+        modifier =
+        Modifier
             .fillMaxWidth()
             .height(300.dp),
     ) {
@@ -80,7 +84,8 @@ private fun Slide0Illustration() {
             moodColor = AppTheme.colors.moods.vui,
             size = 130.dp,
             floatOffsetY = float1.dp,
-            modifier = Modifier
+            modifier =
+            Modifier
                 .align(Alignment.TopStart)
                 .offset(x = 40.dp, y = 60.dp),
         )
@@ -90,7 +95,8 @@ private fun Slide0Illustration() {
             moodColor = AppTheme.colors.moods.thuong,
             size = 80.dp,
             floatOffsetY = float2.dp,
-            modifier = Modifier
+            modifier =
+            Modifier
                 .align(Alignment.TopCenter)
                 .offset(x = 48.dp, y = 20.dp),
         )
@@ -100,7 +106,8 @@ private fun Slide0Illustration() {
             moodColor = AppTheme.colors.moods.binhyen,
             size = 60.dp,
             floatOffsetY = float3.dp,
-            modifier = Modifier
+            modifier =
+            Modifier
                 .align(Alignment.TopEnd)
                 .offset(x = -54.dp, y = 140.dp),
         )
@@ -111,7 +118,8 @@ private fun Slide0Illustration() {
 @Composable
 private fun Slide1Illustration() {
     Column(
-        modifier = Modifier
+        modifier =
+        Modifier
             .fillMaxWidth()
             .padding(horizontal = 36.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -119,7 +127,8 @@ private fun Slide1Illustration() {
         moods.forEachIndexed { index, mood ->
             val isEven = index % 2 == 1
             Row(
-                modifier = Modifier
+                modifier =
+                Modifier
                     .fillMaxWidth()
                     .then(if (isEven) Modifier.padding(start = 48.dp) else Modifier),
                 verticalAlignment = Alignment.CenterVertically,
@@ -145,12 +154,14 @@ private fun Slide1Illustration() {
 private fun Slide2Illustration() {
     val infiniteTransition = rememberInfiniteTransition(label = "quiet_float")
     val floatEnv by infiniteTransition.animateFloat(
-        initialValue = 0f, targetValue = -12f,
+        initialValue = 0f,
+        targetValue = -12f,
         animationSpec = infiniteRepeatable(tween(4000, easing = FastOutSlowInEasing), RepeatMode.Reverse),
         label = "env",
     )
     val floatMoon by infiniteTransition.animateFloat(
-        initialValue = 0f, targetValue = -10f,
+        initialValue = 0f,
+        targetValue = -10f,
         animationSpec = infiniteRepeatable(tween(3200, 600, easing = FastOutSlowInEasing), RepeatMode.Reverse),
         label = "moon",
     )
@@ -158,19 +169,22 @@ private fun Slide2Illustration() {
     val quietPurple = AppPalette.QuietPurple
 
     Box(
-        modifier = Modifier
+        modifier =
+        Modifier
             .fillMaxWidth()
             .height(260.dp),
     ) {
         // Hình tròn phong thư ấm (lớn)
         Box(
-            modifier = Modifier
+            modifier =
+            Modifier
                 .size(170.dp)
                 .offset(x = 44.dp, y = (52 + floatEnv).dp)
                 .clip(CircleShape)
                 .background(
                     Brush.radialGradient(
-                        colors = listOf(
+                        colors =
+                        listOf(
                             Color(0xFFF5E8D5),
                             peach,
                         ),
@@ -188,14 +202,16 @@ private fun Slide2Illustration() {
 
         // Hình tròn mặt trăng (nhỏ, góc phải)
         Box(
-            modifier = Modifier
+            modifier =
+            Modifier
                 .size(86.dp)
                 .align(Alignment.TopEnd)
                 .offset(x = (-24).dp, y = (24 + floatMoon).dp)
                 .clip(CircleShape)
                 .background(
                     Brush.radialGradient(
-                        colors = listOf(
+                        colors =
+                        listOf(
                             quietPurple.copy(alpha = 0.4f),
                             quietPurple.copy(alpha = 0.8f),
                         ),
@@ -215,7 +231,10 @@ private fun Slide2Illustration() {
 
 // ─── Public: Dispatcher theo page ─────────────────────────────────────────────
 @Composable
-fun OnBoardingIllustration(page: Int, modifier: Modifier = Modifier) {
+fun OnBoardingIllustration(
+    page: Int,
+    modifier: Modifier = Modifier,
+) {
     Box(modifier = modifier) {
         when (page) {
             0 -> Slide0Illustration()

@@ -53,9 +53,9 @@ fun SearchBar(
     OutlinedTextField(
         value = textFieldValue,
         modifier =
-            modifier
-                .fillMaxWidth()
-                .padding(Dimen.spaceM),
+        modifier
+            .fillMaxWidth()
+            .padding(Dimen.spaceM),
         onValueChange = { newValue ->
             textFieldValue = newValue
         },
@@ -69,30 +69,30 @@ fun SearchBar(
             )
         },
         trailingIcon =
-            if (textFieldValue.text.isNotEmpty()) {
-                {
-                    IconButton(
-                        onClick = {
-                            textFieldValue = TextFieldValue("")
-                            onSearch("")
-                            onQueryChange("")
-                        },
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Clear,
-                            contentDescription = "Clear search",
-                        )
-                    }
+        if (textFieldValue.text.isNotEmpty()) {
+            {
+                IconButton(
+                    onClick = {
+                        textFieldValue = TextFieldValue("")
+                        onSearch("")
+                        onQueryChange("")
+                    },
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Clear,
+                        contentDescription = "Clear search",
+                    )
                 }
-            } else {
-                null
-            },
+            }
+        } else {
+            null
+        },
         singleLine = true,
         colors =
-            OutlinedTextFieldDefaults.colors(
-                unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
-                focusedBorderColor = MaterialTheme.colorScheme.primary,
-            ),
+        OutlinedTextFieldDefaults.colors(
+            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+            focusedBorderColor = MaterialTheme.colorScheme.primary,
+        ),
     )
 }
 

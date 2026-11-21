@@ -46,15 +46,14 @@ object NavigationDestinationLogger {
     private fun getValueFromBundle(
         bundle: Bundle,
         key: String,
-    ): String? =
-        bundle.getString(key)?.let { "\"$it\"" }
-            ?: runCatching { bundle.getInt(key) }.getOrNull()?.toString()
-            ?: runCatching { bundle.getLong(key) }.getOrNull()?.toString()
-            ?: runCatching { bundle.getFloat(key) }.getOrNull()?.toString()
-            ?: runCatching { bundle.getBoolean(key) }.getOrNull()?.toString()
-            ?: bundle.getStringArray(key)?.contentToString()
-            ?: bundle.getIntArray(key)?.contentToString()
-            ?: bundle.getLongArray(key)?.contentToString()
-            ?: bundle.getFloatArray(key)?.contentToString()
-            ?: bundle.getBooleanArray(key)?.contentToString()
+    ): String? = bundle.getString(key)?.let { "\"$it\"" }
+        ?: runCatching { bundle.getInt(key) }.getOrNull()?.toString()
+        ?: runCatching { bundle.getLong(key) }.getOrNull()?.toString()
+        ?: runCatching { bundle.getFloat(key) }.getOrNull()?.toString()
+        ?: runCatching { bundle.getBoolean(key) }.getOrNull()?.toString()
+        ?: bundle.getStringArray(key)?.contentToString()
+        ?: bundle.getIntArray(key)?.contentToString()
+        ?: bundle.getLongArray(key)?.contentToString()
+        ?: bundle.getFloatArray(key)?.contentToString()
+        ?: bundle.getBooleanArray(key)?.contentToString()
 }

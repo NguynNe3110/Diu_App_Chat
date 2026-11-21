@@ -11,7 +11,6 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.update
 
 class ContactsRepositoryImpl : ContactsRepository {
-
     private val contactsFlow = MutableStateFlow(createInitialContacts())
     private val pendingRequestsFlow = MutableStateFlow(createInitialRequests())
 
@@ -24,24 +23,26 @@ class ContactsRepositoryImpl : ContactsRepository {
         accept: Boolean,
         circle: ContactCircle,
     ): Result<Unit> = runCatching {
-        val request = pendingRequestsFlow.value.find { it.id == requestId }
-            ?: throw IllegalArgumentException("Lời mời không tồn tại hoặc đã xử lý")
+        val request =
+            pendingRequestsFlow.value.find { it.id == requestId }
+                ?: throw IllegalArgumentException("Lời mời không tồn tại hoặc đã xử lý")
 
         pendingRequestsFlow.update { current -> current.filterNot { it.id == requestId } }
 
         if (accept) {
-            val newContact = Contact(
-                id = request.senderId,
-                name = request.senderName,
-                initials = request.senderInitials,
-                phone = request.senderPhone,
-                circle = circle,
-                moodColorHex = request.senderMoodColorHex,
-                nickname = null,
-                anniversary = "Hôm nay",
-                isQuiet = false,
-                lastSeen = "Vừa kết nối",
-            )
+            val newContact =
+                Contact(
+                    id = request.senderId,
+                    name = request.senderName,
+                    initials = request.senderInitials,
+                    phone = request.senderPhone,
+                    circle = circle,
+                    moodColorHex = request.senderMoodColorHex,
+                    nickname = null,
+                    anniversary = "Hôm nay",
+                    isQuiet = false,
+                    lastSeen = "Vừa kết nối",
+                )
             contactsFlow.update { current ->
                 if (current.none { it.id == newContact.id }) current + newContact else current
             }

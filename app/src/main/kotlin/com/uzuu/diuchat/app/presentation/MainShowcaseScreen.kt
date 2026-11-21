@@ -42,80 +42,81 @@ fun MainShowcaseScreen(modifier: Modifier = Modifier) {
             modifier = Modifier.fillMaxSize(),
             containerColor = Color.Transparent,
             bottomBar = {
-                val isAuthOrOnboarding = backStackEntry?.destination?.hasRoute<NavigationRoute.OnBoarding>() == true ||
-                    backStackEntry?.destination?.hasRoute<NavigationRoute.Auth>() == true ||
-                    backStackEntry?.destination?.hasRoute<NavigationRoute.Chat>() == true
+                val isAuthOrOnboarding =
+                    backStackEntry?.destination?.hasRoute<NavigationRoute.OnBoarding>() == true ||
+                        backStackEntry?.destination?.hasRoute<NavigationRoute.Auth>() == true ||
+                        backStackEntry?.destination?.hasRoute<NavigationRoute.Chat>() == true
                 if (!isAuthOrOnboarding) {
                     BottomNavigationBar(navController)
                 }
             },
         ) { innerPadding ->
-        NavHost(
-            navController = navController,
-            // ponytail: luôn mở onboarding; lưu cờ hoàn tất khi cần chỉ hiện lần đầu.
-            startDestination = NavigationRoute.OnBoarding,
-            modifier = Modifier.padding(innerPadding),
-        ) {
-            composable<NavigationRoute.OnBoarding> {
-                OnBoardingScreen(
-                    onFinish = {
-                        navController.navigate(NavigationRoute.Auth) {
-                            popUpTo<NavigationRoute.OnBoarding> { inclusive = true }
-                            launchSingleTop = true
-                        }
-                    },
-                )
-            }
-            composable<NavigationRoute.Auth> {
-                AuthScreen(
-                    onAuthSuccess = {
-                        navController.navigate(NavigationRoute.Home) {
-                            popUpTo<NavigationRoute.Auth> { inclusive = true }
-                            launchSingleTop = true
-                        }
-                    },
-                )
-            }
-            composable<NavigationRoute.Home> {
-                HomeScreen(
-                    onOpenContacts = {
-                        navController.navigate(NavigationRoute.AboutLibraries)
-                    },
-                )
-            }
-            composable<NavigationRoute.Contacts> {
-                ContactsScreen()
-            }
-            composable<NavigationRoute.Chat> {
-                ChatScreen(
-                    onBackClick = {
-                        navController.popBackStack()
-                    },
-                )
-            }
-            composable<NavigationRoute.AlbumList> {
-                AlbumListScreen(
-                    // artistName: String, albumName: String, mbId: String?
-                    onNavigateToAlbumDetail = { artistName, albumName, albumMbId ->
-                        navController.navigate(
-                            NavigationRoute.AlbumDetail(artistName, albumName, albumMbId),
-                        )
-                    },
-                )
-            }
-            composable<NavigationRoute.AlbumDetail> { backStackEntry ->
-                // Retrieve typed args
-                val args = backStackEntry.toRoute<NavigationRoute.AlbumDetail>()
+            NavHost(
+                navController = navController,
+                // ponytail: luôn mở onboarding; lưu cờ hoàn tất khi cần chỉ hiện lần đầu.
+                startDestination = NavigationRoute.OnBoarding,
+                modifier = Modifier.padding(innerPadding),
+            ) {
+                composable<NavigationRoute.OnBoarding> {
+                    OnBoardingScreen(
+                        onFinish = {
+                            navController.navigate(NavigationRoute.Auth) {
+                                popUpTo<NavigationRoute.OnBoarding> { inclusive = true }
+                                launchSingleTop = true
+                            }
+                        },
+                    )
+                }
+                composable<NavigationRoute.Auth> {
+                    AuthScreen(
+                        onAuthSuccess = {
+                            navController.navigate(NavigationRoute.Home) {
+                                popUpTo<NavigationRoute.Auth> { inclusive = true }
+                                launchSingleTop = true
+                            }
+                        },
+                    )
+                }
+                composable<NavigationRoute.Home> {
+                    HomeScreen(
+                        onOpenContacts = {
+                            navController.navigate(NavigationRoute.AboutLibraries)
+                        },
+                    )
+                }
+                composable<NavigationRoute.Contacts> {
+                    ContactsScreen()
+                }
+                composable<NavigationRoute.Chat> {
+                    ChatScreen(
+                        onBackClick = {
+                            navController.popBackStack()
+                        },
+                    )
+                }
+                composable<NavigationRoute.AlbumList> {
+                    AlbumListScreen(
+                        // artistName: String, albumName: String, mbId: String?
+                        onNavigateToAlbumDetail = { artistName, albumName, albumMbId ->
+                            navController.navigate(
+                                NavigationRoute.AlbumDetail(artistName, albumName, albumMbId),
+                            )
+                        },
+                    )
+                }
+                composable<NavigationRoute.AlbumDetail> { backStackEntry ->
+                    // Retrieve typed args
+                    val args = backStackEntry.toRoute<NavigationRoute.AlbumDetail>()
 
-                AlbumDetailScreen(
-                    albumName = args.albumName,
-                    artistName = args.artistName,
-                    albumMbId = args.albumMbId,
-                    onBackClick = {
-                        navController.popBackStack()
-                    },
-                )
-            }
+                    AlbumDetailScreen(
+                        albumName = args.albumName,
+                        artistName = args.artistName,
+                        albumMbId = args.albumMbId,
+                        onBackClick = {
+                            navController.popBackStack()
+                        },
+                    )
+                }
 //            composable<NavigationRoute.Favourites> {
 //                FavouriteScreen()
 //            }
@@ -133,12 +134,12 @@ fun MainShowcaseScreen(modifier: Modifier = Modifier) {
 //                    },
 //                )
 //            }
-        }
+            }
         }
     }
 }
 
-//khi chuyển màn thì in ra log
+// khi chuyển màn thì in ra log
 private fun addOnDestinationChangedListener(navController: NavController) {
     navController.addOnDestinationChangedListener(
         object : NavController.OnDestinationChangedListener {

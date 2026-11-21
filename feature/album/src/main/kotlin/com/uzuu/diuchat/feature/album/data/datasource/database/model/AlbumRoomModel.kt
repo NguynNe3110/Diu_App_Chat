@@ -23,15 +23,14 @@ internal data class AlbumRoomModel(
     val tags: List<TagRoomModel>?,
 )
 
-internal fun AlbumRoomModel.toDomainModel() =
-    Album(
-        this.name,
-        this.artist,
-        this.mbId,
-        this.images.mapNotNull { it.toDomainModel() },
-        this.tracks?.map { it.toDomainModel() },
-        this.tags?.map { it.toDomainModel() },
-    )
+internal fun AlbumRoomModel.toDomainModel() = Album(
+    this.name,
+    this.artist,
+    this.mbId,
+    this.images.mapNotNull { it.toDomainModel() },
+    this.tracks?.map { it.toDomainModel() },
+    this.tags?.map { it.toDomainModel() },
+)
 
 internal class AlbumImageRoomTypeConverter {
     @TypeConverter

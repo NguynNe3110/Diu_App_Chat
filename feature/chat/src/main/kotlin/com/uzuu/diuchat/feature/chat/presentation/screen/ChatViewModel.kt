@@ -13,7 +13,6 @@ class ChatViewModel(
     private val getMessagesUseCase: GetMessagesUseCase,
     private val sendMessageUseCase: SendMessageUseCase,
 ) : BaseViewModel<ChatUiState, ChatAction>(ChatUiState()) {
-
     init {
         loadMessages()
     }

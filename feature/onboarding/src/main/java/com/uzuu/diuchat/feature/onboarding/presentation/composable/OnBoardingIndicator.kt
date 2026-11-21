@@ -48,7 +48,8 @@ fun OnBoardingIndicator(
             val dotColor = if (isActive) colors.ink else colors.line
 
             Box(
-                modifier = Modifier
+                modifier =
+                Modifier
                     .width(dotWidth)
                     .height(8.dp)
                     .clip(RoundedCornerShape(4.dp))

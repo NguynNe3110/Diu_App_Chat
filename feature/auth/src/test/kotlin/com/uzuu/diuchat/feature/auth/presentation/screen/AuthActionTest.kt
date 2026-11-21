@@ -6,7 +6,6 @@ import org.amshove.kluent.shouldBeInstanceOf
 import org.junit.jupiter.api.Test
 
 class AuthActionTest {
-
     @Test
     fun `UpdatePhone updates phone in EditingPhone state`() {
         val initial = AuthUiState()
@@ -38,9 +37,10 @@ class AuthActionTest {
 
     @Test
     fun `UpdateCode updates code in AwaitingCode`() {
-        val initial = AuthUiState(
-            otpState = OtpState.AwaitingCode("912345678", code = "12", resendDeadlineEpochMs = 100L),
-        )
+        val initial =
+            AuthUiState(
+                otpState = OtpState.AwaitingCode("912345678", code = "12", resendDeadlineEpochMs = 100L),
+            )
         val next = AuthAction.UpdateCode("123").reduce(initial)
 
         (next.otpState as OtpState.AwaitingCode).code shouldBeEqualTo "123"
@@ -82,10 +82,11 @@ class AuthActionTest {
 
     @Test
     fun `BackToPhone resets to EditingPhone`() {
-        val initial = AuthUiState(
-            otpState = OtpState.AwaitingCode("912345678", "123", 100L),
-            resendSecondsRemaining = 30,
-        )
+        val initial =
+            AuthUiState(
+                otpState = OtpState.AwaitingCode("912345678", "123", 100L),
+                resendSecondsRemaining = 30,
+            )
         val next = AuthAction.BackToPhone("912345678").reduce(initial)
 
         next.otpState shouldBeInstanceOf OtpState.EditingPhone::class

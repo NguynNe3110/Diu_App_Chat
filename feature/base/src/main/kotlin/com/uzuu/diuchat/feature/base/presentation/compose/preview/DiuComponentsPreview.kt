@@ -49,6 +49,8 @@ import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuTextButt
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuTextField
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuTopBar
 
+private const val BACK_ACTION_DESCRIPTION = "Quay lại"
+
 @Preview(name = "Components — Light", showBackground = true, widthDp = 412, heightDp = 2200)
 @Preview(name = "Components — Dark", showBackground = true, widthDp = 412, heightDp = 2200, uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Composable
@@ -65,17 +67,19 @@ private fun DiuComponentsPreview() {
         var dialogVisible by remember { mutableStateOf(false) }
         var copied by remember { mutableStateOf(false) }
         val moods = AppTheme.colors.moods
-        val moodOptions = listOf(
-            DiuMoodOption("thuong", "Thương", moods.thuong),
-            DiuMoodOption("vui", "Vui", moods.vui),
-            DiuMoodOption("binhyen", "Bình yên", moods.binhyen),
-            DiuMoodOption("nho", "Nhớ", moods.nho),
-            DiuMoodOption("tram", "Trầm", moods.tram),
-        )
+        val moodOptions =
+            listOf(
+                DiuMoodOption("thuong", "Thương", moods.thuong),
+                DiuMoodOption("vui", "Vui", moods.vui),
+                DiuMoodOption("binhyen", "Bình yên", moods.binhyen),
+                DiuMoodOption("nho", "Nhớ", moods.nho),
+                DiuMoodOption("tram", "Trầm", moods.tram),
+            )
 
         Surface(color = AppTheme.colors.background) {
             Column(
-                modifier = Modifier
+                modifier =
+                Modifier
                     .verticalScroll(rememberScrollState())
                     .padding(20.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -94,15 +98,23 @@ private fun DiuComponentsPreview() {
 
                 Text("DiuButton · DiuTextButton · DiuIconButton", style = AppTheme.typography.titleMedium)
                 DiuButton(onClick = {}, modifier = Modifier.fillMaxWidth()) { Text("Tiếp tục (Primary)") }
-                DiuButton(onClick = {}, modifier = Modifier.fillMaxWidth(), variant = DiuButtonVariant.Outline) { Text("Viền ngoài (Outline)") }
-                DiuButton(onClick = {}, modifier = Modifier.fillMaxWidth(), variant = DiuButtonVariant.Danger) { Text("Xóa cuộc trò chuyện (Danger)") }
+                DiuButton(
+                    onClick = {},
+                    modifier = Modifier.fillMaxWidth(),
+                    variant = DiuButtonVariant.Outline,
+                ) { Text("Viền ngoài (Outline)") }
+                DiuButton(
+                    onClick = {},
+                    modifier = Modifier.fillMaxWidth(),
+                    variant = DiuButtonVariant.Danger,
+                ) { Text("Xóa cuộc trò chuyện (Danger)") }
                 DiuButton(onClick = {}, modifier = Modifier.fillMaxWidth(), enabled = false) { Text("Vô hiệu hóa (Disabled)") }
                 DiuTextButton("Để sau cũng được", {})
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    DiuIconButton({}, "Quay lại", soft = true) {
+                    DiuIconButton({}, BACK_ACTION_DESCRIPTION, soft = true) {
                         Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = null)
                     }
-                    DiuIconButton({}, "Quay lại", enabled = false) {
+                    DiuIconButton({}, BACK_ACTION_DESCRIPTION, enabled = false) {
                         Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = null)
                     }
                 }
@@ -152,7 +164,7 @@ private fun DiuComponentsPreview() {
                     title = "Thông tin trò chuyện",
                     subtitle = "Những điều nhỏ của hai người",
                     navigationIcon = {
-                        DiuIconButton({}, "Quay lại") {
+                        DiuIconButton({}, BACK_ACTION_DESCRIPTION) {
                             Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = null)
                         }
                     },

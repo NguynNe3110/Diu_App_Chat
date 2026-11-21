@@ -18,14 +18,14 @@ data class ContactsUiState(
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
 ) : BaseState {
-
     val filteredContacts: List<Contact>
         get() {
-            val byCircle = if (selectedCircle == ContactCircle.ALL) {
-                contacts
-            } else {
-                contacts.filter { it.circle == selectedCircle }
-            }
+            val byCircle =
+                if (selectedCircle == ContactCircle.ALL) {
+                    contacts
+                } else {
+                    contacts.filter { it.circle == selectedCircle }
+                }
 
             if (searchQuery.isBlank()) return byCircle
 

@@ -9,7 +9,6 @@ import org.amshove.kluent.shouldBeEqualTo
 import org.junit.jupiter.api.Test
 
 class SendOtpUseCaseTest {
-
     private val mockAuthRepository: AuthRepository = mockk()
 
     private val sut = SendOtpUseCase(mockAuthRepository)

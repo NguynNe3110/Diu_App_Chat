@@ -10,7 +10,6 @@ import org.amshove.kluent.shouldBeEqualTo
 import org.junit.jupiter.api.Test
 
 class RespondConnectionRequestUseCaseTest {
-
     private val mockContactsRepository: ContactsRepository = mockk()
 
     private val sut = RespondConnectionRequestUseCase(mockContactsRepository)

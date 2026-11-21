@@ -68,7 +68,8 @@ fun ChatScreen(
                 title = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Box(
-                            modifier = Modifier
+                            modifier =
+                            Modifier
                                 .size(12.dp)
                                 .clip(CircleShape)
                                 .background(partnerMoodColor),
@@ -109,7 +110,8 @@ fun ChatScreen(
                         )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
+                colors =
+                TopAppBarDefaults.topAppBarColors(
                     containerColor = AppTheme.colors.surfaceElevated,
                 ),
             )
@@ -128,16 +130,17 @@ fun ChatScreen(
                     selectedMood = state.selectedMood,
                     isMoodTrayOpen = state.isMoodTrayOpen,
                     isSending = state.isSending,
-                    onInputChanged = viewModel::onInputChanged,
+                    onInputChange = viewModel::onInputChanged,
                     onSelectMood = viewModel::onSelectMood,
                     onToggleMoodTray = viewModel::onToggleMoodTray,
-                    onSendClicked = viewModel::onSendMessage,
+                    onSendClick = viewModel::onSendMessage,
                 )
             }
         },
     ) { paddingValues ->
         Box(
-            modifier = Modifier
+            modifier =
+            Modifier
                 .fillMaxSize()
                 .padding(paddingValues),
         ) {
@@ -151,14 +154,16 @@ fun ChatScreen(
                         modifier = Modifier.padding(24.dp),
                     ) {
                         Box(
-                            modifier = Modifier
+                            modifier =
+                            Modifier
                                 .size(48.dp)
                                 .clip(CircleShape)
                                 .background(partnerMoodColor.copy(alpha = 0.2f)),
                             contentAlignment = Alignment.Center,
                         ) {
                             Box(
-                                modifier = Modifier
+                                modifier =
+                                Modifier
                                     .size(24.dp)
                                     .clip(CircleShape)
                                     .background(partnerMoodColor),
@@ -188,7 +193,7 @@ fun ChatScreen(
                     ) { message ->
                         MessageBubble(
                             message = message,
-                            onReplyClicked = viewModel::onReplyToMessage,
+                            onReplyClick = viewModel::onReplyToMessage,
                         )
                     }
                 }

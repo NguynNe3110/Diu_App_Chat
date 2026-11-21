@@ -10,6 +10,5 @@ class RespondConnectionRequestUseCase(
         requestId: String,
         accept: Boolean,
         circle: ContactCircle = ContactCircle.FRIENDS,
-    ): Result<Unit> =
-        contactsRepository.respondToRequest(requestId, accept, circle)
+    ): Result<Unit> = contactsRepository.respondToRequest(requestId, accept, circle)
 }

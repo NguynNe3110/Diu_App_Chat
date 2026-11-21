@@ -12,7 +12,6 @@ import org.amshove.kluent.shouldBeEqualTo
 import org.junit.jupiter.api.Test
 
 class GetPendingRequestsUseCaseTest {
-
     private val mockContactsRepository: ContactsRepository = mockk()
 
     private val sut = GetPendingRequestsUseCase(mockContactsRepository)
@@ -20,18 +19,19 @@ class GetPendingRequestsUseCaseTest {
     @Test
     fun `returns pending requests flow from repository`() {
         runBlocking {
-            val expected = listOf(
-                ConnectionRequest(
-                    id = "req_1",
-                    senderId = "user_2",
-                    senderName = "Hoàng",
-                    senderInitials = "H",
-                    senderPhone = "0933 555 777",
-                    senderMoodColorHex = "#A6C5A2",
-                    proposedCircle = ContactCircle.FRIENDS,
-                    createdAt = "Vừa xong",
-                ),
-            )
+            val expected =
+                listOf(
+                    ConnectionRequest(
+                        id = "req_1",
+                        senderId = "user_2",
+                        senderName = "Hoàng",
+                        senderInitials = "H",
+                        senderPhone = "0933 555 777",
+                        senderMoodColorHex = "#A6C5A2",
+                        proposedCircle = ContactCircle.FRIENDS,
+                        createdAt = "Vừa xong",
+                    ),
+                )
             every { mockContactsRepository.getPendingRequests() } returns flowOf(expected)
 
             val actual = sut().first()

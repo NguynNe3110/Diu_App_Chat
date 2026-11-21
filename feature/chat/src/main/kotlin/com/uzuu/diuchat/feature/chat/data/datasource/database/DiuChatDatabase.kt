@@ -20,6 +20,8 @@ import com.uzuu.diuchat.feature.chat.data.datasource.database.entity.OutboxOpera
 )
 abstract class DiuChatDatabase : RoomDatabase() {
     abstract fun conversationDao(): ConversationDao
+
     abstract fun messageDao(): MessageDao
+
     abstract fun outboxDao(): OutboxDao
 }

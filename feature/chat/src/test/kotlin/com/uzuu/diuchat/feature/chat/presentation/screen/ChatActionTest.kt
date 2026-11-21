@@ -8,22 +8,22 @@ import org.amshove.kluent.shouldBeNull
 import org.junit.jupiter.api.Test
 
 class ChatActionTest {
-
     private val initialState = ChatUiState()
 
     @Test
     fun `SetMessages updates messages in state`() {
-        val messages = listOf(
-            ChatMessage(
-                id = "1",
-                conversationId = "conv_1",
-                senderId = "user_1",
-                senderName = "Linh",
-                content = "Chào buổi sáng",
-                mood = MoodType.BINHYEN,
-                status = MessageStatus.SENT,
-            ),
-        )
+        val messages =
+            listOf(
+                ChatMessage(
+                    id = "1",
+                    conversationId = "conv_1",
+                    senderId = "user_1",
+                    senderName = "Linh",
+                    content = "Chào buổi sáng",
+                    mood = MoodType.BINHYEN,
+                    status = MessageStatus.SENT,
+                ),
+            )
         val action = ChatAction.SetMessages(messages)
         val newState = action.reduce(initialState)
 
@@ -56,15 +56,16 @@ class ChatActionTest {
 
     @Test
     fun `SetReplyingTo updates replyingTo`() {
-        val message = ChatMessage(
-            id = "1",
-            conversationId = "conv_1",
-            senderId = "user_1",
-            senderName = "Linh",
-            content = "Tin nhắn gốc",
-            mood = MoodType.THUONG,
-            status = MessageStatus.SENT,
-        )
+        val message =
+            ChatMessage(
+                id = "1",
+                conversationId = "conv_1",
+                senderId = "user_1",
+                senderName = "Linh",
+                content = "Tin nhắn gốc",
+                mood = MoodType.THUONG,
+                status = MessageStatus.SENT,
+            )
         val action = ChatAction.SetReplyingTo(message)
         val newState = action.reduce(initialState)
 
@@ -81,20 +82,22 @@ class ChatActionTest {
 
     @Test
     fun `ClearInput resets inputContent, replyingTo, and closes tray`() {
-        val message = ChatMessage(
-            id = "1",
-            conversationId = "conv_1",
-            senderId = "user_1",
-            senderName = "Linh",
-            content = "Tin nhắn gốc",
-            mood = MoodType.THUONG,
-            status = MessageStatus.SENT,
-        )
-        val modifiedState = initialState.copy(
-            inputContent = "Nội dung cũ",
-            replyingTo = message,
-            isMoodTrayOpen = true,
-        )
+        val message =
+            ChatMessage(
+                id = "1",
+                conversationId = "conv_1",
+                senderId = "user_1",
+                senderName = "Linh",
+                content = "Tin nhắn gốc",
+                mood = MoodType.THUONG,
+                status = MessageStatus.SENT,
+            )
+        val modifiedState =
+            initialState.copy(
+                inputContent = "Nội dung cũ",
+                replyingTo = message,
+                isMoodTrayOpen = true,
+            )
 
         val newState = ChatAction.ClearInput.reduce(modifiedState)
 

@@ -27,6 +27,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -50,23 +51,26 @@ fun AuthScreen(
     viewModel: AuthViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.uiStateFlow.collectAsState()
+    val currentOnAuthSuccess by rememberUpdatedState(onAuthSuccess)
 
     LaunchedEffect(uiState.otpState) {
         if (uiState.otpState is OtpState.Success) {
-            onAuthSuccess()
+            currentOnAuthSuccess()
         }
     }
 
-    val isAwaitingOrVerifying = uiState.otpState is OtpState.AwaitingCode ||
-        uiState.otpState is OtpState.Verifying ||
-        (uiState.otpState is OtpState.Error && (uiState.otpState as OtpState.Error).phoneNumber.isNotEmpty())
+    val isAwaitingOrVerifying =
+        uiState.otpState is OtpState.AwaitingCode ||
+            uiState.otpState is OtpState.Verifying ||
+            (uiState.otpState is OtpState.Error && (uiState.otpState as OtpState.Error).phoneNumber.isNotEmpty())
 
     BackHandler(enabled = isAwaitingOrVerifying) {
         viewModel.onBackToPhone()
     }
 
     Column(
-        modifier = modifier
+        modifier =
+        modifier
             .fillMaxSize()
             .statusBarsPadding()
             .navigationBarsPadding(),
@@ -102,7 +106,8 @@ private fun PhoneInputContent(
         DiuTopBar(title = "")
 
         Column(
-            modifier = Modifier
+            modifier =
+            Modifier
                 .weight(1f)
                 .fillMaxWidth()
                 .padding(horizontal = 24.dp),
@@ -111,7 +116,8 @@ private fun PhoneInputContent(
 
             Text(
                 text = "Số điện thoại\ncủa bạn",
-                style = AppTheme.typography.headlineLarge.copy(
+                style =
+                AppTheme.typography.headlineLarge.copy(
                     fontSize = 32.sp,
                     fontWeight = FontWeight.Bold,
                     fontFamily = FontFamily.Serif,
@@ -133,7 +139,8 @@ private fun PhoneInputContent(
 
             // Vietnamese phone number field (+84 chip + number display)
             Row(
-                modifier = Modifier
+                modifier =
+                Modifier
                     .fillMaxWidth()
                     .height(56.dp)
                     .clip(RoundedCornerShape(16.dp))
@@ -144,7 +151,8 @@ private fun PhoneInputContent(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Box(
-                    modifier = Modifier
+                    modifier =
+                    Modifier
                         .clip(RoundedCornerShape(8.dp))
                         .background(colors.surfaceElevated)
                         .padding(horizontal = 8.dp, vertical = 4.dp),
@@ -165,7 +173,8 @@ private fun PhoneInputContent(
                 } else {
                     Text(
                         text = uiState.formattedPhone,
-                        style = AppTheme.typography.titleMedium.copy(
+                        style =
+                        AppTheme.typography.titleMedium.copy(
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Medium,
                         ),
@@ -187,7 +196,8 @@ private fun PhoneInputContent(
 
         // Bottom CTA & Keypad
         Column(
-            modifier = Modifier
+            modifier =
+            Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp),
         ) {
@@ -248,7 +258,8 @@ private fun OtpVerificationContent(
         )
 
         Column(
-            modifier = Modifier
+            modifier =
+            Modifier
                 .weight(1f)
                 .fillMaxWidth()
                 .padding(horizontal = 24.dp),
@@ -257,7 +268,8 @@ private fun OtpVerificationContent(
 
             Text(
                 text = "Nhập mã\nvừa gửi tới bạn",
-                style = AppTheme.typography.headlineLarge.copy(
+                style =
+                AppTheme.typography.headlineLarge.copy(
                     fontSize = 32.sp,
                     fontWeight = FontWeight.Bold,
                     fontFamily = FontFamily.Serif,
@@ -276,7 +288,8 @@ private fun OtpVerificationContent(
                 )
                 Text(
                     text = "đổi số",
-                    style = AppTheme.typography.bodyMedium.copy(
+                    style =
+                    AppTheme.typography.bodyMedium.copy(
                         color = colors.ink,
                         fontWeight = FontWeight.SemiBold,
                         textDecoration = TextDecoration.Underline,
@@ -309,7 +322,8 @@ private fun OtpVerificationContent(
             } else {
                 Text(
                     text = "Gửi lại mã",
-                    style = AppTheme.typography.bodyMedium.copy(
+                    style =
+                    AppTheme.typography.bodyMedium.copy(
                         color = colors.ink,
                         fontWeight = FontWeight.SemiBold,
                         textDecoration = TextDecoration.Underline,
@@ -320,13 +334,15 @@ private fun OtpVerificationContent(
         }
 
         Column(
-            modifier = Modifier
+            modifier =
+            Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp),
         ) {
             if (isVerifying) {
                 Box(
-                    modifier = Modifier
+                    modifier =
+                    Modifier
                         .fillMaxWidth()
                         .height(54.dp),
                     contentAlignment = Alignment.Center,

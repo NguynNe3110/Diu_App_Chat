@@ -25,50 +25,48 @@ class AlbumDetailViewModelTest {
         )
 
     @Test
-    fun `onInit album is not found`() =
-        runTest {
-            // given
-            val albumName = "Thriller"
-            val artistName = "Michael Jackson"
-            val mbId = "123"
+    fun `onInit album is not found`() = runTest {
+        // given
+        val albumName = "Thriller"
+        val artistName = "Michael Jackson"
+        val mbId = "123"
 
-            coEvery {
-                mockGetAlbumUseCase.invoke(artistName, albumName, mbId)
-            } returns Result.Failure()
+        coEvery {
+            mockGetAlbumUseCase.invoke(artistName, albumName, mbId)
+        } returns Result.Failure()
 
-            // when
-            sut.onInit(albumName, artistName, mbId)
+        // when
+        sut.onInit(albumName, artistName, mbId)
 
-            // then
-            advanceUntilIdle()
-            sut.uiStateFlow.value shouldBeEqualTo AlbumDetailUiState.Error
-        }
+        // then
+        advanceUntilIdle()
+        sut.uiStateFlow.value shouldBeEqualTo AlbumDetailUiState.Error
+    }
 
     @Test
-    fun `onInit album is found`() =
-        runTest {
-            // given
-            val albumName = "Thriller"
-            val artistName = "Michael Jackson"
-            val mbId = "123"
-            val album = Album(albumName, artistName, mbId)
+    fun `onInit album is found`() = runTest {
+        // given
+        val albumName = "Thriller"
+        val artistName = "Michael Jackson"
+        val mbId = "123"
+        val album = Album(albumName, artistName, mbId)
 
-            coEvery {
-                mockGetAlbumUseCase.invoke(artistName, albumName, mbId)
-            } returns Result.Success(album)
+        coEvery {
+            mockGetAlbumUseCase.invoke(artistName, albumName, mbId)
+        } returns Result.Success(album)
 
-            // when
-            sut.onInit(albumName, artistName, mbId)
+        // when
+        sut.onInit(albumName, artistName, mbId)
 
-            // then
-            advanceUntilIdle()
-            sut.uiStateFlow.value shouldBeEqualTo
-                AlbumDetailUiState.Content(
-                    albumName = albumName,
-                    artistName = artistName,
-                    coverImageUrl = "",
-                    tracks = null,
-                    tags = null,
-                )
-        }
+        // then
+        advanceUntilIdle()
+        sut.uiStateFlow.value shouldBeEqualTo
+            AlbumDetailUiState.Content(
+                albumName = albumName,
+                artistName = artistName,
+                coverImageUrl = "",
+                tracks = null,
+                tags = null,
+            )
+    }
 }

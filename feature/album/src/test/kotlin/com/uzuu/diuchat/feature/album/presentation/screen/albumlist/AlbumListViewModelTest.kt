@@ -29,37 +29,35 @@ class AlbumListViewModelTest {
         )
 
     @Test
-    fun `onInit emits state error`() =
-        runTest {
-            // given
-            coEvery { mockGetAlbumListUseCase.invoke("Jackson") } returns Result.Failure()
+    fun `onInit emits state error`() = runTest {
+        // given
+        coEvery { mockGetAlbumListUseCase.invoke("Jackson") } returns Result.Failure()
 
-            // when
-            sut.onInit("Jackson")
+        // when
+        sut.onInit("Jackson")
 
-            // then
-            advanceUntilIdle()
+        // then
+        advanceUntilIdle()
 
-            sut.uiStateFlow.value shouldBeEqualTo AlbumListUiState.Error
-        }
+        sut.uiStateFlow.value shouldBeEqualTo AlbumListUiState.Error
+    }
 
     @Test
-    fun `onInit emits state success`() =
-        runTest {
-            // given
-            val album = Album("albumName", "artistName")
-            val albums = listOf(album)
-            coEvery { mockGetAlbumListUseCase.invoke("Jackson") } returns Result.Success(albums)
+    fun `onInit emits state success`() = runTest {
+        // given
+        val album = Album("albumName", "artistName")
+        val albums = listOf(album)
+        coEvery { mockGetAlbumListUseCase.invoke("Jackson") } returns Result.Success(albums)
 
-            // when
-            sut.onInit("Jackson")
+        // when
+        sut.onInit("Jackson")
 
-            // then
-            advanceUntilIdle()
+        // then
+        advanceUntilIdle()
 
-            sut.uiStateFlow.value shouldBeEqualTo
-                AlbumListUiState.Content(
-                    albums = albums,
-                )
-        }
+        sut.uiStateFlow.value shouldBeEqualTo
+            AlbumListUiState.Content(
+                albums = albums,
+            )
+    }
 }

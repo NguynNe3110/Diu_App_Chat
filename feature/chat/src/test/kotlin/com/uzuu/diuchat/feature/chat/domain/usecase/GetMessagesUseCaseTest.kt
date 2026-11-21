@@ -14,7 +14,6 @@ import org.amshove.kluent.shouldBeEqualTo
 import org.junit.jupiter.api.Test
 
 class GetMessagesUseCaseTest {
-
     private val chatRepository: ChatRepository = mockk()
 
     private val sut = GetMessagesUseCase(chatRepository)
@@ -23,17 +22,18 @@ class GetMessagesUseCaseTest {
     fun `invoke delegates to repository observeMessages`() = runTest {
         // given
         val conversationId = "conv_1"
-        val expected = listOf(
-            ChatMessage(
-                id = "msg_1",
-                conversationId = conversationId,
-                senderId = "user_1",
-                senderName = "Linh",
-                content = "Chào anh",
-                mood = MoodType.THUONG,
-                status = MessageStatus.SENT,
-            ),
-        )
+        val expected =
+            listOf(
+                ChatMessage(
+                    id = "msg_1",
+                    conversationId = conversationId,
+                    senderId = "user_1",
+                    senderName = "Linh",
+                    content = "Chào anh",
+                    mood = MoodType.THUONG,
+                    status = MessageStatus.SENT,
+                ),
+            )
         every { chatRepository.observeMessages(conversationId) } returns flowOf(expected)
 
         // when

@@ -7,6 +7,5 @@ import kotlinx.coroutines.flow.Flow
 class GetMessagesUseCase(
     private val chatRepository: ChatRepository,
 ) {
-    operator fun invoke(conversationId: String): Flow<List<ChatMessage>> =
-        chatRepository.observeMessages(conversationId)
+    operator fun invoke(conversationId: String): Flow<List<ChatMessage>> = chatRepository.observeMessages(conversationId)
 }

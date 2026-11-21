@@ -7,6 +7,5 @@ import kotlinx.coroutines.flow.Flow
 class GetContactsUseCase(
     private val contactsRepository: ContactsRepository,
 ) {
-    operator fun invoke(): Flow<List<Contact>> =
-        contactsRepository.getContacts()
+    operator fun invoke(): Flow<List<Contact>> = contactsRepository.getContacts()
 }

@@ -18,7 +18,6 @@ class ContactsViewModel(
     private val getPendingRequestsUseCase: GetPendingRequestsUseCase,
     private val respondConnectionRequestUseCase: RespondConnectionRequestUseCase,
 ) : BaseViewModel<ContactsUiState, ContactsAction>(ContactsUiState()) {
-
     init {
         observeData()
     }
@@ -29,14 +28,12 @@ class ContactsViewModel(
         getContactsUseCase()
             .onEach { contacts ->
                 sendAction(ContactsAction.SetContacts(contacts))
-            }
-            .launchIn(viewModelScope)
+            }.launchIn(viewModelScope)
 
         getPendingRequestsUseCase()
             .onEach { requests ->
                 sendAction(ContactsAction.SetPendingRequests(requests))
-            }
-            .launchIn(viewModelScope)
+            }.launchIn(viewModelScope)
     }
 
     fun onSelectCircle(circle: ContactCircle) {
@@ -67,7 +64,10 @@ class ContactsViewModel(
         }
     }
 
-    fun onAcceptRequest(requestId: String, circle: ContactCircle = ContactCircle.FRIENDS) {
+    fun onAcceptRequest(
+        requestId: String,
+        circle: ContactCircle = ContactCircle.FRIENDS,
+    ) {
         viewModelScope.launch {
             respondConnectionRequestUseCase(requestId = requestId, accept = true, circle = circle)
                 .onFailure { error ->

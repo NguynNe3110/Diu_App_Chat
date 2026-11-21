@@ -15,15 +15,14 @@ internal data class AlbumApiModel(
     @SerialName("tags") val tags: TagListApiModel? = null,
 )
 
-internal fun AlbumApiModel.toRoomModel() =
-    AlbumRoomModel(
-        mbId = this.mbId ?: "",
-        name = this.name,
-        artist = this.artist,
-        images = this.images?.mapNotNull { it.toRoomModel() } ?: listOf(),
-        tracks = this.tracks?.track?.map { it.toRoomModel() },
-        tags = this.tags?.tag?.map { it.toRoomModel() },
-    )
+internal fun AlbumApiModel.toRoomModel() = AlbumRoomModel(
+    mbId = this.mbId ?: "",
+    name = this.name,
+    artist = this.artist,
+    images = this.images?.mapNotNull { it.toRoomModel() } ?: listOf(),
+    tracks = this.tracks?.track?.map { it.toRoomModel() },
+    tags = this.tags?.tag?.map { it.toRoomModel() },
+)
 
 internal fun AlbumApiModel.toDomainModel(): Album {
     val images =

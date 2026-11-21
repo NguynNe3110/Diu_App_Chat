@@ -23,6 +23,10 @@ class DetektConventionPlugin : Plugin<Project> {
                     autoCorrect = true
                 }
 
+            tasks.named("detekt") {
+                dependsOn(detektCheck)
+            }
+
             listOf(detektCheck, detektApply).forEach { taskProvider ->
                 taskProvider.configure {
                     group = "verification"

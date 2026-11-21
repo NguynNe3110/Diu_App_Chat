@@ -11,8 +11,9 @@ private const val AFTERNOON_START_HOUR = 12
 private const val AFTERNOON_END_HOUR = 17
 
 sealed interface HomeAction : BaseAction<HomeUiState> {
-
-    data class SetLoading(val isLoading: Boolean) : HomeAction {
+    data class SetLoading(
+        val isLoading: Boolean,
+    ) : HomeAction {
         override fun reduce(state: HomeUiState): HomeUiState = state.copy(isLoading = isLoading)
     }
 
@@ -47,7 +48,9 @@ sealed interface HomeAction : BaseAction<HomeUiState> {
         )
     }
 
-    data class DismissQuietBanner(val dismiss: Boolean = true) : HomeAction {
+    data class DismissQuietBanner(
+        val dismiss: Boolean = true,
+    ) : HomeAction {
         override fun reduce(state: HomeUiState): HomeUiState = state.copy(isQuietModeActive = !dismiss)
     }
 }

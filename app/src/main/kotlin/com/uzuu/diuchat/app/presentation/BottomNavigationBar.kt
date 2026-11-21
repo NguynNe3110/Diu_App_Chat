@@ -86,7 +86,8 @@ fun DiuBottomNavigationBarContent(
     items: List<DiuNavigationItem> = remember { getBottomNavigationItems() },
 ) {
     Row(
-        modifier = modifier
+        modifier =
+        modifier
             .fillMaxWidth()
             .padding(horizontal = 14.dp, vertical = 12.dp)
             .navigationBarsPadding(),
@@ -95,7 +96,8 @@ fun DiuBottomNavigationBarContent(
     ) {
         // Pill Bar
         Surface(
-            modifier = Modifier
+            modifier =
+            Modifier
                 .weight(1f)
                 .height(60.dp),
             shape = RoundedCornerShape(32.dp),
@@ -103,7 +105,8 @@ fun DiuBottomNavigationBarContent(
             border = BorderStroke(1.dp, AppTheme.colors.line),
         ) {
             Row(
-                modifier = Modifier
+                modifier =
+                Modifier
                     .fillMaxSize()
                     .padding(6.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -123,7 +126,8 @@ fun DiuBottomNavigationBarContent(
         // Nút tròn
         Surface(
             onClick = onAddClick,
-            modifier = Modifier
+            modifier =
+            Modifier
                 .size(64.dp),
             shape = CircleShape,
             color = AppTheme.colors.surface,
@@ -161,7 +165,8 @@ private fun DiuTabIconItem(
     )
 
     Box(
-        modifier = modifier
+        modifier =
+        modifier
             .fillMaxHeight()
             .clip(RoundedCornerShape(26.dp))
             .background(backgroundColor)
@@ -181,42 +186,40 @@ private fun DiuTabIconItem(
     }
 }
 
-private fun getBottomNavigationItems() =
-    listOf(
-        DiuNavigationItem(
-            iconRes = AppIcons.Chat,
-            contentDescription = "Trò chuyện",
-            route = NavigationRoute.Home,
-        ),
-        DiuNavigationItem(
-            iconRes = AppIcons.Phone,
-            contentDescription = "Cuộc gọi",
-            route = NavigationRoute.Favourites, //todo refactor route
-        ),
-        DiuNavigationItem(
-            iconRes = AppIcons.People,
-            contentDescription = "Danh bạ",
-            route = NavigationRoute.AboutLibraries, //todo refactor route
-        ),
-        DiuNavigationItem(
-            iconRes = AppIcons.QrCode,
-            contentDescription = "QR của tôi",
-            route = NavigationRoute.Settings, //todo refactor route
-        ),
-    )
+private fun getBottomNavigationItems() = listOf(
+    DiuNavigationItem(
+        iconRes = AppIcons.Chat,
+        contentDescription = "Trò chuyện",
+        route = NavigationRoute.Home,
+    ),
+    DiuNavigationItem(
+        iconRes = AppIcons.Phone,
+        contentDescription = "Cuộc gọi",
+        route = NavigationRoute.Favourites, // todo refactor route
+    ),
+    DiuNavigationItem(
+        iconRes = AppIcons.People,
+        contentDescription = "Danh bạ",
+        route = NavigationRoute.AboutLibraries, // todo refactor route
+    ),
+    DiuNavigationItem(
+        iconRes = AppIcons.QrCode,
+        contentDescription = "QR của tôi",
+        route = NavigationRoute.Settings, // todo refactor route
+    ),
+)
 
 private fun getSelectedNavigationIndex(
     currentRoute: String?,
     navigationItems: List<DiuNavigationItem>,
-): Int =
-    navigationItems
-        .indexOfFirst { item ->
-            when (currentRoute) {
-                null -> false
-                NavigationRoute.AlbumDetail::class.qualifiedName -> item.route is NavigationRoute.AlbumList
-                else -> item.route::class.qualifiedName == currentRoute
-            }
-        }.takeIf { it >= 0 } ?: 0
+): Int = navigationItems
+    .indexOfFirst { item ->
+        when (currentRoute) {
+            null -> false
+            NavigationRoute.AlbumDetail::class.qualifiedName -> item.route is NavigationRoute.AlbumList
+            else -> item.route::class.qualifiedName == currentRoute
+        }
+    }.takeIf { it >= 0 } ?: 0
 
 data class DiuNavigationItem(
     @DrawableRes val iconRes: Int,
@@ -233,7 +236,8 @@ data class DiuNavigationItem(
 private fun BottomNavigationBarLightPreview() {
     AppTheme(darkTheme = false) {
         Box(
-            modifier = Modifier
+            modifier =
+            Modifier
                 .fillMaxWidth()
                 .padding(vertical = 16.dp),
             contentAlignment = Alignment.BottomCenter,
@@ -252,7 +256,8 @@ private fun BottomNavigationBarLightPreview() {
 private fun BottomNavigationBarDarkPreview() {
     AppTheme(darkTheme = true) {
         Box(
-            modifier = Modifier
+            modifier =
+            Modifier
                 .fillMaxWidth()
                 .padding(vertical = 16.dp),
             contentAlignment = Alignment.BottomCenter,

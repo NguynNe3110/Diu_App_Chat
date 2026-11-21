@@ -24,21 +24,21 @@ import org.junit.jupiter.api.extension.ExtendWith
 @OptIn(ExperimentalCoroutinesApi::class)
 @ExtendWith(InstantTaskExecutorExtension::class, CoroutinesTestDispatcherExtension::class)
 class ChatViewModelTest {
-
     private val mockGetMessagesUseCase: GetMessagesUseCase = mockk()
     private val mockSendMessageUseCase: SendMessageUseCase = mockk()
 
-    private val sampleMessages = listOf(
-        ChatMessage(
-            id = "msg_1",
-            conversationId = "conv_linh_diu",
-            senderId = "user_linh",
-            senderName = "Linh Dịu",
-            content = "Hôm nay trời thu Hà Nội rất dịu mát.",
-            mood = MoodType.BINHYEN,
-            status = MessageStatus.SENT,
-        ),
-    )
+    private val sampleMessages =
+        listOf(
+            ChatMessage(
+                id = "msg_1",
+                conversationId = "conv_linh_diu",
+                senderId = "user_linh",
+                senderName = "Linh Dịu",
+                content = "Hôm nay trời thu Hà Nội rất dịu mát.",
+                mood = MoodType.BINHYEN,
+                status = MessageStatus.SENT,
+            ),
+        )
 
     private lateinit var sut: ChatViewModel
 
@@ -83,7 +83,8 @@ class ChatViewModelTest {
         sut.uiStateFlow.value.replyingTo shouldBeEqualTo targetMessage
 
         sut.onCancelReply()
-        sut.uiStateFlow.value.replyingTo.shouldBeNull()
+        sut.uiStateFlow.value.replyingTo
+            .shouldBeNull()
     }
 
     @Test
@@ -92,15 +93,16 @@ class ChatViewModelTest {
         sut.onInputChanged("Hẹn gặp em nhé!")
         sut.onSelectMood(MoodType.THUONG)
 
-        val expectedMessage = ChatMessage(
-            id = "msg_2",
-            conversationId = "conv_linh_diu",
-            senderId = "me",
-            senderName = "Tôi",
-            content = "Hẹn gặp em nhé!",
-            mood = MoodType.THUONG,
-            status = MessageStatus.SENT,
-        )
+        val expectedMessage =
+            ChatMessage(
+                id = "msg_2",
+                conversationId = "conv_linh_diu",
+                senderId = "me",
+                senderName = "Tôi",
+                content = "Hẹn gặp em nhé!",
+                mood = MoodType.THUONG,
+                status = MessageStatus.SENT,
+            )
 
         coEvery {
             mockSendMessageUseCase(

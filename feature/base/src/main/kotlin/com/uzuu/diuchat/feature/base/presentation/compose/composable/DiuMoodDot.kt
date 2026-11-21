@@ -25,16 +25,18 @@ fun DiuMoodDot(
 ) {
     require(size.value.isFinite() && size > 0.dp) { "Dot size must be finite and positive" }
     Box(
-        modifier = modifier
+        modifier =
+        modifier
             .size(size)
             .drawWithCache {
                 val center = Offset(this.size.width / 2, this.size.height / 2)
                 val radius = this.size.minDimension
-                val glow = Brush.radialGradient(
-                    listOf(color.copy(alpha = 0.6f), color.copy(alpha = 0f)),
-                    center,
-                    radius,
-                )
+                val glow =
+                    Brush.radialGradient(
+                        listOf(color.copy(alpha = 0.6f), color.copy(alpha = 0f)),
+                        center,
+                        radius,
+                    )
                 onDrawBehind {
                     drawCircle(glow, radius, center)
                     drawCircle(color, radius / 2, center)

@@ -40,7 +40,8 @@ fun DiuMoodPicker(
                 enabled = enabled,
                 label = { Text(option.label) },
                 leadingIcon = { DiuMoodDot(option.color) },
-                colors = FilterChipDefaults.filterChipColors(
+                colors =
+                FilterChipDefaults.filterChipColors(
                     selectedContainerColor = option.color.copy(alpha = 0.3f),
                     selectedLabelColor = AppTheme.colors.ink,
                     labelColor = AppTheme.colors.inkSecondary,
@@ -59,7 +60,8 @@ private fun DiuMoodPickerPreview() {
         val moods = AppTheme.colors.moods
         Surface(color = AppTheme.colors.background) {
             DiuMoodPicker(
-                options = listOf(
+                options =
+                listOf(
                     DiuMoodOption("thuong", "Thương", moods.thuong),
                     DiuMoodOption("vui", "Vui", moods.vui),
                     DiuMoodOption("binhyen", "Bình yên", moods.binhyen),

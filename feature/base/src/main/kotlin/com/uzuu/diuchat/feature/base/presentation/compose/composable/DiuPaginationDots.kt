@@ -50,7 +50,8 @@ fun DiuPaginationDots(
             val animatedWidth by animateDpAsState(targetWidth, label = "dotWidth")
 
             Box(
-                modifier = Modifier
+                modifier =
+                Modifier
                     .width(animatedWidth)
                     .heightIn(min = 44.dp)
                     .semantics { contentDescription = pageLabel(index) }
@@ -58,7 +59,8 @@ fun DiuPaginationDots(
                 contentAlignment = Alignment.Center,
             ) {
                 Box(
-                    modifier = Modifier
+                    modifier =
+                    Modifier
                         .fillMaxWidth()
                         .height(8.dp)
                         .background(

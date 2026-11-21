@@ -37,15 +37,17 @@ fun Keypad(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
 ) {
-    val rows = listOf(
-        listOf("1", "2", "3"),
-        listOf("4", "5", "6"),
-        listOf("7", "8", "9"),
-        listOf("", "0", "del"),
-    )
+    val rows =
+        listOf(
+            listOf("1", "2", "3"),
+            listOf("4", "5", "6"),
+            listOf("7", "8", "9"),
+            listOf("", "0", "del"),
+        )
 
     Column(
-        modifier = modifier
+        modifier =
+        modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -71,9 +73,9 @@ fun Keypad(
 @Composable
 private fun KeypadButton(
     key: String,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    onClick: () -> Unit,
 ) {
     val shape = RoundedCornerShape(20.dp)
 
@@ -85,7 +87,8 @@ private fun KeypadButton(
     val description = if (key == "del") "Xoá ký tự" else "Số $key"
 
     Box(
-        modifier = modifier
+        modifier =
+        modifier
             .height(54.dp)
             .clip(shape)
             .clickable(
@@ -94,8 +97,7 @@ private fun KeypadButton(
                 role = Role.Button,
                 interactionSource = remember { MutableInteractionSource() },
                 indication = ripple(color = AppTheme.colors.ink.copy(alpha = 0.12f)),
-            )
-            .semantics {
+            ).semantics {
                 this.contentDescription = description
                 this.role = Role.Button
             },

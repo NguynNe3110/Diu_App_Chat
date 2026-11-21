@@ -7,7 +7,9 @@ import kotlinx.coroutines.flow.Flow
 
 interface ChatRepository {
     fun observeMessages(conversationId: String): Flow<List<ChatMessage>>
+
     fun observeConversations(): Flow<List<Conversation>>
+
     suspend fun sendMessage(
         conversationId: String,
         content: String,
@@ -15,6 +17,8 @@ interface ChatRepository {
         replyToId: String? = null,
         replyQuote: String? = null,
     ): ChatMessage
+
     suspend fun retryFailedMessage(messageId: String)
+
     suspend fun markAsRead(conversationId: String)
 }

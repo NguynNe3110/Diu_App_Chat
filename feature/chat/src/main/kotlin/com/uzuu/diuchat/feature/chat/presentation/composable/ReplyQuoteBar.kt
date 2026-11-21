@@ -36,7 +36,8 @@ fun ReplyQuoteBar(
     val moodColor = Color(replyingTo.mood.colorHex)
 
     Box(
-        modifier = modifier
+        modifier =
+        modifier
             .fillMaxWidth()
             .padding(horizontal = 12.dp, vertical = 4.dp)
             .clip(RoundedCornerShape(12.dp))
@@ -49,7 +50,8 @@ fun ReplyQuoteBar(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(
-                modifier = Modifier
+                modifier =
+                Modifier
                     .size(width = 3.dp, height = 32.dp)
                     .clip(RoundedCornerShape(2.dp))
                     .background(moodColor),

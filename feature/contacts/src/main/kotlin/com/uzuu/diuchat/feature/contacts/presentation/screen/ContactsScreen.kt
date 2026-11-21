@@ -52,15 +52,16 @@ import org.koin.androidx.compose.koinViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ContactsScreen(
-    onNavigateToChat: (String) -> Unit = {},
     modifier: Modifier = Modifier,
+    onNavigateToChat: (String) -> Unit = {},
     viewModel: ContactsViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.uiStateFlow.collectAsState()
     val colors = AppTheme.colors
 
     Column(
-        modifier = modifier
+        modifier =
+        modifier
             .fillMaxSize()
             .statusBarsPadding()
             .navigationBarsPadding(),
@@ -95,7 +96,8 @@ fun ContactsScreen(
 
         // Circle Filter Chips
         Row(
-            modifier = Modifier
+            modifier =
+            Modifier
                 .fillMaxWidth()
                 .horizontalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp, vertical = 8.dp),
@@ -112,7 +114,8 @@ fun ContactsScreen(
 
         if (uiState.isLoading) {
             Box(
-                modifier = Modifier
+                modifier =
+                Modifier
                     .fillMaxWidth()
                     .weight(1f),
                 contentAlignment = Alignment.Center,
@@ -121,7 +124,8 @@ fun ContactsScreen(
             }
         } else {
             LazyColumn(
-                modifier = Modifier
+                modifier =
+                Modifier
                     .fillMaxWidth()
                     .weight(1f),
             ) {
@@ -130,7 +134,8 @@ fun ContactsScreen(
                     item {
                         Text(
                             text = "Lời mời kết nối (${uiState.pendingRequests.size})",
-                            style = AppTheme.typography.titleMedium.copy(
+                            style =
+                            AppTheme.typography.titleMedium.copy(
                                 fontWeight = FontWeight.SemiBold,
                                 fontFamily = FontFamily.Serif,
                             ),
@@ -156,7 +161,8 @@ fun ContactsScreen(
                 item {
                     Text(
                         text = if (uiState.selectedCircle == ContactCircle.ALL) "Vòng thân" else uiState.selectedCircle.label,
-                        style = AppTheme.typography.titleMedium.copy(
+                        style =
+                        AppTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.SemiBold,
                             fontFamily = FontFamily.Serif,
                         ),
@@ -169,7 +175,8 @@ fun ContactsScreen(
                 if (uiState.filteredContacts.isEmpty()) {
                     item {
                         Box(
-                            modifier = Modifier
+                            modifier =
+                            Modifier
                                 .fillMaxWidth()
                                 .padding(vertical = 40.dp),
                         ) {
@@ -201,14 +208,16 @@ fun ContactsScreen(
             containerColor = colors.background,
         ) {
             Column(
-                modifier = Modifier
+                modifier =
+                Modifier
                     .fillMaxWidth()
                     .padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Text(
                     text = "Mã dịu của bạn",
-                    style = AppTheme.typography.headlineSmall.copy(
+                    style =
+                    AppTheme.typography.headlineSmall.copy(
                         fontFamily = FontFamily.Serif,
                         fontWeight = FontWeight.Bold,
                     ),
@@ -259,7 +268,8 @@ private fun ConnectionRequestItem(
     val moodColor = parseColorSafely(request.senderMoodColorHex, colors.moods.thuong)
 
     DiuCard(
-        modifier = modifier
+        modifier =
+        modifier
             .fillMaxWidth()
             .padding(horizontal = 20.dp, vertical = 4.dp),
     ) {
@@ -274,7 +284,8 @@ private fun ConnectionRequestItem(
             )
 
             Row(
-                modifier = Modifier
+                modifier =
+                Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 8.dp),
                 horizontalArrangement = Arrangement.End,
@@ -301,16 +312,17 @@ private fun ContactItemRow(
     val colors = AppTheme.colors
     val moodColor = parseColorSafely(contact.moodColorHex, colors.moods.thuong)
 
-    val subtitle = buildString {
-        append(contact.circle.label)
-        if (!contact.nickname.isNullOrBlank()) {
-            append(" · ")
-            append(contact.nickname)
+    val subtitle =
+        buildString {
+            append(contact.circle.label)
+            if (!contact.nickname.isNullOrBlank()) {
+                append(" · ")
+                append(contact.nickname)
+            }
+            if (contact.isQuiet) {
+                append(" · Đang nghỉ ngơi")
+            }
         }
-        if (contact.isQuiet) {
-            append(" · Đang nghỉ ngơi")
-        }
-    }
 
     val timestamp = contact.anniversary?.let { "Kỷ niệm $it" }
 
@@ -325,7 +337,10 @@ private fun ContactItemRow(
     )
 }
 
-private fun parseColorSafely(hex: String, fallback: Color): Color = try {
+private fun parseColorSafely(
+    hex: String,
+    fallback: Color,
+): Color = try {
     Color(android.graphics.Color.parseColor(hex))
 } catch (_: Exception) {
     fallback

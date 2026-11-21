@@ -11,7 +11,6 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
 class HomeViewModelTest {
-
     private val sut = HomeViewModel()
 
     @Test
@@ -36,26 +35,28 @@ class HomeViewModelTest {
 
     @Test
     fun `set data action updates stars and quiet mode`() = runTest {
-        val customStars = listOf(
-            StarPerson(
-                id = "test-1",
-                name = "Test",
-                initials = "T",
-                moodColor = Color.Red,
-                isQuiet = true,
-            ),
-        )
-        val customChats = listOf(
-            RecentChat(
-                id = "chat-1",
-                contactName = "Test",
-                initials = "T",
-                moodColor = Color.Red,
-                lastMessage = "Hello",
-                timestamp = "10:00",
-                unreadCount = 1,
-            ),
-        )
+        val customStars =
+            listOf(
+                StarPerson(
+                    id = "test-1",
+                    name = "Test",
+                    initials = "T",
+                    moodColor = Color.Red,
+                    isQuiet = true,
+                ),
+            )
+        val customChats =
+            listOf(
+                RecentChat(
+                    id = "chat-1",
+                    contactName = "Test",
+                    initials = "T",
+                    moodColor = Color.Red,
+                    lastMessage = "Hello",
+                    timestamp = "10:00",
+                    unreadCount = 1,
+                ),
+            )
 
         sut.onSetData(customStars, customChats, isQuietModeActive = true)
 

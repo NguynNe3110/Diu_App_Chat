@@ -18,9 +18,7 @@ class AuthRepositoryImpl(
     override suspend fun sendOtp(phoneNumber: String): Result<Unit> = runCatching {
         val normalizedPhone = normalizePhone(phoneNumber)
         val client = supabaseClient
-        if (client == null) {
-            delay(PREVIEW_DELAY_MS)
-        } else {
+        if (client != null) {
             runCatching {
                 client.auth.signInWith(OTP) {
                     phone = normalizedPhone
@@ -30,33 +28,42 @@ class AuthRepositoryImpl(
                 Timber.w(error, "Supabase phone signInWith OTP failed; falling back to local verification")
             }
         }
-        Unit
+        if (client == null) {
+            delay(PREVIEW_DELAY_MS)
+        }
     }.onFailure(::rethrowCancellation)
 
-    override suspend fun verifyOtp(phoneNumber: String, code: String): Result<Unit> = runCatching {
+    override suspend fun verifyOtp(
+        phoneNumber: String,
+        code: String,
+    ): Result<Unit> = runCatching {
         require(code.length == OTP_DIGITS && code.all { it.isDigit() }) {
             "Mã OTP phải gồm 6 chữ số"
         }
-        val verifiedRemotely = supabaseClient?.let { client ->
-            runCatching {
-                client.auth.verifyPhoneOtp(
-                    type = OtpType.Phone.SMS,
-                    phone = normalizePhone(phoneNumber),
-                    token = code,
-                )
-            }.onFailure { error ->
-                rethrowCancellation(error)
-                Timber.w(error, "Supabase verifyPhoneOtp failed; validating in test fallback mode")
-            }.isSuccess
-        } ?: false
+        val verifiedRemotely =
+            supabaseClient?.let { client ->
+                runCatching {
+                    client.auth.verifyPhoneOtp(
+                        type = OtpType.Phone.SMS,
+                        phone = normalizePhone(phoneNumber),
+                        token = code,
+                    )
+                }.onFailure { error ->
+                    rethrowCancellation(error)
+                    Timber.w(error, "Supabase verifyPhoneOtp failed; validating in test fallback mode")
+                }.isSuccess
+            } ?: false
 
         if (!verifiedRemotely) {
             delay(PREVIEW_DELAY_MS)
         }
     }.onFailure(::rethrowCancellation)
 
-    private fun normalizePhone(phoneNumber: String): String =
-        if (phoneNumber.startsWith("+84")) phoneNumber else "+84${phoneNumber.trimStart('0')}"
+    private fun normalizePhone(phoneNumber: String): String = if (phoneNumber.startsWith("+84")) {
+        phoneNumber
+    } else {
+        "+84${phoneNumber.trimStart('0')}"
+    }
 
     private fun rethrowCancellation(error: Throwable) {
         if (error is CancellationException) throw error

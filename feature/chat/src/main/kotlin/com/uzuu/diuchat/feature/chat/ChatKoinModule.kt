@@ -12,22 +12,25 @@ import org.koin.core.module.dsl.singleOf
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 
-val featureChatModules = module {
-    single {
-        Room.databaseBuilder(
-            get(),
-            DiuChatDatabase::class.java,
-            "diu_chat.db",
-        ).fallbackToDestructiveMigration().build()
+val featureChatModules =
+    module {
+        single {
+            Room
+                .databaseBuilder(
+                    get(),
+                    DiuChatDatabase::class.java,
+                    "diu_chat.db",
+                ).fallbackToDestructiveMigration()
+                .build()
+        }
+
+        single { get<DiuChatDatabase>().conversationDao() }
+        single { get<DiuChatDatabase>().messageDao() }
+        single { get<DiuChatDatabase>().outboxDao() }
+
+        singleOf(::ChatRepositoryImpl) { bind<ChatRepository>() }
+        singleOf(::GetMessagesUseCase)
+        singleOf(::SendMessageUseCase)
+
+        viewModelOf(::ChatViewModel)
     }
-
-    single { get<DiuChatDatabase>().conversationDao() }
-    single { get<DiuChatDatabase>().messageDao() }
-    single { get<DiuChatDatabase>().outboxDao() }
-
-    singleOf(::ChatRepositoryImpl) { bind<ChatRepository>() }
-    singleOf(::GetMessagesUseCase)
-    singleOf(::SendMessageUseCase)
-
-    viewModelOf(::ChatViewModel)
-}

@@ -29,7 +29,8 @@ fun DiuSettingsRow(
 ) {
     val colors = AppTheme.colors
     Row(
-        modifier = modifier
+        modifier =
+        modifier
             .fillMaxWidth()
             .heightIn(min = 56.dp)
             .then(if (onClick != null) Modifier.clickable(role = Role.Button, onClick = onClick) else Modifier)

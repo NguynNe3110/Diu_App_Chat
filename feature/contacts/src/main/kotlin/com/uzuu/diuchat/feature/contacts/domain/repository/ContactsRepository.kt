@@ -7,8 +7,16 @@ import kotlinx.coroutines.flow.Flow
 
 interface ContactsRepository {
     fun getContacts(): Flow<List<Contact>>
+
     fun getPendingRequests(): Flow<List<ConnectionRequest>>
-    suspend fun respondToRequest(requestId: String, accept: Boolean, circle: ContactCircle): Result<Unit>
+
+    suspend fun respondToRequest(
+        requestId: String,
+        accept: Boolean,
+        circle: ContactCircle,
+    ): Result<Unit>
+
     suspend fun searchUserByPhone(phone: String): Result<Contact?>
+
     fun getMyInviteLink(): Flow<String>
 }

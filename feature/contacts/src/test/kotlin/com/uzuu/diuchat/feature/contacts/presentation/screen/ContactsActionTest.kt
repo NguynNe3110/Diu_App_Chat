@@ -5,7 +5,6 @@ import org.amshove.kluent.shouldBeEqualTo
 import org.junit.jupiter.api.Test
 
 class ContactsActionTest {
-
     @Test
     fun `SelectCircle updates selected circle`() {
         val initial = ContactsUiState()

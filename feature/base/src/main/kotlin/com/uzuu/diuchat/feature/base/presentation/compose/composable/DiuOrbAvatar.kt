@@ -44,35 +44,36 @@ fun DiuOrbAvatar(
     require(size.value.isFinite() && size > 0.dp) { "Avatar size must be finite and positive" }
 
     Box(
-        modifier = modifier
+        modifier =
+        modifier
             .size(size)
             .offset(y = floatOffsetY)
             .drawWithCache {
                 val center = Offset(this.size.width / 2f, this.size.height / 2f)
                 val radius = this.size.minDimension * 0.9f
-                val glow = Brush.radialGradient(
-                    0f to moodColor.copy(alpha = 0.35f),
-                    0.5f to moodColor.copy(alpha = 0.24f),
-                    1f to moodColor.copy(alpha = 0f),
-                    center = center,
-                    radius = radius,
-                )
+                val glow =
+                    Brush.radialGradient(
+                        0f to moodColor.copy(alpha = 0.35f),
+                        0.5f to moodColor.copy(alpha = 0.24f),
+                        1f to moodColor.copy(alpha = 0f),
+                        center = center,
+                        radius = radius,
+                    )
                 onDrawBehind {
                     drawCircle(brush = glow, radius = radius, center = center)
                 }
-            }
-            .clip(CircleShape)
+            }.clip(CircleShape)
             .drawWithCache {
-                val brush = Brush.radialGradient(
-                    0f to lerp(moodColor, Color.White, 0.7f),
-                    0.48f to moodColor,
-                    1f to lerp(moodColor, Color.Black, 0.12f),
-                    center = Offset(this.size.width * 0.34f, this.size.height * 0.28f),
-                    radius = this.size.minDimension * 0.8f,
-                )
+                val brush =
+                    Brush.radialGradient(
+                        0f to lerp(moodColor, Color.White, 0.7f),
+                        0.48f to moodColor,
+                        1f to lerp(moodColor, Color.Black, 0.12f),
+                        center = Offset(this.size.width * 0.34f, this.size.height * 0.28f),
+                        radius = this.size.minDimension * 0.8f,
+                    )
                 onDrawBehind { drawRect(brush) }
-            }
-            .clearAndSetSemantics {
+            }.clearAndSetSemantics {
                 contentDescription?.let { this.contentDescription = it }
             },
         contentAlignment = Alignment.Center,

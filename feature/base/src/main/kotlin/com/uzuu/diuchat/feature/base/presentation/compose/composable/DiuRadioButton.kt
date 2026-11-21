@@ -24,7 +24,8 @@ fun DiuRadioButton(
         onClick = onClick,
         modifier = modifier.semantics { this.contentDescription = contentDescription },
         enabled = enabled,
-        colors = RadioButtonDefaults.colors(
+        colors =
+        RadioButtonDefaults.colors(
             selectedColor = colors.accent,
             unselectedColor = colors.line,
             disabledSelectedColor = colors.accent.copy(alpha = 0.35f),

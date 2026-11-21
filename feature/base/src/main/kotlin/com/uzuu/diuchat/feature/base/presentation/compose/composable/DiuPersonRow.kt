@@ -32,7 +32,8 @@ fun DiuPersonRow(
 ) {
     val colors = AppTheme.colors
     Row(
-        modifier = modifier
+        modifier =
+        modifier
             .fillMaxWidth()
             .clickable(role = Role.Button, onClick = onClick)
             .padding(horizontal = 20.dp, vertical = 10.dp),

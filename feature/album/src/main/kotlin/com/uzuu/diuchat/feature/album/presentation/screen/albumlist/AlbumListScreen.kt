@@ -101,9 +101,9 @@ private fun AlbumGrid(
         items(items = albums, key = { it.id }) { album ->
             ElevatedCard(
                 modifier =
-                    Modifier
-                        .padding(Dimen.spaceS)
-                        .wrapContentSize(),
+                Modifier
+                    .padding(Dimen.spaceS)
+                    .wrapContentSize(),
                 onClick = { onAlbumClick(album) },
             ) {
                 PlaceholderImage(

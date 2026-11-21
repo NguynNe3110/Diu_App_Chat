@@ -32,7 +32,8 @@ fun DiuFilterChip(
         modifier = modifier,
         enabled = enabled,
         shape = RoundedCornerShape(18.dp),
-        colors = FilterChipDefaults.filterChipColors(
+        colors =
+        FilterChipDefaults.filterChipColors(
             containerColor = Color.Transparent,
             labelColor = colors.inkSecondary,
             selectedContainerColor = colors.ink,
@@ -40,7 +41,8 @@ fun DiuFilterChip(
             disabledContainerColor = Color.Transparent,
             disabledLabelColor = colors.inkTertiary,
         ),
-        border = FilterChipDefaults.filterChipBorder(
+        border =
+        FilterChipDefaults.filterChipBorder(
             enabled = enabled,
             selected = selected,
             borderColor = colors.line,

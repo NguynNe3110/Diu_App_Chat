@@ -37,7 +37,8 @@ fun DiuConfirmationDialog(
         confirmButton = {
             TextButton(
                 onClick = onConfirm,
-                colors = ButtonDefaults.textButtonColors(
+                colors =
+                ButtonDefaults.textButtonColors(
                     contentColor = if (destructive) colors.danger else colors.accent,
                 ),
             ) {
@@ -47,7 +48,8 @@ fun DiuConfirmationDialog(
         dismissButton = {
             TextButton(
                 onClick = onDismiss,
-                colors = ButtonDefaults.textButtonColors(
+                colors =
+                ButtonDefaults.textButtonColors(
                     contentColor = colors.inkSecondary,
                 ),
             ) {

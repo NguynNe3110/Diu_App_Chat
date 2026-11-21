@@ -5,21 +5,18 @@ import com.uzuu.diuchat.feature.album.data.datasource.database.model.TrackRoomMo
 import com.uzuu.diuchat.feature.album.domain.model.Track
 
 internal class TrackMapper {
-    fun apiToDomain(apiModel: TrackApiModel): Track =
-        Track(
-            name = apiModel.name,
-            duration = apiModel.duration,
-        )
+    fun apiToDomain(apiModel: TrackApiModel): Track = Track(
+        name = apiModel.name,
+        duration = apiModel.duration,
+    )
 
-    fun apiToRoom(apiModel: TrackApiModel): TrackRoomModel =
-        TrackRoomModel(
-            name = apiModel.name,
-            duration = apiModel.duration,
-        )
+    fun apiToRoom(apiModel: TrackApiModel): TrackRoomModel = TrackRoomModel(
+        name = apiModel.name,
+        duration = apiModel.duration,
+    )
 
-    fun roomToDomain(roomModel: TrackRoomModel): Track =
-        Track(
-            name = roomModel.name,
-            duration = roomModel.duration,
-        )
+    fun roomToDomain(roomModel: TrackRoomModel): Track = Track(
+        name = roomModel.name,
+        duration = roomModel.duration,
+    )
 }

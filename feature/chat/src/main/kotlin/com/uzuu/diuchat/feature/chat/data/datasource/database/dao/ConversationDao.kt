@@ -22,5 +22,9 @@ interface ConversationDao {
     suspend fun upsertAll(conversations: List<ConversationEntity>)
 
     @Query("UPDATE conversations SET lastMessage = :lastMessage, lastMessageTimeEpochMs = :lastMessageTimeEpochMs WHERE id = :id")
-    suspend fun updateLastMessage(id: String, lastMessage: String, lastMessageTimeEpochMs: Long)
+    suspend fun updateLastMessage(
+        id: String,
+        lastMessage: String,
+        lastMessageTimeEpochMs: Long,
+    )
 }

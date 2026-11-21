@@ -9,8 +9,7 @@ internal data class TrackRoomModel(
     val duration: Int? = null,
 )
 
-internal fun TrackRoomModel.toDomainModel() =
-    Track(
-        name = this.name,
-        duration = this.duration,
-    )
+internal fun TrackRoomModel.toDomainModel() = Track(
+    name = this.name,
+    duration = this.duration,
+)

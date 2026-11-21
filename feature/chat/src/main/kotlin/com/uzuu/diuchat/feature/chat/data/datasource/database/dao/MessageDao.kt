@@ -22,7 +22,10 @@ interface MessageDao {
     suspend fun insertAll(messages: List<MessageEntity>)
 
     @Query("UPDATE messages SET status = :status WHERE id = :id")
-    suspend fun updateStatus(id: String, status: String)
+    suspend fun updateStatus(
+        id: String,
+        status: String,
+    )
 
     @Query("DELETE FROM messages WHERE id = :id")
     suspend fun delete(id: String)

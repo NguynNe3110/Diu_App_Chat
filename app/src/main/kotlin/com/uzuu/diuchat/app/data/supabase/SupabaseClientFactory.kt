@@ -14,15 +14,13 @@ import io.github.jan.supabase.storage.Storage
  * Unused modules can be removed to reduce APK size and initialization time.
  */
 object SupabaseClientFactory {
-
     fun create(
         supabaseUrl: String,
         supabaseAnonKey: String,
-    ): SupabaseClient =
-        createSupabaseClient(supabaseUrl, supabaseAnonKey) {
-            install(Postgrest)
-            install(Auth)
-            install(Realtime)
-            install(Storage)
-        }
+    ): SupabaseClient = createSupabaseClient(supabaseUrl, supabaseAnonKey) {
+        install(Postgrest)
+        install(Auth)
+        install(Realtime)
+        install(Storage)
+    }
 }

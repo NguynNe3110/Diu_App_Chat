@@ -11,14 +11,12 @@ internal data class TrackApiModel(
     @SerialName("duration") val duration: Int? = null,
 )
 
-internal fun TrackApiModel.toDomainModel() =
-    Track(
-        name = this.name,
-        duration = this.duration,
-    )
+internal fun TrackApiModel.toDomainModel() = Track(
+    name = this.name,
+    duration = this.duration,
+)
 
-internal fun TrackApiModel.toRoomModel() =
-    TrackRoomModel(
-        name = this.name,
-        duration = this.duration,
-    )
+internal fun TrackApiModel.toRoomModel() = TrackRoomModel(
+    name = this.name,
+    duration = this.duration,
+)

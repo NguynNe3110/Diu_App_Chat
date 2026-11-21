@@ -44,7 +44,8 @@ fun DiuTextField(
         keyboardOptions = keyboardOptions,
         shape = RoundedCornerShape(16.dp),
         textStyle = AppTheme.typography.bodyLarge,
-        colors = OutlinedTextFieldDefaults.colors(
+        colors =
+        OutlinedTextFieldDefaults.colors(
             focusedTextColor = colors.ink,
             unfocusedTextColor = colors.ink,
             disabledTextColor = colors.ink.copy(alpha = 0.38f),

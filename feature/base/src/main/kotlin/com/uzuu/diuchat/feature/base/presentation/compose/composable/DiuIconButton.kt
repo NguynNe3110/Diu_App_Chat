@@ -30,11 +30,13 @@ fun DiuIconButton(
 
     IconButton(
         onClick = onClick,
-        modifier = modifier
+        modifier =
+        modifier
             .sizeIn(minWidth = 44.dp, minHeight = 44.dp)
             .semantics { this.contentDescription = contentDescription },
         enabled = enabled,
-        colors = IconButtonDefaults.iconButtonColors(
+        colors =
+        IconButtonDefaults.iconButtonColors(
             containerColor = if (soft) colors.surface else Color.Transparent,
             contentColor = contentColor,
             disabledContentColor = colors.inkTertiary,

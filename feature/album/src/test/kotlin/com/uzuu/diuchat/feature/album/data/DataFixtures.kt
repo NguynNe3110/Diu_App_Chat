@@ -17,16 +17,14 @@ import com.uzuu.diuchat.feature.album.data.datasource.database.model.TagRoomMode
 import com.uzuu.diuchat.feature.album.data.datasource.database.model.TrackRoomModel
 
 object DataFixtures {
-    internal fun getAlbumsApiModel() =
-        listOf(
-            getAlbumApiModel("mbid1", "album1", "artist1"),
-        )
+    internal fun getAlbumsApiModel() = listOf(
+        getAlbumApiModel("mbid1", "album1", "artist1"),
+    )
 
-    internal fun getAlbumsRoomModels() =
-        listOf(
-            getAlbumRoomModel(1, "mbid1", "album1", "artist1"),
-            getAlbumRoomModel(2, "mbid2", "album2", "artist2"),
-        )
+    internal fun getAlbumsRoomModels() = listOf(
+        getAlbumRoomModel(1, "mbid1", "album1", "artist1"),
+        getAlbumRoomModel(2, "mbid2", "album2", "artist2"),
+    )
 
     internal fun getAlbumApiModel(
         mbId: String = "mbId",
@@ -35,15 +33,14 @@ object DataFixtures {
         images: List<ImageApiModel>? = listOf(getImageModelApiModel()),
         tracks: TrackListApiModel = TrackListApiModel(getTrackModelApiModel()),
         tags: TagListApiModel = TagListApiModel(getTagModelApiModel()),
-    ): AlbumApiModel =
-        AlbumApiModel(
-            mbId,
-            name,
-            artist,
-            images,
-            tracks,
-            tags,
-        )
+    ): AlbumApiModel = AlbumApiModel(
+        mbId,
+        name,
+        artist,
+        images,
+        tracks,
+        tags,
+    )
 
     internal fun getImageModelApiModel(
         url: String = "url_${ImageSizeApiModel.EXTRA_LARGE}",
@@ -65,16 +62,15 @@ object DataFixtures {
         images: List<ImageRoomModel> = listOf(getImageRoomModel()),
         tracks: List<TrackRoomModel> = listOf(getTrackRoomModel()),
         tags: List<TagRoomModel> = listOf(getTagRoomModel()),
-    ): AlbumRoomModel =
-        AlbumRoomModel(
-            id,
-            mbId,
-            name,
-            artist,
-            images,
-            tracks,
-            tags,
-        )
+    ): AlbumRoomModel = AlbumRoomModel(
+        id,
+        mbId,
+        name,
+        artist,
+        images,
+        tracks,
+        tags,
+    )
 
     private fun getImageRoomModel(
         url: String = "url_${ImageSizeApiModel.EXTRA_LARGE}",
@@ -89,11 +85,10 @@ object DataFixtures {
     private fun getTagRoomModel(name: String = "tag") = TagRoomModel(name)
 
     object ApiResponse {
-        internal fun getSearchAlbum() =
-            SearchAlbumResponse(
-                SearchAlbumResultsApiModel(
-                    AlbumListApiModel(getAlbumsApiModel()),
-                ),
-            )
+        internal fun getSearchAlbum() = SearchAlbumResponse(
+            SearchAlbumResultsApiModel(
+                AlbumListApiModel(getAlbumsApiModel()),
+            ),
+        )
     }
 }

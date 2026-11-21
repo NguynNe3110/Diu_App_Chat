@@ -10,12 +10,14 @@ object JavaBuildConfig {
      */
     private val tomlJavaVersion by lazy {
         // ponytail: resolve from working directory ancestors; use Gradle's version catalog if builds run outside this tree.
-        val catalog = generateSequence(File(System.getProperty("user.dir")).absoluteFile) { it.parentFile }
-            .map { it.resolve("gradle/libs.versions.toml") }
-            .firstOrNull { it.isFile }
-            ?: error("Could not find gradle/libs.versions.toml from ${System.getProperty("user.dir")}")
+        val catalog =
+            generateSequence(File(System.getProperty("user.dir")).absoluteFile) { it.parentFile }
+                .map { it.resolve("gradle/libs.versions.toml") }
+                .firstOrNull { it.isFile }
+                ?: error("Could not find gradle/libs.versions.toml from ${System.getProperty("user.dir")}")
 
-        catalog.readLines()
+        catalog
+            .readLines()
             .firstOrNull { it.substringBefore("=").trim() == "java" }
             ?.substringAfter("=")
             ?.trim('"', ' ')

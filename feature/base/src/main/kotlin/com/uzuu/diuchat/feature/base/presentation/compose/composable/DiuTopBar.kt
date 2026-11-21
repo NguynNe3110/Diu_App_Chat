@@ -27,7 +27,8 @@ fun DiuTopBar(
 ) {
     val colors = AppTheme.colors
     Row(
-        modifier = modifier
+        modifier =
+        modifier
             .fillMaxWidth()
             .heightIn(min = 56.dp)
             .padding(horizontal = 8.dp, vertical = 6.dp),

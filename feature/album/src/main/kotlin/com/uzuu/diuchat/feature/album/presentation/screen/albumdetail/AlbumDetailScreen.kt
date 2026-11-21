@@ -104,17 +104,17 @@ private fun AlbumDetailContent(
 ) {
     Column(
         modifier =
-            modifier
-                .padding(horizontal = Dimen.screenContentPadding)
-                .verticalScroll(rememberScrollState()),
+        modifier
+            .padding(horizontal = Dimen.screenContentPadding)
+            .verticalScroll(rememberScrollState()),
     ) {
         ElevatedCard(
             modifier =
-                Modifier
-                    .padding(Dimen.spaceM)
-                    .wrapContentSize()
-                    .size(320.dp)
-                    .align(CenterHorizontally),
+            Modifier
+                .padding(Dimen.spaceM)
+                .wrapContentSize()
+                .size(320.dp)
+                .align(CenterHorizontally),
         ) {
             PlaceholderImage(
                 url = content.coverImageUrl,
@@ -185,9 +185,9 @@ internal fun TrackItem(track: Track) {
 private fun TrackItemPreview() {
     TrackItem(
         track =
-            Track(
-                name = "Sample Track",
-                duration = 180, // 3 minutes in seconds
-            ),
+        Track(
+            name = "Sample Track",
+            duration = 180, // 3 minutes in seconds
+        ),
     )
 }

@@ -16,14 +16,15 @@ class AuthRepositoryImplTest {
     fun `sending propagates coroutine cancellation instead of returning fallback success`() = runTest {
         var cancellationPropagated = false
         var returnedNormally = false
-        val request = launch {
-            try {
-                sut.sendOtp("912345678")
-                returnedNormally = true
-            } catch (_: CancellationException) {
-                cancellationPropagated = true
+        val request =
+            launch {
+                try {
+                    sut.sendOtp("912345678")
+                    returnedNormally = true
+                } catch (_: CancellationException) {
+                    cancellationPropagated = true
+                }
             }
-        }
         runCurrent()
 
         request.cancel()
@@ -37,14 +38,15 @@ class AuthRepositoryImplTest {
     fun `verification propagates coroutine cancellation instead of returning fallback success`() = runTest {
         var cancellationPropagated = false
         var returnedNormally = false
-        val request = launch {
-            try {
-                sut.verifyOtp("912345678", "123456")
-                returnedNormally = true
-            } catch (_: CancellationException) {
-                cancellationPropagated = true
+        val request =
+            launch {
+                try {
+                    sut.verifyOtp("912345678", "123456")
+                    returnedNormally = true
+                } catch (_: CancellationException) {
+                    cancellationPropagated = true
+                }
             }
-        }
         runCurrent()
 
         request.cancel()

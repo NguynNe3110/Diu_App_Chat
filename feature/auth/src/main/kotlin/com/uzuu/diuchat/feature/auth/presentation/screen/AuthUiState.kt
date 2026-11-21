@@ -12,16 +12,16 @@ data class AuthUiState(
     val otpState: OtpState = OtpState.EditingPhone(),
     val resendSecondsRemaining: Int = 0,
 ) : BaseState {
-
     val rawPhone: String
-        get() = when (val s = otpState) {
-            is OtpState.EditingPhone -> s.phoneNumber
-            is OtpState.Sending -> s.phoneNumber
-            is OtpState.AwaitingCode -> s.phoneNumber
-            is OtpState.Verifying -> s.phoneNumber
-            is OtpState.Success -> s.phoneNumber
-            is OtpState.Error -> s.phoneNumber
-        }
+        get() =
+            when (val s = otpState) {
+                is OtpState.EditingPhone -> s.phoneNumber
+                is OtpState.Sending -> s.phoneNumber
+                is OtpState.AwaitingCode -> s.phoneNumber
+                is OtpState.Verifying -> s.phoneNumber
+                is OtpState.Success -> s.phoneNumber
+                is OtpState.Error -> s.phoneNumber
+            }
 
     val formattedPhone: String
         get() {

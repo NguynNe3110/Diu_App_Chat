@@ -7,6 +7,5 @@ import kotlinx.coroutines.flow.Flow
 class GetPendingRequestsUseCase(
     private val contactsRepository: ContactsRepository,
 ) {
-    operator fun invoke(): Flow<List<ConnectionRequest>> =
-        contactsRepository.getPendingRequests()
+    operator fun invoke(): Flow<List<ConnectionRequest>> = contactsRepository.getPendingRequests()
 }

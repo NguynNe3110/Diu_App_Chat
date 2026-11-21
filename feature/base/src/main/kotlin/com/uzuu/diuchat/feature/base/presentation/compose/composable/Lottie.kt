@@ -30,9 +30,9 @@ fun LabeledAnimation(
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier =
-                Modifier
-                    .wrapContentSize()
-                    .padding(Dimen.spaceXL),
+            Modifier
+                .wrapContentSize()
+                .padding(Dimen.spaceXL),
         ) {
             TextTitleMedium(text = stringResource(label))
             LottieAssetLoader(assetResId)

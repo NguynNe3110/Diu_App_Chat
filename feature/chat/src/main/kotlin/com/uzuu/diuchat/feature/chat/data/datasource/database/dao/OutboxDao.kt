@@ -16,7 +16,10 @@ interface OutboxDao {
     suspend fun insert(operation: OutboxOperationEntity)
 
     @Query("UPDATE outbox_operations SET status = :status, attemptCount = attemptCount + 1 WHERE id = :id")
-    suspend fun updateStatus(id: String, status: String)
+    suspend fun updateStatus(
+        id: String,
+        status: String,
+    )
 
     @Query("DELETE FROM outbox_operations WHERE id = :id")
     suspend fun delete(id: String)

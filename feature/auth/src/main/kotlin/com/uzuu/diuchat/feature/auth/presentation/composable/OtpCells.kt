@@ -31,14 +31,15 @@ fun OtpCells(
     cellCount: Int = 6,
 ) {
     val colors = AppTheme.colors
-    val moodList = listOf(
-        colors.moods.thuong,
-        colors.moods.vui,
-        colors.moods.binhyen,
-        colors.moods.nho,
-        colors.moods.tram,
-        colors.moods.thuong,
-    )
+    val moodList =
+        listOf(
+            colors.moods.thuong,
+            colors.moods.vui,
+            colors.moods.binhyen,
+            colors.moods.nho,
+            colors.moods.tram,
+            colors.moods.thuong,
+        )
 
     val shape = RoundedCornerShape(20.dp)
 
@@ -59,20 +60,23 @@ fun OtpCells(
                 label = "otpBg_$i",
             )
 
-            val borderStroke = when {
-                isFilled -> BorderStroke(1.5.dp, moodColor.copy(alpha = 0.25f))
-                isCurrent -> BorderStroke(1.5.dp, colors.accent)
-                else -> BorderStroke(1.5.dp, colors.line)
-            }
+            val borderStroke =
+                when {
+                    isFilled -> BorderStroke(1.5.dp, moodColor.copy(alpha = 0.25f))
+                    isCurrent -> BorderStroke(1.5.dp, colors.accent)
+                    else -> BorderStroke(1.5.dp, colors.line)
+                }
 
-            val shadowModifier = if (isFilled) {
-                Modifier.shadow(elevation = 6.dp, shape = shape, spotColor = moodColor, ambientColor = moodColor)
-            } else {
-                Modifier
-            }
+            val shadowModifier =
+                if (isFilled) {
+                    Modifier.shadow(elevation = 6.dp, shape = shape, spotColor = moodColor, ambientColor = moodColor)
+                } else {
+                    Modifier
+                }
 
             Box(
-                modifier = Modifier
+                modifier =
+                Modifier
                     .weight(1f)
                     .height(62.dp)
                     .then(shadowModifier)

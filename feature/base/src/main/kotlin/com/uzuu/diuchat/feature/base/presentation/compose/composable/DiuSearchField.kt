@@ -35,18 +35,20 @@ fun DiuSearchField(
     trailingIcon: (@Composable () -> Unit)? = null,
 ) {
     val colors = AppTheme.colors
-    val effectiveLeadingIcon: (@Composable () -> Unit)? = leadingIcon ?: {
-        Icon(Icons.Outlined.Search, contentDescription = null, tint = colors.inkSecondary)
-    }
-    val effectiveTrailingIcon: (@Composable () -> Unit)? = trailingIcon ?: if (value.isNotEmpty() && onClear != null) {
-        {
-            IconButton(onClick = onClear) {
-                Icon(Icons.Outlined.Close, contentDescription = "Xóa tìm kiếm", tint = colors.inkSecondary)
-            }
+    val effectiveLeadingIcon: (@Composable () -> Unit)? =
+        leadingIcon ?: {
+            Icon(Icons.Outlined.Search, contentDescription = null, tint = colors.inkSecondary)
         }
-    } else {
-        null
-    }
+    val effectiveTrailingIcon: (@Composable () -> Unit)? =
+        trailingIcon ?: if (value.isNotEmpty() && onClear != null) {
+            {
+                IconButton(onClick = onClear) {
+                    Icon(Icons.Outlined.Close, contentDescription = "Xóa tìm kiếm", tint = colors.inkSecondary)
+                }
+            }
+        } else {
+            null
+        }
 
     OutlinedTextField(
         value = value,
@@ -59,7 +61,8 @@ fun DiuSearchField(
         trailingIcon = effectiveTrailingIcon,
         shape = RoundedCornerShape(26.dp),
         textStyle = AppTheme.typography.bodyLarge,
-        colors = OutlinedTextFieldDefaults.colors(
+        colors =
+        OutlinedTextFieldDefaults.colors(
             focusedTextColor = colors.ink,
             unfocusedTextColor = colors.ink,
             focusedContainerColor = colors.surface,
@@ -89,7 +92,8 @@ private fun DiuSearchFieldPreview() {
                 onValueChange = { query = it },
                 label = "Tìm người thân",
                 onClear = { query = "" },
-                modifier = Modifier
+                modifier =
+                Modifier
                     .padding(16.dp)
                     .fillMaxWidth(),
             )

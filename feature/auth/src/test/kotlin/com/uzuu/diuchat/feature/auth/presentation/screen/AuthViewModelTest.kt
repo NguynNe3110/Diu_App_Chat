@@ -18,14 +18,14 @@ import org.junit.jupiter.api.extension.ExtendWith
 @OptIn(ExperimentalCoroutinesApi::class)
 @ExtendWith(InstantTaskExecutorExtension::class, CoroutinesTestDispatcherExtension::class)
 class AuthViewModelTest {
-
     private val mockSendOtpUseCase: SendOtpUseCase = mockk()
     private val mockVerifyOtpUseCase: VerifyOtpUseCase = mockk()
 
-    private val sut = AuthViewModel(
-        mockSendOtpUseCase,
-        mockVerifyOtpUseCase,
-    )
+    private val sut =
+        AuthViewModel(
+            mockSendOtpUseCase,
+            mockVerifyOtpUseCase,
+        )
 
     @Test
     fun `initial state is EditingPhone with empty number`() {

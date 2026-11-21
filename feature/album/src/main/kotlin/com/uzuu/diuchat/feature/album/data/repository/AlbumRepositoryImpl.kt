@@ -14,68 +14,68 @@ internal class AlbumRepositoryImpl(
     private val albumDao: AlbumDao,
     private val albumMapper: AlbumMapper,
 ) : AlbumRepository {
-    override suspend fun searchAlbum(phrase: String?): Result<List<Album>> =
-        when (val apiResult = albumRetrofitService.searchAlbumAsync(phrase)) {
-            is ApiResult.Success -> {
-                val albums =
-                    apiResult
-                        .data
-                        .results
-                        .albumMatches
-                        .album
-                        .also { albumsApiModels ->
-                            val albumsRoomModels = albumsApiModels.map { albumMapper.apiToRoom(it) }
-                            albumDao.insertAlbums(albumsRoomModels)
-                        }.map { albumMapper.apiToDomain(it) }
+    override suspend fun searchAlbum(
+        phrase: String?,
+    ): Result<List<Album>> = when (val apiResult = albumRetrofitService.searchAlbumAsync(phrase)) {
+        is ApiResult.Success -> {
+            val albums =
+                apiResult
+                    .data
+                    .results
+                    .albumMatches
+                    .album
+                    .also { albumsApiModels ->
+                        val albumsRoomModels = albumsApiModels.map { albumMapper.apiToRoom(it) }
+                        albumDao.insertAlbums(albumsRoomModels)
+                    }.map { albumMapper.apiToDomain(it) }
 
-                Result.Success(albums)
-            }
-
-            is ApiResult.Error -> {
-                Result.Failure()
-            }
-
-            is ApiResult.Exception -> {
-                Timber.e(apiResult.throwable)
-
-                val albums =
-                    albumDao
-                        .getAll()
-                        .map { albumMapper.roomToDomain(it) }
-
-                Result.Success(albums)
-            }
+            Result.Success(albums)
         }
+
+        is ApiResult.Error -> {
+            Result.Failure()
+        }
+
+        is ApiResult.Exception -> {
+            Timber.e(apiResult.throwable)
+
+            val albums =
+                albumDao
+                    .getAll()
+                    .map { albumMapper.roomToDomain(it) }
+
+            Result.Success(albums)
+        }
+    }
 
     override suspend fun getAlbumInfo(
         artistName: String,
         albumName: String,
         mbId: String?,
-    ): Result<Album> =
-        when (val apiResult = albumRetrofitService.getAlbumInfoAsync(artistName, albumName, mbId)) {
-            is ApiResult.Success -> {
-                val album =
-                    apiResult
-                        .data
-                        .album
-                        .let { albumMapper.apiToDomain(it) }
+    ): Result<Album> = when (val apiResult = albumRetrofitService.getAlbumInfoAsync(artistName, albumName, mbId)) {
+        is ApiResult.Success -> {
+            val album =
+                apiResult
+                    .data
+                    .album
+                    .let { albumMapper.apiToDomain(it) }
 
-                Result.Success(album)
-            }
-
-            is ApiResult.Error -> {
-                Result.Failure()
-            }
-
-            is ApiResult.Exception -> {
-                Timber.e(apiResult.throwable)
-
-                val album =
-                    albumDao
-                        .getAlbum(artistName, albumName, mbId)
-                        .let { albumMapper.roomToDomain(it) }
-
-                Result.Success(album)
-            }
+            Result.Success(album)
         }
+
+        is ApiResult.Error -> {
+            Result.Failure()
+        }
+
+        is ApiResult.Exception -> {
+            Timber.e(apiResult.throwable)
+
+            val album =
+                albumDao
+                    .getAlbum(artistName, albumName, mbId)
+                    .let { albumMapper.roomToDomain(it) }
+
+            Result.Success(album)
+        }
+    }
 }

@@ -35,18 +35,20 @@ fun DiuButton(
 ) {
     val colors = AppTheme.colors
 
-    val (containerColor, contentColor) = when (variant) {
-        DiuButtonVariant.Primary -> colors.ink to colors.background
-        DiuButtonVariant.Danger -> colors.danger to colors.onAccent
-        DiuButtonVariant.Soft -> colors.surface to colors.ink
-        DiuButtonVariant.Outline -> Color.Transparent to colors.ink
-    }
+    val (containerColor, contentColor) =
+        when (variant) {
+            DiuButtonVariant.Primary -> colors.ink to colors.background
+            DiuButtonVariant.Danger -> colors.danger to colors.onAccent
+            DiuButtonVariant.Soft -> colors.surface to colors.ink
+            DiuButtonVariant.Outline -> Color.Transparent to colors.ink
+        }
 
-    val border = if (variant == DiuButtonVariant.Outline) {
-        BorderStroke(1.dp, if (enabled) colors.line else colors.line.copy(alpha = 0.35f))
-    } else {
-        null
-    }
+    val border =
+        if (variant == DiuButtonVariant.Outline) {
+            BorderStroke(1.dp, if (enabled) colors.line else colors.line.copy(alpha = 0.35f))
+        } else {
+            null
+        }
 
     Button(
         onClick = onClick,
@@ -54,7 +56,8 @@ fun DiuButton(
         enabled = enabled,
         shape = shape,
         border = border,
-        colors = ButtonDefaults.buttonColors(
+        colors =
+        ButtonDefaults.buttonColors(
             containerColor = containerColor,
             contentColor = contentColor,
             disabledContainerColor = if (variant == DiuButtonVariant.Outline) Color.Transparent else containerColor.copy(alpha = 0.35f),

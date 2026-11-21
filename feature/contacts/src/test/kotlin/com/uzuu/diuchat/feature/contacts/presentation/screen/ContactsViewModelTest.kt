@@ -24,43 +24,44 @@ import org.junit.jupiter.api.extension.ExtendWith
 @OptIn(ExperimentalCoroutinesApi::class)
 @ExtendWith(InstantTaskExecutorExtension::class, CoroutinesTestDispatcherExtension::class)
 class ContactsViewModelTest {
-
     private val mockGetContactsUseCase: GetContactsUseCase = mockk()
     private val mockGetPendingRequestsUseCase: GetPendingRequestsUseCase = mockk()
     private val mockRespondConnectionRequestUseCase: RespondConnectionRequestUseCase = mockk()
 
-    private val testContacts = listOf(
-        Contact(
-            id = "c1",
-            name = "Minh An",
-            initials = "MA",
-            phone = "0912 345 678",
-            circle = ContactCircle.LOVE,
-            moodColorHex = "#F5A894",
-            nickname = "Anh thương",
-        ),
-        Contact(
-            id = "c2",
-            name = "Mẹ",
-            initials = "M",
-            phone = "0903 111 222",
-            circle = ContactCircle.FAMILY,
-            moodColorHex = "#F1C574",
-        ),
-    )
+    private val testContacts =
+        listOf(
+            Contact(
+                id = "c1",
+                name = "Minh An",
+                initials = "MA",
+                phone = "0912 345 678",
+                circle = ContactCircle.LOVE,
+                moodColorHex = "#F5A894",
+                nickname = "Anh thương",
+            ),
+            Contact(
+                id = "c2",
+                name = "Mẹ",
+                initials = "M",
+                phone = "0903 111 222",
+                circle = ContactCircle.FAMILY,
+                moodColorHex = "#F1C574",
+            ),
+        )
 
-    private val testRequests = listOf(
-        ConnectionRequest(
-            id = "req_1",
-            senderId = "u_hoang",
-            senderName = "Hoàng",
-            senderInitials = "H",
-            senderPhone = "0933 555 777",
-            senderMoodColorHex = "#A6C5A2",
-            proposedCircle = ContactCircle.FRIENDS,
-            createdAt = "Hôm nay",
-        ),
-    )
+    private val testRequests =
+        listOf(
+            ConnectionRequest(
+                id = "req_1",
+                senderId = "u_hoang",
+                senderName = "Hoàng",
+                senderInitials = "H",
+                senderPhone = "0933 555 777",
+                senderMoodColorHex = "#A6C5A2",
+                proposedCircle = ContactCircle.FRIENDS,
+                createdAt = "Hôm nay",
+            ),
+        )
 
     private lateinit var sut: ContactsViewModel
 
@@ -69,11 +70,12 @@ class ContactsViewModelTest {
         every { mockGetContactsUseCase() } returns flowOf(testContacts)
         every { mockGetPendingRequestsUseCase() } returns flowOf(testRequests)
 
-        sut = ContactsViewModel(
-            mockGetContactsUseCase,
-            mockGetPendingRequestsUseCase,
-            mockRespondConnectionRequestUseCase,
-        )
+        sut =
+            ContactsViewModel(
+                mockGetContactsUseCase,
+                mockGetPendingRequestsUseCase,
+                mockRespondConnectionRequestUseCase,
+            )
     }
 
     @Test

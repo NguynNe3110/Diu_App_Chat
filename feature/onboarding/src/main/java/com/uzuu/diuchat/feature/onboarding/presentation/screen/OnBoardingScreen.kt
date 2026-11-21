@@ -47,22 +47,26 @@ import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 
 // ─── Nội dung 3 slide ─────────────────────────────────────────────────────────
-private data class OnBoardingPage(val title: String, val subtitle: String)
-
-private val pages = listOf(
-    OnBoardingPage(
-        title = "Một góc nhỏ\ncho người thương",
-        subtitle = "dịu là nơi chỉ dành cho vài người thân thiết nhất — không đám đông, không ồn ào.",
-    ),
-    OnBoardingPage(
-        title = "Nói bằng màu\nthay vì biểu tượng",
-        subtitle = "Mỗi lời nhắn mang một sắc cảm xúc. Thương, vui, bình yên, nhớ, trầm — người kia cảm được ngay.",
-    ),
-    OnBoardingPage(
-        title = "Không vội.\nKhông làm phiền.",
-        subtitle = "Gửi chậm để lời nhắn đến đúng lúc. Giờ yên lặng giữ cho giấc ngủ của cả hai được trọn vẹn.",
-    ),
+private data class OnBoardingPage(
+    val title: String,
+    val subtitle: String,
 )
+
+private val pages =
+    listOf(
+        OnBoardingPage(
+            title = "Một góc nhỏ\ncho người thương",
+            subtitle = "dịu là nơi chỉ dành cho vài người thân thiết nhất — không đám đông, không ồn ào.",
+        ),
+        OnBoardingPage(
+            title = "Nói bằng màu\nthay vì biểu tượng",
+            subtitle = "Mỗi lời nhắn mang một sắc cảm xúc. Thương, vui, bình yên, nhớ, trầm — người kia cảm được ngay.",
+        ),
+        OnBoardingPage(
+            title = "Không vội.\nKhông làm phiền.",
+            subtitle = "Gửi chậm để lời nhắn đến đúng lúc. Giờ yên lặng giữ cho giấc ngủ của cả hai được trọn vẹn.",
+        ),
+    )
 
 // ─── Màn hình chính ───────────────────────────────────────────────────────────
 @Composable
@@ -70,36 +74,37 @@ fun OnBoardingScreen(
     onFinish: () -> Unit,
     viewModel: OnBoardingViewModel = koinViewModel(),
 ) {
-    OnBoardingContent(onFinish = onFinish, onPageChanged = viewModel::onPageChanged)
+    OnBoardingContent(onFinish = onFinish, onPageChange = viewModel::onPageChanged)
 }
 
 @Composable
 private fun OnBoardingContent(
     onFinish: () -> Unit,
-    onPageChanged: (Int) -> Unit = {},
+    onPageChange: (Int) -> Unit = {},
 ) {
     val pagerState = rememberPagerState(pageCount = { pages.size })
     val scope = rememberCoroutineScope()
     val colors = AppTheme.colors
 
     // Đồng bộ: vuốt trang → ViewModel
-    LaunchedEffect(pagerState, onPageChanged) {
+    LaunchedEffect(pagerState, onPageChange) {
         snapshotFlow { pagerState.currentPage }.collect { page ->
-            onPageChanged(page)
+            onPageChange(page)
         }
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
-            modifier = Modifier
+            modifier =
+            Modifier
                 .fillMaxSize()
                 .statusBarsPadding()
                 .navigationBarsPadding(),
         ) {
-
             // ── Top Bar: Logo + Bỏ qua ──────────────────────────────────────
             Row(
-                modifier = Modifier
+                modifier =
+                Modifier
                     .fillMaxWidth()
                     .height(56.dp)
                     .padding(horizontal = 20.dp),
@@ -109,7 +114,8 @@ private fun OnBoardingContent(
                 // Logo "dịu" dùng font chung, biến thể italic
                 Text(
                     text = "dịu",
-                    style = AppTheme.typography.displaySmall.copy(
+                    style =
+                    AppTheme.typography.displaySmall.copy(
                         fontSize = 26.sp,
                         fontStyle = FontStyle.Italic,
                     ),
@@ -129,12 +135,14 @@ private fun OnBoardingContent(
             // ── Art Zone: Minh họa 3 slide ──────────────────────────────────
             HorizontalPager(
                 state = pagerState,
-                modifier = Modifier
+                modifier =
+                Modifier
                     .fillMaxWidth()
                     .weight(1f),
             ) { page ->
                 Column(
-                    modifier = Modifier
+                    modifier =
+                    Modifier
                         .fillMaxSize()
                         .padding(horizontal = 24.dp),
                     verticalArrangement = Arrangement.Top,
@@ -142,7 +150,8 @@ private fun OnBoardingContent(
                     // Illustration area
                     OnBoardingIllustration(
                         page = page,
-                        modifier = Modifier
+                        modifier =
+                        Modifier
                             .fillMaxWidth()
                             .height(280.dp)
                             .padding(top = 10.dp),
@@ -181,7 +190,8 @@ private fun OnBoardingContent(
 
             // ── Footer: Dots + Nút Next tròn ────────────────────────────────
             Row(
-                modifier = Modifier
+                modifier =
+                Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 26.dp, vertical = 28.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -209,7 +219,9 @@ private fun OnBoardingContent(
                     modifier = Modifier.size(64.dp),
                     shape = CircleShape,
                     colors = ButtonDefaults.buttonColors(containerColor = colors.ink),
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp),
+                    contentPadding =
+                    androidx.compose.foundation.layout
+                        .PaddingValues(0.dp),
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Rounded.ArrowForward,

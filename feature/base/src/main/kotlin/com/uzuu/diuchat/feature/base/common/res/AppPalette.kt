@@ -14,7 +14,6 @@ import androidx.compose.ui.graphics.Color
  * Tương đương: app_palette.dart trong Flutter.
  */
 object AppPalette {
-
     // ═══════════════════════════════════════════
     // ☀️  LIGHT MODE TOKENS
     // ═══════════════════════════════════════════

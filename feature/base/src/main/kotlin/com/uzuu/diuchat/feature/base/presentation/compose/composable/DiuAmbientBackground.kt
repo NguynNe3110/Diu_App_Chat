@@ -52,10 +52,10 @@ fun DiuAmbientBackground(
     val colors = AppTheme.colors
 
     Box(modifier = modifier.fillMaxSize()) {
-
         // ── Lớp 0: Nền solid ────────────────────────────────────────────────
         Box(
-            modifier = Modifier
+            modifier =
+            Modifier
                 .fillMaxSize()
                 .background(colors.background),
         )
@@ -70,14 +70,16 @@ fun DiuAmbientBackground(
             // Blob 1 — Peach ấm — góc phải trên
             // Giống ảnh chụp: blob cam đào góc phải
             drawCircle(
-                brush = Brush.radialGradient(
-                    colors = listOf(
+                brush =
+                Brush.radialGradient(
+                    colors =
+                    listOf(
                         AppPalette.Peach,
                         AppPalette.Peach.copy(alpha = 0.48f),
                         Color.Transparent,
                     ),
                     radius = w * 0.65f,
-                    center = Offset(x = w * 0.25f, y = h * 0.12f,),
+                    center = Offset(x = w * 0.25f, y = h * 0.12f),
                 ),
                 radius = w * 1.4f,
                 center = Offset(w * 0.25f, h * 0.12f),
@@ -86,13 +88,16 @@ fun DiuAmbientBackground(
             // Blob 2 — Thuong (Rose) — góc phải giữa
             // Giống ảnh chụp: blob hồng nhạt bên phải giữa màn hình
             drawCircle(
-                brush = Brush.radialGradient(
-                    colors = listOf(
+                brush =
+                Brush.radialGradient(
+                    colors =
+                    listOf(
                         AppPalette.MoodThuong.copy(alpha = 0.8f),
                         AppPalette.MoodThuong.copy(alpha = 0.42f),
                         Color.Transparent,
                     ),
-                    center = Offset(
+                    center =
+                    Offset(
                         x = w * 0.95f,
                         y = h * 0.56f,
                     ),
@@ -104,8 +109,10 @@ fun DiuAmbientBackground(
 
             // Blob 3 — BinhYen (Sage Green) — góc trái dưới — nhẹ nhất
             drawCircle(
-                brush = Brush.radialGradient(
-                    colors = listOf(
+                brush =
+                Brush.radialGradient(
+                    colors =
+                    listOf(
                         AppPalette.MoodVui,
                         Color.Transparent,
                     ),
@@ -121,7 +128,8 @@ fun DiuAmbientBackground(
         // Lớp kính mờ đục phủ lên blobs, làm dịu màu sắc xuống
         // → tạo cảm giác "nhìn xuyên kính sữa" như ảnh mẫu
         Box(
-            modifier = Modifier
+            modifier =
+            Modifier
                 .fillMaxSize()
                 .background(colors.background.copy(alpha = 0.35f)),
         )

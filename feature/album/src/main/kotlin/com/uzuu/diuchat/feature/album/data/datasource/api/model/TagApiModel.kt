@@ -10,12 +10,10 @@ internal data class TagApiModel(
     @SerialName("name") val name: String,
 )
 
-internal fun TagApiModel.toDomainModel() =
-    Tag(
-        name = this.name,
-    )
+internal fun TagApiModel.toDomainModel() = Tag(
+    name = this.name,
+)
 
-internal fun TagApiModel.toRoomModel() =
-    TagRoomModel(
-        name = this.name,
-    )
+internal fun TagApiModel.toRoomModel() = TagRoomModel(
+    name = this.name,
+)

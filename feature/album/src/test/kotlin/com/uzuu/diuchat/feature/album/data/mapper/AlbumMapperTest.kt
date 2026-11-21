@@ -43,17 +43,17 @@ class AlbumMapperTest {
                 name = "Test Album",
                 artist = "Test Artist",
                 images =
-                    listOf(
-                        ImageApiModel("https://example.com/image.jpg", ImageSizeApiModel.LARGE),
-                    ),
+                listOf(
+                    ImageApiModel("https://example.com/image.jpg", ImageSizeApiModel.LARGE),
+                ),
                 tracks =
-                    TrackListApiModel(
-                        listOf(TrackApiModel("Track 1", 180)),
-                    ),
+                TrackListApiModel(
+                    listOf(TrackApiModel("Track 1", 180)),
+                ),
                 tags =
-                    TagListApiModel(
-                        listOf(TagApiModel("rock")),
-                    ),
+                TagListApiModel(
+                    listOf(TagApiModel("rock")),
+                ),
             )
 
         every { imageMapper.apiToRoom(any()) } returns ImageRoomModel("https://example.com/image.jpg", ImageSizeRoomModel.LARGE)
@@ -84,17 +84,17 @@ class AlbumMapperTest {
                 name = "Test Album",
                 artist = "Test Artist",
                 images =
-                    listOf(
-                        ImageApiModel("https://example.com/image.jpg", ImageSizeApiModel.LARGE),
-                    ),
+                listOf(
+                    ImageApiModel("https://example.com/image.jpg", ImageSizeApiModel.LARGE),
+                ),
                 tracks =
-                    TrackListApiModel(
-                        listOf(TrackApiModel("Track 1", 180)),
-                    ),
+                TrackListApiModel(
+                    listOf(TrackApiModel("Track 1", 180)),
+                ),
                 tags =
-                    TagListApiModel(
-                        listOf(TagApiModel("rock")),
-                    ),
+                TagListApiModel(
+                    listOf(TagApiModel("rock")),
+                ),
             )
 
         every { imageMapper.apiToDomain(any()) } returns Image("https://example.com/image.jpg", ImageSize.LARGE)

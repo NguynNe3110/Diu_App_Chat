@@ -8,7 +8,6 @@ internal data class TagRoomModel(
     val name: String,
 )
 
-internal fun TagRoomModel.toDomainModel() =
-    Tag(
-        name = this.name,
-    )
+internal fun TagRoomModel.toDomainModel() = Tag(
+    name = this.name,
+)
