@@ -1,20 +1,32 @@
 package com.uzuu.diuchat.feature.chat.presentation.screen
 
 import com.uzuu.diuchat.feature.chat.domain.model.ChatMessage
+import com.uzuu.diuchat.feature.chat.domain.model.Conversation
+import com.uzuu.diuchat.feature.chat.domain.model.GroupError
+import com.uzuu.diuchat.feature.chat.domain.model.GroupRole
 import com.uzuu.diuchat.feature.chat.domain.model.MessageMediaType
 import com.uzuu.diuchat.feature.chat.domain.model.MessageStatus
 import com.uzuu.diuchat.feature.chat.domain.model.MoodType
 import com.uzuu.diuchat.feature.chat.domain.model.VoiceRecordingState
+import com.uzuu.diuchat.feature.chat.domain.usecase.CreateGroupUseCase
+import com.uzuu.diuchat.feature.chat.domain.usecase.ForwardMessageUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.GetMessagesUseCase
+import com.uzuu.diuchat.feature.chat.domain.usecase.LeaveGroupUseCase
+import com.uzuu.diuchat.feature.chat.domain.usecase.ManageGroupMemberUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.SendMessageUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.SendPhotoMessageUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.SendVoiceMessageUseCase
+import com.uzuu.diuchat.feature.chat.domain.usecase.TogglePinMessageUseCase
+import com.uzuu.diuchat.feature.chat.domain.usecase.ToggleReactionUseCase
+import com.uzuu.diuchat.feature.chat.domain.usecase.UpdateGroupInfoUseCase
 import com.uzuu.diuchat.library.testutils.CoroutinesTestDispatcherExtension
 import com.uzuu.diuchat.library.testutils.InstantTaskExecutorExtension
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
+import io.mockk.just
 import io.mockk.mockk
+import io.mockk.runs
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -29,10 +41,17 @@ import org.junit.jupiter.api.extension.ExtendWith
 @OptIn(ExperimentalCoroutinesApi::class)
 @ExtendWith(InstantTaskExecutorExtension::class, CoroutinesTestDispatcherExtension::class)
 class ChatViewModelTest {
+    private val mockCreateGroupUseCase: CreateGroupUseCase = mockk()
+    private val mockForwardMessageUseCase: ForwardMessageUseCase = mockk()
     private val mockGetMessagesUseCase: GetMessagesUseCase = mockk()
+    private val mockLeaveGroupUseCase: LeaveGroupUseCase = mockk()
+    private val mockManageGroupMemberUseCase: ManageGroupMemberUseCase = mockk()
     private val mockSendMessageUseCase: SendMessageUseCase = mockk()
     private val mockSendPhotoMessageUseCase: SendPhotoMessageUseCase = mockk()
     private val mockSendVoiceMessageUseCase: SendVoiceMessageUseCase = mockk()
+    private val mockTogglePinMessageUseCase: TogglePinMessageUseCase = mockk()
+    private val mockToggleReactionUseCase: ToggleReactionUseCase = mockk()
+    private val mockUpdateGroupInfoUseCase: UpdateGroupInfoUseCase = mockk()
 
     private val sampleMessages =
         listOf(
@@ -53,10 +72,17 @@ class ChatViewModelTest {
     fun setUp() {
         every { mockGetMessagesUseCase(any()) } returns flowOf(sampleMessages)
         sut = ChatViewModel(
+            createGroupUseCase = mockCreateGroupUseCase,
+            forwardMessageUseCase = mockForwardMessageUseCase,
             getMessagesUseCase = mockGetMessagesUseCase,
+            leaveGroupUseCase = mockLeaveGroupUseCase,
+            manageGroupMemberUseCase = mockManageGroupMemberUseCase,
             sendMessageUseCase = mockSendMessageUseCase,
             sendPhotoMessageUseCase = mockSendPhotoMessageUseCase,
             sendVoiceMessageUseCase = mockSendVoiceMessageUseCase,
+            togglePinMessageUseCase = mockTogglePinMessageUseCase,
+            toggleReactionUseCase = mockToggleReactionUseCase,
+            updateGroupInfoUseCase = mockUpdateGroupInfoUseCase,
         )
     }
 
@@ -296,5 +322,134 @@ class ChatViewModelTest {
         // toggle again stops playback
         sut.onToggleAudioPlayback(message)
         sut.uiStateFlow.value.playingAudioMessageId.shouldBeNull()
+    }
+
+    // P7 Reactions, Pin, Forward & Groups tests
+    @Test
+    fun `onToggleReaction calls toggleReactionUseCase`() = runTest {
+        val msg = sampleMessages.first()
+        coEvery { mockToggleReactionUseCase(msg.id, MoodType.THUONG) } just runs
+
+        sut.onToggleReaction(msg, MoodType.THUONG)
+        advanceUntilIdle()
+
+        coVerify(exactly = 1) { mockToggleReactionUseCase(msg.id, MoodType.THUONG) }
+    }
+
+    @Test
+    fun `onTogglePinMessage calls togglePinMessageUseCase`() = runTest {
+        val msg = sampleMessages.first()
+        coEvery { mockTogglePinMessageUseCase("conv_linh_diu", msg.id) } just runs
+
+        sut.onTogglePinMessage(msg)
+        advanceUntilIdle()
+
+        coVerify(exactly = 1) { mockTogglePinMessageUseCase("conv_linh_diu", msg.id) }
+    }
+
+    @Test
+    fun `onOpenForwardDialog and onConfirmForward delegates to forwardMessageUseCase`() = runTest {
+        val msg = sampleMessages.first()
+        sut.onOpenForwardDialog(msg)
+        sut.uiStateFlow.value.activeForwardMessage shouldBeEqualTo msg
+
+        coEvery { mockForwardMessageUseCase(msg, listOf("conv_target_1")) } returns listOf(msg)
+
+        sut.onConfirmForward(listOf("conv_target_1"))
+        advanceUntilIdle()
+
+        coVerify(exactly = 1) { mockForwardMessageUseCase(msg, listOf("conv_target_1")) }
+        sut.uiStateFlow.value.activeForwardMessage.shouldBeNull()
+    }
+
+    @Test
+    fun `onCreateGroup creates group and closes dialog`() = runTest {
+        val createdConvo = Conversation(
+            id = "group_new",
+            title = "Gia đình",
+            mood = MoodType.THUONG,
+            lastMessage = "Nhóm vừa tạo",
+            lastMessageTimeEpochMs = 1000L,
+            isGroup = true,
+        )
+        coEvery { mockCreateGroupUseCase("Gia đình", MoodType.THUONG, listOf("u1", "u2")) } returns createdConvo
+
+        var resultId: String? = null
+        sut.onCreateGroup("Gia đình", MoodType.THUONG, listOf("u1", "u2")) { id ->
+            resultId = id
+        }
+        advanceUntilIdle()
+
+        resultId shouldBeEqualTo "group_new"
+        sut.uiStateFlow.value.isNewGroupOpen shouldBeEqualTo false
+    }
+
+    @Test
+    fun `onUpdateNickname and onToggleMute update conversation info`() = runTest {
+        val convo = Conversation(
+            id = "conv_1",
+            title = "Title",
+            mood = MoodType.THUONG,
+            lastMessage = "",
+            lastMessageTimeEpochMs = 0L,
+        )
+        sut.onSelectConversation(convo)
+
+        coEvery { mockUpdateGroupInfoUseCase(convo.id, nickname = "Em Dịu") } just runs
+        coEvery { mockUpdateGroupInfoUseCase(convo.id, isMuted = true) } just runs
+
+        sut.onUpdateNickname("Em Dịu")
+        advanceUntilIdle()
+        coVerify(exactly = 1) { mockUpdateGroupInfoUseCase(convo.id, nickname = "Em Dịu") }
+
+        sut.onToggleMute(true)
+        advanceUntilIdle()
+        coVerify(exactly = 1) { mockUpdateGroupInfoUseCase(convo.id, isMuted = true) }
+    }
+
+    @Test
+    fun `onManageMemberRole and onRemoveMember delegate to manageGroupMemberUseCase`() = runTest {
+        val convo = Conversation(id = "group_1", title = "G", mood = MoodType.THUONG, lastMessage = "", lastMessageTimeEpochMs = 0L)
+        sut.onSelectConversation(convo)
+
+        coEvery { mockManageGroupMemberUseCase("group_1", "user_2", newRole = GroupRole.ADMIN) } just runs
+        coEvery { mockManageGroupMemberUseCase("group_1", "user_2", isRemove = true) } just runs
+
+        sut.onManageMemberRole("user_2", GroupRole.ADMIN)
+        advanceUntilIdle()
+        coVerify(exactly = 1) { mockManageGroupMemberUseCase("group_1", "user_2", newRole = GroupRole.ADMIN) }
+
+        sut.onRemoveMember("user_2")
+        advanceUntilIdle()
+        coVerify(exactly = 1) { mockManageGroupMemberUseCase("group_1", "user_2", isRemove = true) }
+    }
+
+    @Test
+    fun `onLeaveGroup success calls leaveGroupUseCase and onSuccess`() = runTest {
+        val convo = Conversation(id = "group_1", title = "G", mood = MoodType.THUONG, lastMessage = "", lastMessageTimeEpochMs = 0L)
+        sut.onSelectConversation(convo)
+
+        coEvery { mockLeaveGroupUseCase("group_1") } just runs
+
+        var successCalled = false
+        sut.onLeaveGroup(onSuccess = { successCalled = true })
+        advanceUntilIdle()
+
+        successCalled shouldBeEqualTo true
+        coVerify(exactly = 1) { mockLeaveGroupUseCase("group_1") }
+    }
+
+    @Test
+    fun `onLeaveGroup failure with DEC-07 calls onError callback`() = runTest {
+        val convo = Conversation(id = "group_1", title = "G", mood = MoodType.THUONG, lastMessage = "", lastMessageTimeEpochMs = 0L)
+        sut.onSelectConversation(convo)
+
+        coEvery { mockLeaveGroupUseCase("group_1") } throws GroupError.LastAdminCannotLeave
+
+        var errorMsg: String? = null
+        sut.onLeaveGroup(onSuccess = {}, onError = { msg -> errorMsg = msg })
+        advanceUntilIdle()
+
+        errorMsg shouldBeEqualTo GroupError.LastAdminCannotLeave.message
     }
 }

@@ -17,4 +17,6 @@ data class ChatMessage(
     val audioDurationMs: Long? = null,
     val audioWaveform: List<Float> = emptyList(),
     val caption: String? = null,
+    val isPinned: Boolean = false,
+    val reactions: List<MessageReaction> = emptyList(),
 )

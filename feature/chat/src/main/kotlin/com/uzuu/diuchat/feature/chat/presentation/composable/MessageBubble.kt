@@ -1,5 +1,8 @@
 package com.uzuu.diuchat.feature.chat.presentation.composable
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -21,13 +24,20 @@ import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.DoneAll
 import androidx.compose.material.icons.filled.ErrorOutline
+import androidx.compose.material.icons.filled.Forward
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.PushPin
+import androidx.compose.material.icons.filled.Reply
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -43,6 +53,7 @@ import com.uzuu.diuchat.feature.base.common.res.AppTheme
 import com.uzuu.diuchat.feature.chat.domain.model.ChatMessage
 import com.uzuu.diuchat.feature.chat.domain.model.MessageMediaType
 import com.uzuu.diuchat.feature.chat.domain.model.MessageStatus
+import com.uzuu.diuchat.feature.chat.domain.model.MoodType
 import java.text.SimpleDateFormat
 import java.util.Date
 
@@ -54,7 +65,13 @@ fun MessageBubble(
     isPlayingAudio: Boolean = false,
     audioProgress: Float = 0f,
     onToggleAudioPlayback: (ChatMessage) -> Unit = {},
+    onReactionClick: (ChatMessage, MoodType) -> Unit = { _, _ -> },
+    onViewReactions: (ChatMessage) -> Unit = {},
+    onPinClick: (ChatMessage) -> Unit = {},
+    onForwardClick: (ChatMessage) -> Unit = {},
 ) {
+    var showActionMenu by remember { mutableStateOf(false) }
+
     val moodColor = Color(message.mood.colorHex)
     val alignment = if (message.isFromMe) Alignment.End else Alignment.Start
     val bubbleShape =
@@ -84,6 +101,101 @@ fun MessageBubble(
             .padding(horizontal = 12.dp, vertical = 4.dp),
         horizontalAlignment = alignment,
     ) {
+        // Quick reaction popup tray when menu is shown
+        AnimatedVisibility(
+            visible = showActionMenu,
+            enter = fadeIn(),
+            exit = fadeOut(),
+        ) {
+            Surface(
+                shape = RoundedCornerShape(20.dp),
+                color = AppTheme.colors.surfaceElevated,
+                tonalElevation = 6.dp,
+                border = androidx.compose.foundation.BorderStroke(1.dp, AppTheme.colors.line),
+                modifier = Modifier.padding(bottom = 4.dp),
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    // 6 Mood reactions
+                    MoodType.entries.forEach { mood ->
+                        val moodTint = Color(mood.colorHex)
+                        Box(
+                            modifier = Modifier
+                                .size(28.dp)
+                                .clip(CircleShape)
+                                .background(moodTint.copy(alpha = 0.2f))
+                                .border(1.dp, moodTint, CircleShape)
+                                .clickable {
+                                    onReactionClick(message, mood)
+                                    showActionMenu = false
+                                },
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(10.dp)
+                                    .clip(CircleShape)
+                                    .background(moodTint),
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.width(4.dp))
+
+                    // Reply action
+                    IconButton(
+                        onClick = {
+                            onReplyClick(message)
+                            showActionMenu = false
+                        },
+                        modifier = Modifier.size(28.dp),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Reply,
+                            contentDescription = "Trả lời",
+                            tint = AppTheme.colors.inkSecondary,
+                            modifier = Modifier.size(16.dp),
+                        )
+                    }
+
+                    // Pin action
+                    IconButton(
+                        onClick = {
+                            onPinClick(message)
+                            showActionMenu = false
+                        },
+                        modifier = Modifier.size(28.dp),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.PushPin,
+                            contentDescription = if (message.isPinned) "Bỏ ghim" else "Ghim tin nhắn",
+                            tint = if (message.isPinned) AppTheme.colors.accent else AppTheme.colors.inkSecondary,
+                            modifier = Modifier.size(16.dp),
+                        )
+                    }
+
+                    // Forward action
+                    IconButton(
+                        onClick = {
+                            onForwardClick(message)
+                            showActionMenu = false
+                        },
+                        modifier = Modifier.size(28.dp),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Forward,
+                            contentDescription = "Chuyển tiếp",
+                            tint = AppTheme.colors.inkSecondary,
+                            modifier = Modifier.size(16.dp),
+                        )
+                    }
+                }
+            }
+        }
+
         Box(
             modifier =
             Modifier
@@ -94,10 +206,33 @@ fun MessageBubble(
                     width = 1.dp,
                     color = moodColor.copy(alpha = 0.5f),
                     shape = bubbleShape,
-                ).clickable { onReplyClick(message) }
+                ).clickable {
+                    showActionMenu = !showActionMenu
+                }
                 .padding(horizontal = 12.dp, vertical = 8.dp),
         ) {
             Column {
+                // Pinned indicator badge
+                if (message.isPinned) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        modifier = Modifier.padding(bottom = 4.dp),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.PushPin,
+                            contentDescription = "Đã ghim",
+                            tint = moodColor,
+                            modifier = Modifier.size(12.dp),
+                        )
+                        Text(
+                            text = "Đã ghim",
+                            style = AppTheme.typography.labelMedium.copy(fontSize = 10.sp),
+                            color = moodColor,
+                        )
+                    }
+                }
+
                 // Reply quote banner if message replies to someone
                 if (!message.replyQuote.isNullOrEmpty()) {
                     Box(
@@ -153,6 +288,37 @@ fun MessageBubble(
                             style = AppTheme.typography.bodyMedium,
                             color = AppTheme.colors.ink,
                         )
+                    }
+                }
+
+                // Reactions row badge
+                if (message.reactions.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    val groupedReactions = message.reactions.groupBy { it.mood }
+                    Row(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(AppTheme.colors.surfaceElevated.copy(alpha = 0.9f))
+                            .border(1.dp, AppTheme.colors.line, RoundedCornerShape(12.dp))
+                            .clickable { onViewReactions(message) }
+                            .padding(horizontal = 6.dp, vertical = 2.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        groupedReactions.forEach { (m, list) ->
+                            val mColor = Color(m.colorHex)
+                            Box(
+                                modifier = Modifier
+                                    .size(8.dp)
+                                    .clip(CircleShape)
+                                    .background(mColor),
+                            )
+                            Text(
+                                text = "${list.size}",
+                                style = AppTheme.typography.labelMedium.copy(fontSize = 11.sp),
+                                color = AppTheme.colors.ink,
+                            )
+                        }
                     }
                 }
 
