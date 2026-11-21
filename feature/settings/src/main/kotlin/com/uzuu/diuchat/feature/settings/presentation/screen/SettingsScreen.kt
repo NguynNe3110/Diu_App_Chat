@@ -25,7 +25,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -48,6 +47,7 @@ import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuButton
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuButtonVariant
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuCard
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuEmptyState
+import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuOrbAvatar
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuSettingsRow
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuSwitch
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuTopBar
@@ -153,7 +153,7 @@ private fun SettingsOverviewContent(
         ) {
             // ── Hồ sơ cá nhân (Account & Profile) ──
             item {
-                SectionHeader(title = "HỒ SƠ CÁ NHÂN")
+                SectionHeader(title = "Hồ sơ cá nhân")
             }
             item {
                 ProfileHeaderCard(
@@ -165,7 +165,7 @@ private fun SettingsOverviewContent(
             // ── Khung giờ yên lặng ──
             item {
                 Spacer(modifier = Modifier.height(8.dp))
-                SectionHeader(title = "GIỜ YÊN LẶNG (QUIET HOURS)")
+                SectionHeader(title = "Giờ yên lặng")
             }
             item {
                 DiuSettingsRow(
@@ -206,7 +206,7 @@ private fun SettingsOverviewContent(
             // ── Thông báo & Riêng tư (REQ-37) ──
             item {
                 Spacer(modifier = Modifier.height(16.dp))
-                SectionHeader(title = "THÔNG BÁO & RIÊNG TƯ (REQ-37)")
+                SectionHeader(title = "Thông báo & Riêng tư")
             }
             item {
                 DiuSettingsRow(
@@ -229,7 +229,7 @@ private fun SettingsOverviewContent(
             // ── Bảo mật & Chặn (REQ-40) ──
             item {
                 Spacer(modifier = Modifier.height(16.dp))
-                SectionHeader(title = "BẢO MẬT & QUYỀN RIÊNG TƯ (REQ-40)")
+                SectionHeader(title = "Bảo mật & Quyền riêng tư")
             }
             item {
                 DiuSettingsRow(
@@ -255,7 +255,7 @@ private fun SettingsOverviewContent(
             // ── Tài khoản & Hành động nguy hiểm ──
             item {
                 Spacer(modifier = Modifier.height(16.dp))
-                SectionHeader(title = "TÀI KHOẢN")
+                SectionHeader(title = "Tài khoản")
             }
             item {
                 DiuSettingsRow(
@@ -276,7 +276,7 @@ private fun SettingsOverviewContent(
             // ── Thông tin ứng dụng ──
             item {
                 Spacer(modifier = Modifier.height(16.dp))
-                SectionHeader(title = "HỆ THỐNG")
+                SectionHeader(title = "Hệ thống")
             }
             item {
                 DiuSettingsRow(
@@ -378,20 +378,11 @@ private fun ProfileHeaderCard(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(14.dp),
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(54.dp)
-                        .clip(CircleShape)
-                        .background(colors.accent.copy(alpha = 0.2f)),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Person,
-                        contentDescription = null,
-                        tint = colors.accent,
-                        modifier = Modifier.size(28.dp),
-                    )
-                }
+                DiuOrbAvatar(
+                    initials = profile.displayName.ifEmpty { "L" }.take(1).uppercase(),
+                    moodColor = colors.moods.vui,
+                    size = 54.dp,
+                )
 
                 Column(modifier = Modifier.weight(1f)) {
                     Row(

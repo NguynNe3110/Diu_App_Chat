@@ -24,6 +24,12 @@ sealed interface ChatAction : BaseAction<ChatUiState> {
         )
     }
 
+    data class SetConversationId(
+        val conversationId: String,
+    ) : ChatAction {
+        override fun reduce(state: ChatUiState): ChatUiState = state.copy(conversationId = conversationId)
+    }
+
     data class SetAvailableConversations(
         val conversations: List<Conversation>,
     ) : ChatAction {

@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -157,8 +158,9 @@ fun HomeScreenContent(
             if (state.isEmpty) {
                 item {
                     DiuEmptyState(
-                        title = "Chưa có lời nhắn nào",
-                        description = "Mời người thương để bắt đầu một cuộc trò chuyện.",
+                        title = "Vòng thân còn trống",
+                        description =
+                        "Mời người thương, gia đình hay vài người bạn thân nhất. dịu dành cho số ít người thật sự quan trọng.",
                         illustration = {
                             DiuOrbAvatar(
                                 initials = "♡",
@@ -171,7 +173,13 @@ fun HomeScreenContent(
                                 onClick = onInvite,
                                 modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
                             ) {
-                                Text("Mời người thương")
+                                Icon(
+                                    painter = painterResource(AppIcons.Plus),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp),
+                                )
+                                Spacer(modifier = Modifier.size(8.dp))
+                                Text("Mời người đầu tiên")
                             }
                         },
                         modifier = Modifier
@@ -182,7 +190,7 @@ fun HomeScreenContent(
             } else if (state.recentChats.isNotEmpty()) {
                 item {
                     DiuSectionHeader(
-                        title = "GẦN ĐÂY",
+                        title = "Gần đây",
                         modifier = Modifier.padding(top = 12.dp),
                     )
                 }

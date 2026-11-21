@@ -26,6 +26,7 @@ import com.uzuu.diuchat.feature.calls.presentation.screen.CallHistoryViewModel
 import com.uzuu.diuchat.feature.calls.presentation.screen.CallScreen
 import com.uzuu.diuchat.feature.calls.presentation.screen.CallViewModel
 import com.uzuu.diuchat.feature.chat.presentation.screen.ChatScreen
+import com.uzuu.diuchat.feature.chat.presentation.screen.NewGroupScreen
 import com.uzuu.diuchat.feature.contacts.presentation.screen.ContactsScreen
 import com.uzuu.diuchat.feature.home.presentation.HomeScreen
 import com.uzuu.diuchat.feature.journal.presentation.journal.JournalScreen
@@ -56,12 +57,22 @@ fun MainShowcaseScreen(modifier: Modifier = Modifier) {
             modifier = Modifier.fillMaxSize(),
             containerColor = Color.Transparent,
             bottomBar = {
-                val isAuthOrOnboarding =
+                val hideBottomBar =
                     backStackEntry?.destination?.hasRoute<NavigationRoute.OnBoarding>() == true ||
                         backStackEntry?.destination?.hasRoute<NavigationRoute.Auth>() == true ||
-                        backStackEntry?.destination?.hasRoute<NavigationRoute.Chat>() == true
-                if (!isAuthOrOnboarding) {
-                    BottomNavigationBar(navController)
+                        backStackEntry?.destination?.hasRoute<NavigationRoute.Chat>() == true ||
+                        backStackEntry?.destination?.hasRoute<NavigationRoute.Call>() == true ||
+                        backStackEntry?.destination?.hasRoute<NavigationRoute.PhotoViewer>() == true ||
+                        backStackEntry?.destination?.hasRoute<NavigationRoute.LocationPicker>() == true ||
+                        backStackEntry?.destination?.hasRoute<NavigationRoute.LiveLocation>() == true ||
+                        backStackEntry?.destination?.hasRoute<NavigationRoute.NewGroup>() == true
+                if (!hideBottomBar) {
+                    BottomNavigationBar(
+                        navController = navController,
+                        onAddClick = {
+                            navController.navigate(NavigationRoute.NewGroup)
+                        },
+                    )
                 }
             },
         ) { innerPadding ->
@@ -93,16 +104,37 @@ fun MainShowcaseScreen(modifier: Modifier = Modifier) {
                 }
                 composable<NavigationRoute.Home> {
                     HomeScreen(
+                        onOpenChat = { conversationId ->
+                            navController.navigate(NavigationRoute.Chat(conversationId))
+                        },
                         onOpenContacts = {
-                            navController.navigate(NavigationRoute.AboutLibraries)
+                            navController.navigate(NavigationRoute.Contacts)
+                        },
+                        onOpenCheckin = {
+                            navController.navigate(NavigationRoute.Journal)
+                        },
+                        onOpenQuietHours = {
+                            navController.navigate(NavigationRoute.Settings)
+                        },
+                        onInvite = {
+                            navController.navigate(NavigationRoute.Contacts)
                         },
                     )
                 }
                 composable<NavigationRoute.Contacts> {
-                    ContactsScreen()
+                    ContactsScreen(
+                        onNavigateToChat = { conversationId ->
+                            navController.navigate(NavigationRoute.Chat(conversationId))
+                        },
+                        onStartCall = {
+                            navController.navigate(NavigationRoute.Call)
+                        },
+                    )
                 }
-                composable<NavigationRoute.Chat> {
+                composable<NavigationRoute.Chat> { backStackEntry ->
+                    val args = backStackEntry.toRoute<NavigationRoute.Chat>()
                     ChatScreen(
+                        conversationId = args.conversationId,
                         onBackClick = {
                             navController.popBackStack()
                         },
@@ -172,10 +204,18 @@ fun MainShowcaseScreen(modifier: Modifier = Modifier) {
                     )
                 }
                 composable<NavigationRoute.Settings> {
-                    SettingsScreen()
+                    SettingsScreen(
+                        onBackClick = {
+                            navController.popBackStack()
+                        },
+                    )
                 }
                 composable<NavigationRoute.Letters> {
-                    LettersScreen()
+                    LettersScreen(
+                        onBackClick = {
+                            navController.popBackStack()
+                        },
+                    )
                 }
                 composable<NavigationRoute.Journal> {
                     JournalScreen(
@@ -212,6 +252,21 @@ fun MainShowcaseScreen(modifier: Modifier = Modifier) {
                         viewModel = viewModel,
                         onNavigateBack = {
                             navController.popBackStack()
+                        },
+                        onStartCall = {
+                            navController.navigate(NavigationRoute.Call)
+                        },
+                    )
+                }
+                composable<NavigationRoute.NewGroup> {
+                    NewGroupScreen(
+                        onBackClick = {
+                            navController.popBackStack()
+                        },
+                        onCreateGroupSuccess = { conversationId ->
+                            navController.navigate(NavigationRoute.Chat(conversationId)) {
+                                popUpTo<NavigationRoute.NewGroup> { inclusive = true }
+                            }
                         },
                     )
                 }

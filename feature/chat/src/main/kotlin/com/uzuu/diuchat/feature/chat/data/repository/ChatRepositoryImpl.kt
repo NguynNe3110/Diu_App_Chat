@@ -1,5 +1,7 @@
 package com.uzuu.diuchat.feature.chat.data.repository
 
+import androidx.room.withTransaction
+import com.uzuu.diuchat.feature.chat.data.datasource.database.DiuChatDatabase
 import com.uzuu.diuchat.feature.chat.data.datasource.database.dao.ConversationDao
 import com.uzuu.diuchat.feature.chat.data.datasource.database.dao.MessageDao
 import com.uzuu.diuchat.feature.chat.data.datasource.database.dao.OutboxDao
@@ -24,6 +26,7 @@ class ChatRepositoryImpl(
     private val conversationDao: ConversationDao,
     private val messageDao: MessageDao,
     private val outboxDao: OutboxDao,
+    private val database: DiuChatDatabase? = null,
 ) : ChatRepository {
     override fun observeMessages(
         conversationId: String,
@@ -76,15 +79,17 @@ class ChatRepositoryImpl(
                 createdAtEpochMs = now,
             )
 
-        messageDao.insert(messageEntity)
-        outboxDao.insert(outboxEntity)
+        suspend fun persistLocalMessage() {
+            messageDao.insert(messageEntity)
+            outboxDao.insert(outboxEntity)
+            updateConversationSummary(conversationId, content, mood, now)
+        }
 
-        updateConversationSummary(conversationId, content, mood, now)
+        database?.withTransaction {
+            persistLocalMessage()
+        } ?: persistLocalMessage()
 
-        messageDao.updateStatus(messageId, MessageStatus.SENT.value)
-        outboxDao.updateStatus(operationId, MessageStatus.SENT.value)
-
-        return messageEntity.copy(status = MessageStatus.SENT.value).toDomain()
+        return messageEntity.toDomain()
     }
 
     override suspend fun sendPhotoMessage(
@@ -129,15 +134,17 @@ class ChatRepositoryImpl(
                 createdAtEpochMs = now,
             )
 
-        messageDao.insert(messageEntity)
-        outboxDao.insert(outboxEntity)
+        suspend fun persistLocalPhoto() {
+            messageDao.insert(messageEntity)
+            outboxDao.insert(outboxEntity)
+            updateConversationSummary(conversationId, displayContent, mood, now)
+        }
 
-        updateConversationSummary(conversationId, displayContent, mood, now)
+        database?.withTransaction {
+            persistLocalPhoto()
+        } ?: persistLocalPhoto()
 
-        messageDao.updateStatus(messageId, MessageStatus.SENT.value)
-        outboxDao.updateStatus(operationId, MessageStatus.SENT.value)
-
-        return messageEntity.copy(status = MessageStatus.SENT.value).toDomain()
+        return messageEntity.toDomain()
     }
 
     override suspend fun sendVoiceMessage(
@@ -184,15 +191,17 @@ class ChatRepositoryImpl(
                 createdAtEpochMs = now,
             )
 
-        messageDao.insert(messageEntity)
-        outboxDao.insert(outboxEntity)
+        suspend fun persistLocalVoice() {
+            messageDao.insert(messageEntity)
+            outboxDao.insert(outboxEntity)
+            updateConversationSummary(conversationId, summary, mood, now)
+        }
 
-        updateConversationSummary(conversationId, summary, mood, now)
+        database?.withTransaction {
+            persistLocalVoice()
+        } ?: persistLocalVoice()
 
-        messageDao.updateStatus(messageId, MessageStatus.SENT.value)
-        outboxDao.updateStatus(operationId, MessageStatus.SENT.value)
-
-        return messageEntity.copy(status = MessageStatus.SENT.value).toDomain()
+        return messageEntity.toDomain()
     }
 
     override suspend fun createGroup(
@@ -351,7 +360,7 @@ class ChatRepositoryImpl(
                 senderName = "Tôi",
                 content = message.content,
                 mood = message.mood.id,
-                status = MessageStatus.SENT.value,
+                status = MessageStatus.PENDING.value,
                 mediaType = message.mediaType.name,
                 mediaUri = message.mediaUri,
                 audioDurationMs = message.audioDurationMs,
@@ -365,14 +374,21 @@ class ChatRepositoryImpl(
                 id = opId,
                 conversationId = targetConvoId,
                 messageId = newMsgId,
-                status = MessageStatus.SENT.value,
-                attemptCount = 1,
+                status = MessageStatus.PENDING.value,
+                attemptCount = 0,
                 createdAtEpochMs = now,
             )
 
-            messageDao.insert(entity)
-            outboxDao.insert(outbox)
-            updateConversationSummary(targetConvoId, message.content, message.mood, now)
+            suspend fun persistForward() {
+                messageDao.insert(entity)
+                outboxDao.insert(outbox)
+                updateConversationSummary(targetConvoId, message.content, message.mood, now)
+            }
+
+            database?.withTransaction {
+                persistForward()
+            } ?: persistForward()
+
             forwardedList.add(entity.toDomain())
         }
 
@@ -381,18 +397,24 @@ class ChatRepositoryImpl(
 
     override suspend fun retryFailedMessage(messageId: String) {
         val message = messageDao.getMessage(messageId) ?: return
-        messageDao.updateStatus(messageId, MessageStatus.PENDING.value)
         val opId = UUID.randomUUID().toString()
-        outboxDao.insert(
-            OutboxOperationEntity(
-                id = opId,
-                conversationId = message.conversationId,
-                messageId = messageId,
-                status = MessageStatus.PENDING.value,
-            ),
+        val outbox = OutboxOperationEntity(
+            id = opId,
+            conversationId = message.conversationId,
+            messageId = messageId,
+            status = MessageStatus.PENDING.value,
+            attemptCount = 0,
+            createdAtEpochMs = System.currentTimeMillis(),
         )
-        messageDao.updateStatus(messageId, MessageStatus.SENT.value)
-        outboxDao.updateStatus(opId, MessageStatus.SENT.value)
+
+        suspend fun persistRetry() {
+            messageDao.updateStatus(messageId, MessageStatus.PENDING.value)
+            outboxDao.insert(outbox)
+        }
+
+        database?.withTransaction {
+            persistRetry()
+        } ?: persistRetry()
     }
 
     override suspend fun markAsRead(conversationId: String) {

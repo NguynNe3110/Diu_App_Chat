@@ -40,6 +40,9 @@ class ChatViewModel(
     }
 
     fun loadMessages(conversationId: String = uiStateFlow.value.conversationId) {
+        if (uiStateFlow.value.conversationId != conversationId) {
+            sendAction(ChatAction.SetConversationId(conversationId))
+        }
         viewModelScope.launch {
             getMessagesUseCase(conversationId)
                 .catch { /* handle error */ }

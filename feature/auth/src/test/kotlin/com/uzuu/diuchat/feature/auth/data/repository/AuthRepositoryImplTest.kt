@@ -60,4 +60,9 @@ class AuthRepositoryImplTest {
     fun `invalid OTP returns a validation failure`() = runTest {
         sut.verifyOtp("912345678", "12x").isFailure shouldBeEqualTo true
     }
+
+    @Test
+    fun `short OTP returns a validation failure`() = runTest {
+        sut.verifyOtp("912345678", "123").isFailure shouldBeEqualTo true
+    }
 }

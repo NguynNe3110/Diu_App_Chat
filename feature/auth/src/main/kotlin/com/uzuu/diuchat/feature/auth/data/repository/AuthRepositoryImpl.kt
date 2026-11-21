@@ -7,7 +7,6 @@ import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.providers.builtin.OTP
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
-import timber.log.Timber
 
 private const val PREVIEW_DELAY_MS = 150L
 private const val OTP_DIGITS = 6
@@ -19,16 +18,10 @@ class AuthRepositoryImpl(
         val normalizedPhone = normalizePhone(phoneNumber)
         val client = supabaseClient
         if (client != null) {
-            runCatching {
-                client.auth.signInWith(OTP) {
-                    phone = normalizedPhone
-                }
-            }.onFailure { error ->
-                rethrowCancellation(error)
-                Timber.w(error, "Supabase phone signInWith OTP failed; falling back to local verification")
+            client.auth.signInWith(OTP) {
+                phone = normalizedPhone
             }
-        }
-        if (client == null) {
+        } else {
             delay(PREVIEW_DELAY_MS)
         }
     }.onFailure(::rethrowCancellation)
@@ -40,21 +33,14 @@ class AuthRepositoryImpl(
         require(code.length == OTP_DIGITS && code.all { it.isDigit() }) {
             "Mã OTP phải gồm 6 chữ số"
         }
-        val verifiedRemotely =
-            supabaseClient?.let { client ->
-                runCatching {
-                    client.auth.verifyPhoneOtp(
-                        type = OtpType.Phone.SMS,
-                        phone = normalizePhone(phoneNumber),
-                        token = code,
-                    )
-                }.onFailure { error ->
-                    rethrowCancellation(error)
-                    Timber.w(error, "Supabase verifyPhoneOtp failed; validating in test fallback mode")
-                }.isSuccess
-            } ?: false
-
-        if (!verifiedRemotely) {
+        val client = supabaseClient
+        if (client != null) {
+            client.auth.verifyPhoneOtp(
+                type = OtpType.Phone.SMS,
+                phone = normalizePhone(phoneNumber),
+                token = code,
+            )
+        } else {
             delay(PREVIEW_DELAY_MS)
         }
     }.onFailure(::rethrowCancellation)

@@ -10,7 +10,9 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -22,6 +24,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -30,8 +33,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.uzuu.diuchat.feature.base.common.res.AppIcons
@@ -99,7 +104,7 @@ fun DiuBottomNavigationBarContent(
             modifier =
             Modifier
                 .weight(1f)
-                .height(60.dp),
+                .height(64.dp),
             shape = RoundedCornerShape(32.dp),
             color = AppTheme.colors.surface,
             border = BorderStroke(1.dp, AppTheme.colors.line),
@@ -158,13 +163,13 @@ private fun DiuTabIconItem(
         animationSpec = tween(durationMillis = 250),
         label = "tab_bg_color",
     )
-    val iconTint by animateColorAsState(
+    val contentColor by animateColorAsState(
         targetValue = if (isSelected) AppTheme.colors.ink else AppTheme.colors.inkTertiary,
         animationSpec = tween(durationMillis = 250),
-        label = "tab_icon_color",
+        label = "tab_content_color",
     )
 
-    Box(
+    Column(
         modifier =
         modifier
             .fillMaxHeight()
@@ -175,13 +180,22 @@ private fun DiuTabIconItem(
                 indication = null,
                 onClick = onClick,
             ),
-        contentAlignment = Alignment.Center,
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Icon(
             painter = painterResource(id = item.iconRes),
             contentDescription = item.contentDescription,
-            tint = iconTint,
-            modifier = Modifier.size(22.dp),
+            tint = contentColor,
+            modifier = Modifier.size(20.dp),
+        )
+        Spacer(modifier = Modifier.height(2.dp))
+        Text(
+            text = item.label,
+            style = AppTheme.typography.bodySmall.copy(fontSize = 11.sp),
+            fontWeight = if (isSelected) FontWeight.Medium else FontWeight.Normal,
+            color = contentColor,
+            maxLines = 1,
         )
     }
 }
@@ -189,23 +203,27 @@ private fun DiuTabIconItem(
 private fun getBottomNavigationItems() = listOf(
     DiuNavigationItem(
         iconRes = AppIcons.Chat,
+        label = "Trò chuyện",
         contentDescription = "Trò chuyện",
         route = NavigationRoute.Home,
     ),
     DiuNavigationItem(
         iconRes = AppIcons.Phone,
+        label = "Cuộc gọi",
         contentDescription = "Cuộc gọi",
-        route = NavigationRoute.Favourites, // todo refactor route
+        route = NavigationRoute.CallHistory,
     ),
     DiuNavigationItem(
         iconRes = AppIcons.People,
+        label = "Danh bạ",
         contentDescription = "Danh bạ",
         route = NavigationRoute.Contacts,
     ),
     DiuNavigationItem(
-        iconRes = AppIcons.QrCode,
-        contentDescription = "QR của tôi",
-        route = NavigationRoute.Settings, // todo refactor route
+        iconRes = AppIcons.User,
+        label = "Tôi",
+        contentDescription = "Tôi",
+        route = NavigationRoute.Settings,
     ),
 )
 
@@ -214,15 +232,12 @@ private fun getSelectedNavigationIndex(
     navigationItems: List<DiuNavigationItem>,
 ): Int = navigationItems
     .indexOfFirst { item ->
-        when (currentRoute) {
-            null -> false
-            NavigationRoute.AlbumDetail::class.qualifiedName -> item.route is NavigationRoute.AlbumList
-            else -> item.route::class.qualifiedName == currentRoute
-        }
+        currentRoute != null && item.route::class.qualifiedName == currentRoute
     }.takeIf { it >= 0 } ?: 0
 
 data class DiuNavigationItem(
     @DrawableRes val iconRes: Int,
+    val label: String,
     val contentDescription: String,
     val route: NavigationRoute,
 )

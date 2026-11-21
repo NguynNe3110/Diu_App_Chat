@@ -80,12 +80,20 @@ class LettersRepositoryImpl : LettersRepository {
     }
 
     override suspend fun openSealedLetter(letterId: String) {
+        val now = System.currentTimeMillis()
+        val targetLetter = lettersFlow.value.find { it.id == letterId }
+            ?: throw IllegalArgumentException("Không tìm thấy thư với ID: $letterId")
+
+        check(now >= targetLetter.scheduledUnlockEpochMs || targetLetter.status == LetterStatus.READY_TO_OPEN) {
+            "Thư chưa đến thời điểm mở khoá"
+        }
+
         lettersFlow.update { current ->
             current.map { letter ->
                 if (letter.id == letterId) {
                     letter.copy(
                         status = LetterStatus.OPENED,
-                        openedAtEpochMs = System.currentTimeMillis(),
+                        openedAtEpochMs = now,
                         openedAtFormatted = "Vừa xong",
                     )
                 } else {

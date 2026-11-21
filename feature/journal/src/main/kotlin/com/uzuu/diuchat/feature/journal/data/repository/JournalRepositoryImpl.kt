@@ -7,7 +7,6 @@ import com.uzuu.diuchat.feature.journal.domain.model.SearchResultItem
 import com.uzuu.diuchat.feature.journal.domain.repository.JournalRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 
@@ -18,7 +17,10 @@ class JournalRepositoryImpl : JournalRepository {
     override fun getMonthlyMoodCheckins(
         month: Int,
         year: Int,
-    ): Flow<List<DailyMoodCheckin>> = checkinsFlow.asStateFlow()
+    ): Flow<List<DailyMoodCheckin>> = checkinsFlow.map { list ->
+        val expectedPrefix = "%04d-%02d".format(year, month)
+        list.filter { it.dateIso.startsWith(expectedPrefix) }
+    }
 
     override suspend fun saveMoodCheckin(checkin: DailyMoodCheckin): Result<Unit> {
         val current = checkinsFlow.value.toMutableList()
