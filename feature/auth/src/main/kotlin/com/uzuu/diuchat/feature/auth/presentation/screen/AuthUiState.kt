@@ -11,8 +11,6 @@ private const val PHONE_GROUP_SIZE = 3
 data class AuthUiState(
     val otpState: OtpState = OtpState.EditingPhone(),
     val resendSecondsRemaining: Int = 0,
-    val isGoogleSigningIn: Boolean = false,
-    val googleError: String? = null,
 ) : BaseState {
     val rawPhone: String
         get() =

@@ -9,9 +9,4 @@ sealed interface OnBoardingAction : BaseAction<OnBoardingUiState> {
     ) : OnBoardingAction {
         override fun reduce(state: OnBoardingUiState) = state.copy(currentPage = page)
     }
-
-    /** Người dùng hoàn thành hoặc bỏ qua onboarding. */
-    data object CompleteOnBoarding : OnBoardingAction {
-        override fun reduce(state: OnBoardingUiState) = state
-    }
 }

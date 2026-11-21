@@ -2,7 +2,6 @@ package com.uzuu.diuchat.feature.auth.presentation.screen
 
 import com.uzuu.diuchat.feature.auth.domain.model.OtpState
 import com.uzuu.diuchat.feature.auth.domain.usecase.SendOtpUseCase
-import com.uzuu.diuchat.feature.auth.domain.usecase.SignInWithGoogleUseCase
 import com.uzuu.diuchat.feature.auth.domain.usecase.VerifyOtpUseCase
 import com.uzuu.diuchat.library.testutils.CoroutinesTestDispatcherExtension
 import com.uzuu.diuchat.library.testutils.InstantTaskExecutorExtension
@@ -20,13 +19,11 @@ import org.junit.jupiter.api.extension.ExtendWith
 @ExtendWith(InstantTaskExecutorExtension::class, CoroutinesTestDispatcherExtension::class)
 class AuthViewModelTest {
     private val mockSendOtpUseCase: SendOtpUseCase = mockk()
-    private val mockSignInWithGoogleUseCase: SignInWithGoogleUseCase = mockk()
     private val mockVerifyOtpUseCase: VerifyOtpUseCase = mockk()
 
     private val sut =
         AuthViewModel(
             mockSendOtpUseCase,
-            mockSignInWithGoogleUseCase,
             mockVerifyOtpUseCase,
         )
 
@@ -118,33 +115,5 @@ class AuthViewModelTest {
         val state = sut.uiStateFlow.value
         state.otpState shouldBeInstanceOf OtpState.EditingPhone::class
         state.rawPhone shouldBeEqualTo "912345678"
-    }
-
-    @Test
-    fun `signInWithGoogle success transitions to Success and invokes onAuthSuccess`() = runTest {
-        coEvery { mockSignInWithGoogleUseCase(any()) } returns Result.success(Unit)
-
-        var authSuccessCalled = false
-        sut.signInWithGoogle(idToken = "token-123", onAuthSuccess = { authSuccessCalled = true })
-        advanceUntilIdle()
-
-        val state = sut.uiStateFlow.value
-        state.otpState shouldBeInstanceOf OtpState.Success::class
-        state.isGoogleSigningIn shouldBeEqualTo false
-        authSuccessCalled shouldBeEqualTo true
-    }
-
-    @Test
-    fun `signInWithGoogle failure sets googleError`() = runTest {
-        coEvery { mockSignInWithGoogleUseCase(any()) } returns Result.failure(RuntimeException("Lỗi Google Auth"))
-
-        var authSuccessCalled = false
-        sut.signInWithGoogle(idToken = null, onAuthSuccess = { authSuccessCalled = true })
-        advanceUntilIdle()
-
-        val state = sut.uiStateFlow.value
-        state.isGoogleSigningIn shouldBeEqualTo false
-        state.googleError shouldBeEqualTo "Lỗi Google Auth"
-        authSuccessCalled shouldBeEqualTo false
     }
 }

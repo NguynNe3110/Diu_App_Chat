@@ -74,13 +74,7 @@ fun OnBoardingScreen(
     onFinish: () -> Unit,
     viewModel: OnBoardingViewModel = koinViewModel(),
 ) {
-    OnBoardingContent(
-        onFinish = {
-            viewModel.completeOnboarding()
-            onFinish()
-        },
-        onPageChange = viewModel::onPageChanged,
-    )
+    OnBoardingContent(onFinish = onFinish, onPageChange = viewModel::onPageChanged)
 }
 
 @Composable
