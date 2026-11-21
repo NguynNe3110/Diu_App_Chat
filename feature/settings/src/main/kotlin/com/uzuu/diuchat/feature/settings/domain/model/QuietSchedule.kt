@@ -6,6 +6,7 @@ data class QuietSchedule(
     val endMinuteOfDay: Int = 6 * 60, // 06:00 (360)
     val timeZoneId: String = "Asia/Ho_Chi_Minh",
     val allowedEmergencyContactIds: Set<String> = emptySet(),
+    val repeatDays: Set<Int> = DEFAULT_REPEAT_DAYS,
 ) {
     val startTimeFormatted: String
         get() = "%02d:%02d".format(startMinuteOfDay / 60, startMinuteOfDay % 60)
@@ -24,5 +25,9 @@ data class QuietSchedule(
             // Overnight window, e.g. 22:30 to 06:00
             minuteOfDay >= startMinuteOfDay || minuteOfDay < endMinuteOfDay
         }
+    }
+
+    companion object {
+        val DEFAULT_REPEAT_DAYS = setOf(1, 2, 3, 4, 5, 6, 7)
     }
 }

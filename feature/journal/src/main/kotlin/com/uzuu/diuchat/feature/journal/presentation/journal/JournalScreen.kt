@@ -46,13 +46,15 @@ import com.uzuu.diuchat.feature.journal.domain.model.JournalMoodType
 import com.uzuu.diuchat.feature.journal.domain.model.MoodComparison
 import com.uzuu.diuchat.feature.journal.domain.model.MonthMoodBreakdown
 import com.uzuu.diuchat.feature.journal.presentation.checkin.MoodCheckinSheet
+import java.time.LocalDate
+import java.time.YearMonth
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
 fun JournalScreen(
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier,
-    @Suppress("UnusedParameter") onOpenSearch: () -> Unit = {},
+    onOpenSearch: () -> Unit = {},
     viewModel: JournalViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiStateFlow.collectAsStateWithLifecycle()
@@ -77,7 +79,7 @@ fun JournalContent(
     state: JournalUiState,
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier,
-    @Suppress("UnusedParameter") onOpenSearch: () -> Unit = {},
+    onOpenSearch: () -> Unit = {},
     onSelectDay: (Int) -> Unit = {},
     onOpenCheckinSheet: () -> Unit = {},
     onSelectCheckinMood: (JournalMoodType) -> Unit = {},
@@ -103,6 +105,18 @@ fun JournalContent(
                         )
                     }
                 },
+                actions = {
+                    DiuIconButton(
+                        onClick = onOpenSearch,
+                        contentDescription = "Tìm kiếm",
+                    ) {
+                        Icon(
+                            painter = painterResource(AppIcons.Search),
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp),
+                        )
+                    }
+                },
             )
         },
         containerColor = AppTheme.colors.background,
@@ -122,6 +136,8 @@ fun JournalContent(
                 item {
                     Spacer(modifier = Modifier.height(8.dp))
                     CalendarGrid(
+                        year = state.year,
+                        month = state.month,
                         checkins = state.checkins,
                         selectedDay = state.selectedDay,
                         onSelectDay = onSelectDay,
@@ -210,6 +226,8 @@ fun JournalContent(
 
 @Composable
 private fun CalendarGrid(
+    year: Int,
+    month: Int,
     checkins: List<DailyMoodCheckin>,
     selectedDay: Int,
     onSelectDay: (Int) -> Unit,
@@ -217,6 +235,11 @@ private fun CalendarGrid(
 ) {
     val checkinMap = checkins.associateBy { it.dayNumber }
     val daysOfWeek = listOf("T2", "T3", "T4", "T5", "T6", "T7", "CN")
+    val yearMonth = YearMonth.of(year, month)
+    val today = LocalDate.now()
+    val firstDayOffset = yearMonth.atDay(1).dayOfWeek.value - 1
+    val daysInMonth = yearMonth.lengthOfMonth()
+    val cells: List<Int?> = List(firstDayOffset) { null } + (1..daysInMonth).toList()
 
     Column(modifier = modifier.fillMaxWidth()) {
         // Weekday headers
@@ -237,8 +260,8 @@ private fun CalendarGrid(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Month days grid (30 days)
-        val rows = (1..30).chunked(7)
+        // Month days grid aligned to real weekday of day 1
+        val rows = cells.chunked(7)
         rows.forEach { weekDays ->
             Row(
                 modifier = Modifier
@@ -247,55 +270,63 @@ private fun CalendarGrid(
                 horizontalArrangement = Arrangement.SpaceAround,
             ) {
                 weekDays.forEach { day ->
-                    val checkin = checkinMap[day]
-                    val isSelected = day == selectedDay
-                    val moodColor = checkin?.mood?.color ?: Color.Transparent
-                    val isFuture = day > 24
+                    if (day == null) {
+                        Spacer(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(44.dp),
+                        )
+                    } else {
+                        val checkin = checkinMap[day]
+                        val isSelected = day == selectedDay
+                        val moodColor = checkin?.mood?.color ?: Color.Transparent
+                        val isFuture = yearMonth.atDay(day).isAfter(today)
 
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(44.dp)
-                            .padding(2.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(
-                                if (isSelected) {
-                                    AppTheme.colors.accent.copy(alpha = 0.12f)
-                                } else {
-                                    Color.Transparent
-                                },
-                            )
-                            .border(
-                                width = if (isSelected) 1.5.dp else 0.dp,
-                                color = if (isSelected) AppTheme.colors.accent else Color.Transparent,
-                                shape = RoundedCornerShape(12.dp),
-                            )
-                            .clickable(enabled = !isFuture) { onSelectDay(day) },
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center,
-                        ) {
-                            Text(
-                                text = day.toString(),
-                                style = AppTheme.typography.bodySmall,
-                                color = if (isFuture) {
-                                    AppTheme.colors.inkSecondary.copy(alpha = 0.4f)
-                                } else {
-                                    AppTheme.colors.ink
-                                },
-                            )
-                            Spacer(modifier = Modifier.height(2.dp))
-                            if (checkin != null) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(6.dp)
-                                        .clip(CircleShape)
-                                        .background(moodColor),
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(44.dp)
+                                .padding(2.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(
+                                    if (isSelected) {
+                                        AppTheme.colors.accent.copy(alpha = 0.12f)
+                                    } else {
+                                        Color.Transparent
+                                    },
                                 )
-                            } else {
-                                Spacer(modifier = Modifier.size(6.dp))
+                                .border(
+                                    width = if (isSelected) 1.5.dp else 0.dp,
+                                    color = if (isSelected) AppTheme.colors.accent else Color.Transparent,
+                                    shape = RoundedCornerShape(12.dp),
+                                )
+                                .clickable(enabled = !isFuture) { onSelectDay(day) },
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center,
+                            ) {
+                                Text(
+                                    text = day.toString(),
+                                    style = AppTheme.typography.bodySmall,
+                                    color = if (isFuture) {
+                                        AppTheme.colors.inkSecondary.copy(alpha = 0.4f)
+                                    } else {
+                                        AppTheme.colors.ink
+                                    },
+                                )
+                                Spacer(modifier = Modifier.height(2.dp))
+                                if (checkin != null) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(6.dp)
+                                            .clip(CircleShape)
+                                            .background(moodColor),
+                                    )
+                                } else {
+                                    Spacer(modifier = Modifier.size(6.dp))
+                                }
                             }
                         }
                     }

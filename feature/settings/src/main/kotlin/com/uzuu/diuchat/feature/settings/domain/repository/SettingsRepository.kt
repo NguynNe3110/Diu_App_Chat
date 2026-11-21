@@ -2,6 +2,7 @@ package com.uzuu.diuchat.feature.settings.domain.repository
 
 import com.uzuu.diuchat.feature.settings.domain.model.BlockedContact
 import com.uzuu.diuchat.feature.settings.domain.model.NotificationPrivacy
+import com.uzuu.diuchat.feature.settings.domain.model.NotificationSound
 import com.uzuu.diuchat.feature.settings.domain.model.QuietSchedule
 import com.uzuu.diuchat.feature.settings.domain.model.UserProfile
 import kotlinx.coroutines.flow.Flow
@@ -23,4 +24,8 @@ interface SettingsRepository {
     suspend fun updateThemeMode(themeMode: String)
     fun getReadReceiptsEnabled(): Flow<Boolean>
     suspend fun updateReadReceiptsEnabled(enabled: Boolean)
+    fun getSoftSendAnimationEnabled(): Flow<Boolean>
+    suspend fun updateSoftSendAnimationEnabled(enabled: Boolean)
+    fun getNotificationSound(): Flow<NotificationSound>
+    suspend fun updateNotificationSound(sound: NotificationSound)
 }

@@ -7,6 +7,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -18,8 +20,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Block
@@ -47,12 +51,14 @@ import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuButton
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuButtonVariant
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuCard
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuEmptyState
+import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuFilterChip
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuOrbAvatar
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuSettingsRow
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuSwitch
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuTopBar
 import com.uzuu.diuchat.feature.settings.domain.model.BlockedContact
 import com.uzuu.diuchat.feature.settings.domain.model.NotificationPrivacy
+import com.uzuu.diuchat.feature.settings.domain.model.NotificationSound
 import com.uzuu.diuchat.feature.settings.domain.model.QuietSchedule
 import com.uzuu.diuchat.feature.settings.domain.model.UserProfile
 import com.uzuu.diuchat.feature.settings.presentation.composable.DeleteAccountDialog
@@ -64,6 +70,7 @@ import org.koin.androidx.compose.koinViewModel
 fun SettingsScreen(
     modifier: Modifier = Modifier,
     onBackClick: () -> Unit = {},
+    onNavigateToStorage: () -> Unit = {},
     viewModel: SettingsViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.uiStateFlow.collectAsState()
@@ -77,16 +84,24 @@ fun SettingsScreen(
                 SettingsOverviewContent(
                     uiState = uiState,
                     onBackClick = onBackClick,
+                    onNavigateToStorage = onNavigateToStorage,
                     onShowEditProfileSheet = viewModel::showEditProfile,
                     onToggleQuietHours = viewModel::toggleQuietHours,
                     onShowQuietHoursDialog = viewModel::showQuietHoursDialog,
                     onShowPrivacyDialog = viewModel::showPrivacyDialog,
                     onToggleReadReceipts = viewModel::toggleReadReceipts,
+                    onToggleDarkMode = { enabled ->
+                        viewModel.setThemeMode(if (enabled) "DARK" else "LIGHT")
+                    },
+                    onToggleSoftSendAnimation = viewModel::toggleSoftSendAnimation,
                     onNavigateToBlockedContacts = viewModel::navigateToBlockedContacts,
                     onShowLogoutConfirm = viewModel::showLogoutConfirm,
                     onShowDeleteAccount = viewModel::showDeleteAccount,
                     onUpdateQuietTimeRange = viewModel::updateQuietTimeRange,
+                    onToggleQuietRepeatDay = viewModel::toggleQuietRepeatDay,
+                    onToggleEmergencyContact = viewModel::toggleEmergencyContact,
                     onSetNotificationPrivacy = viewModel::setNotificationPrivacy,
+                    onSetNotificationSound = viewModel::setNotificationSound,
                     onUpdateProfile = viewModel::updateProfile,
                     onLogout = viewModel::logout,
                     onDeleteAccount = viewModel::deleteAccount,
@@ -108,16 +123,22 @@ fun SettingsScreen(
 private fun SettingsOverviewContent(
     uiState: SettingsUiState,
     onBackClick: () -> Unit,
+    onNavigateToStorage: () -> Unit = {},
     onShowEditProfileSheet: (Boolean) -> Unit = {},
     onToggleQuietHours: (Boolean) -> Unit = {},
     onShowQuietHoursDialog: (Boolean) -> Unit = {},
     onShowPrivacyDialog: (Boolean) -> Unit = {},
     onToggleReadReceipts: (Boolean) -> Unit = {},
+    onToggleDarkMode: (Boolean) -> Unit = {},
+    onToggleSoftSendAnimation: (Boolean) -> Unit = {},
     onNavigateToBlockedContacts: () -> Unit = {},
     onShowLogoutConfirm: (Boolean) -> Unit = {},
     onShowDeleteAccount: (Boolean) -> Unit = {},
     onUpdateQuietTimeRange: (Int, Int) -> Unit = { _, _ -> },
+    onToggleQuietRepeatDay: (Int) -> Unit = {},
+    onToggleEmergencyContact: (String) -> Unit = {},
     onSetNotificationPrivacy: (NotificationPrivacy) -> Unit = {},
+    onSetNotificationSound: (NotificationSound) -> Unit = {},
     onUpdateProfile: (String, String, String, String, String?) -> Unit = { _, _, _, _, _ -> },
     onLogout: () -> Unit = {},
     onDeleteAccount: (String) -> Unit = {},
@@ -252,6 +273,45 @@ private fun SettingsOverviewContent(
                 )
             }
 
+            // ── Giao diện & Dữ liệu ──
+            item {
+                Spacer(modifier = Modifier.height(16.dp))
+                SectionHeader(title = "Giao diện")
+            }
+            item {
+                DiuSettingsRow(
+                    title = "Chế độ tối",
+                    subtitle = if (uiState.themeMode == "DARK") "Đang bật" else "Đang tắt",
+                    trailing = {
+                        DiuSwitch(
+                            checked = uiState.themeMode == "DARK",
+                            onCheckedChange = onToggleDarkMode,
+                            contentDescription = "Bật tắt chế độ tối",
+                        )
+                    },
+                )
+            }
+            item {
+                DiuSettingsRow(
+                    title = "Hoạt ảnh gửi tin mềm",
+                    subtitle = "Hiệu ứng chuyển động dịu nhẹ khi gửi tin nhắn",
+                    trailing = {
+                        DiuSwitch(
+                            checked = uiState.softSendAnimationEnabled,
+                            onCheckedChange = onToggleSoftSendAnimation,
+                            contentDescription = "Bật tắt hoạt ảnh gửi tin mềm",
+                        )
+                    },
+                )
+            }
+            item {
+                DiuSettingsRow(
+                    title = "Lưu trữ & dữ liệu",
+                    subtitle = "Quản lý bộ nhớ đệm và tải xuống tự động",
+                    onClick = onNavigateToStorage,
+                )
+            }
+
             // ── Tài khoản & Hành động nguy hiểm ──
             item {
                 Spacer(modifier = Modifier.height(16.dp))
@@ -345,9 +405,9 @@ private fun SettingsOverviewContent(
     if (uiState.showPrivacyDialog) {
         NotificationPrivacyDialog(
             currentPrivacy = uiState.notificationPrivacy,
-            onSelect = {
-                onSetNotificationPrivacy(it)
-            },
+            currentSound = uiState.notificationSound,
+            onSelectPrivacy = onSetNotificationPrivacy,
+            onSelectSound = onSetNotificationSound,
             onDismiss = { onShowPrivacyDialog(false) },
         )
     }
@@ -359,6 +419,8 @@ private fun SettingsOverviewContent(
             onSelectRange = { start, end ->
                 onUpdateQuietTimeRange(start, end)
             },
+            onToggleRepeatDay = onToggleQuietRepeatDay,
+            onToggleEmergencyContact = onToggleEmergencyContact,
             onDismiss = { onShowQuietHoursDialog(false) },
         )
     }
@@ -566,7 +628,9 @@ private fun SectionHeader(title: String) {
 @Composable
 private fun NotificationPrivacyDialog(
     currentPrivacy: NotificationPrivacy,
-    onSelect: (NotificationPrivacy) -> Unit,
+    currentSound: NotificationSound,
+    onSelectPrivacy: (NotificationPrivacy) -> Unit,
+    onSelectSound: (NotificationSound) -> Unit,
     onDismiss: () -> Unit,
 ) {
     val colors = AppTheme.colors
@@ -575,25 +639,34 @@ private fun NotificationPrivacyDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
-                text = "Mức hiển thị thông báo",
+                text = "Thông báo & Âm báo",
                 style = AppTheme.typography.titleMedium,
                 color = colors.ink,
             )
         },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Text(
+                    text = "Hiển thị trên màn hình khoá",
+                    style = AppTheme.typography.labelSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = colors.inkSecondary,
+                )
                 NotificationPrivacy.entries.forEach { option ->
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(8.dp))
-                            .clickable { onSelect(option) }
-                            .padding(vertical = 6.dp),
+                            .clickable { onSelectPrivacy(option) }
+                            .padding(vertical = 4.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         RadioButton(
                             selected = option == currentPrivacy,
-                            onClick = { onSelect(option) },
+                            onClick = { onSelectPrivacy(option) },
                         )
                         Column(modifier = Modifier.padding(start = 8.dp)) {
                             Text(
@@ -611,6 +684,35 @@ private fun NotificationPrivacyDialog(
                         }
                     }
                 }
+
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Âm báo",
+                    style = AppTheme.typography.labelSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = colors.inkSecondary,
+                )
+                NotificationSound.entries.forEach { sound ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable { onSelectSound(sound) }
+                            .padding(vertical = 2.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        RadioButton(
+                            selected = sound == currentSound,
+                            onClick = { onSelectSound(sound) },
+                        )
+                        Text(
+                            text = sound.label,
+                            style = AppTheme.typography.bodyMedium,
+                            color = colors.ink,
+                            modifier = Modifier.padding(start = 8.dp),
+                        )
+                    }
+                }
             }
         },
         confirmButton = {
@@ -621,10 +723,13 @@ private fun NotificationPrivacyDialog(
     )
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun QuietHoursPresetDialog(
-    currentSchedule: com.uzuu.diuchat.feature.settings.domain.model.QuietSchedule,
+    currentSchedule: QuietSchedule,
     onSelectRange: (startMinute: Int, endMinute: Int) -> Unit,
+    onToggleRepeatDay: (Int) -> Unit,
+    onToggleEmergencyContact: (String) -> Unit,
     onDismiss: () -> Unit,
 ) {
     val colors = AppTheme.colors
@@ -634,6 +739,22 @@ private fun QuietHoursPresetDialog(
         Triple("23:00 – 07:00 (Thức khuya dậy muộn)", 23 * 60, 7 * 60),
         Triple("22:00 – 05:30 (Dậy sớm bình minh)", 22 * 60, 5 * 60 + 30),
         Triple("00:00 – 08:00 (Nửa đêm tới sáng)", 0, 8 * 60),
+    )
+
+    val weekdayLabels = listOf(
+        1 to "T2",
+        2 to "T3",
+        3 to "T4",
+        4 to "T5",
+        5 to "T6",
+        6 to "T7",
+        7 to "CN",
+    )
+
+    val emergencyContacts = listOf(
+        "minh" to "Minh",
+        "me" to "Mẹ",
+        "thao" to "Thảo",
     )
 
     AlertDialog(
@@ -646,7 +767,10 @@ private fun QuietHoursPresetDialog(
             )
         },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
                 presets.forEach { (label, start, end) ->
                     val isSelected = currentSchedule.startMinuteOfDay == start && currentSchedule.endMinuteOfDay == end
                     Row(
@@ -654,7 +778,7 @@ private fun QuietHoursPresetDialog(
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(8.dp))
                             .clickable { onSelectRange(start, end) }
-                            .padding(vertical = 8.dp),
+                            .padding(vertical = 6.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween,
                     ) {
@@ -671,6 +795,54 @@ private fun QuietHoursPresetDialog(
                                 tint = colors.accent,
                             )
                         }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Lặp lại",
+                    style = AppTheme.typography.labelSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = colors.inkSecondary,
+                )
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    weekdayLabels.forEach { (dayInt, dayLabel) ->
+                        DiuFilterChip(
+                            text = dayLabel,
+                            selected = dayInt in currentSchedule.repeatDays,
+                            onClick = { onToggleRepeatDay(dayInt) },
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Vẫn cho phép gọi khẩn",
+                    style = AppTheme.typography.labelSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = colors.inkSecondary,
+                )
+                emergencyContacts.forEach { (contactId, contactName) ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 2.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        Text(
+                            text = contactName,
+                            style = AppTheme.typography.bodyMedium,
+                            color = colors.ink,
+                        )
+                        DiuSwitch(
+                            checked = contactId in currentSchedule.allowedEmergencyContactIds,
+                            onCheckedChange = { onToggleEmergencyContact(contactId) },
+                            contentDescription = "Cho phép $contactName gọi khẩn",
+                        )
                     }
                 }
             }

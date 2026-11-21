@@ -10,13 +10,14 @@ import com.uzuu.diuchat.feature.location.domain.usecase.StartLiveLocationUseCase
 import com.uzuu.diuchat.feature.location.domain.usecase.StopLiveLocationUseCase
 import com.uzuu.diuchat.feature.location.presentation.LiveLocationViewModel
 import com.uzuu.diuchat.feature.location.presentation.LocationPickerViewModel
+import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.dsl.bind
 import org.koin.core.module.dsl.singleOf
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 
 val featureLocationModule = module {
-    singleOf(::DefaultLocationProviderAdapter) { bind<LocationProviderAdapter>() }
+    single<LocationProviderAdapter> { DefaultLocationProviderAdapter(androidContext()) }
     singleOf(::LocationRepositoryImpl) { bind<LocationRepository>() }
 
     singleOf(::GetLocationSnapshotUseCase)

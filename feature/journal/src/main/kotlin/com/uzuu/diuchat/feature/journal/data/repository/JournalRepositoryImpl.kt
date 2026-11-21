@@ -1,18 +1,22 @@
 package com.uzuu.diuchat.feature.journal.data.repository
 
 import com.uzuu.diuchat.feature.journal.domain.model.DailyMoodCheckin
+import com.uzuu.diuchat.feature.journal.domain.model.FavouriteMemory
 import com.uzuu.diuchat.feature.journal.domain.model.JournalMoodType
 import com.uzuu.diuchat.feature.journal.domain.model.MoodComparison
 import com.uzuu.diuchat.feature.journal.domain.model.SearchResultItem
 import com.uzuu.diuchat.feature.journal.domain.repository.JournalRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 
 class JournalRepositoryImpl : JournalRepository {
     private val checkinsFlow = MutableStateFlow(seedMonthlyCheckins())
     private val allMessages = seedMessages()
+    private val allSeededFavourites = seedFavourites()
+    private val favouritesFlow = MutableStateFlow(allSeededFavourites)
 
     override fun getMonthlyMoodCheckins(
         month: Int,
@@ -99,6 +103,20 @@ class JournalRepositoryImpl : JournalRepository {
 
             matchesQuery && matchesMood && matchesConv
         }
+    }
+
+    override fun getFavourites(): Flow<List<FavouriteMemory>> = favouritesFlow.asStateFlow()
+
+    override suspend fun toggleFavourite(memoryId: String): Result<Unit> {
+        val current = favouritesFlow.value.toMutableList()
+        val existingIndex = current.indexOfFirst { it.id == memoryId }
+        if (existingIndex >= 0) {
+            current.removeAt(existingIndex)
+        } else {
+            allSeededFavourites.find { it.id == memoryId }?.let { current.add(it) }
+        }
+        favouritesFlow.value = current
+        return Result.success(Unit)
     }
 
     private companion object {
@@ -220,6 +238,33 @@ class JournalRepositoryImpl : JournalRepository {
                 snippet = "Anh tới đầu hẻm rồi nè, có mua bánh flan cho em đó",
                 timestamp = "Hôm qua 21:30",
                 mood = JournalMoodType.THUONG,
+            ),
+        )
+
+        fun seedFavourites(): List<FavouriteMemory> = listOf(
+            FavouriteMemory(
+                id = "fav_1",
+                senderName = "Minh",
+                mood = JournalMoodType.THUONG,
+                content = "Cảm ơn vì đã luôn ở bên mình.",
+                savedDate = "14/02/2024",
+                conversationId = CONV_MINH,
+            ),
+            FavouriteMemory(
+                id = "fav_2",
+                senderName = "Bà nội",
+                mood = JournalMoodType.BINH_YEN,
+                content = "Con gái nhớ ăn uống đúng giờ nhé.",
+                savedDate = "08/03/2024",
+                conversationId = "conv_nha",
+            ),
+            FavouriteMemory(
+                id = "fav_3",
+                senderName = "Thảo",
+                mood = JournalMoodType.NHO,
+                content = "Bộ ảnh hôm đi Đà Lạt đẹp xỉu!",
+                savedDate = "20/05/2024",
+                conversationId = "conv_thao",
             ),
         )
     }

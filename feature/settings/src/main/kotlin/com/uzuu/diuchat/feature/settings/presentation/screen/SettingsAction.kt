@@ -4,6 +4,7 @@ import com.uzuu.diuchat.feature.base.presentation.viewmodel.BaseAction
 import com.uzuu.diuchat.feature.settings.domain.model.AccountDeletionState
 import com.uzuu.diuchat.feature.settings.domain.model.BlockedContact
 import com.uzuu.diuchat.feature.settings.domain.model.NotificationPrivacy
+import com.uzuu.diuchat.feature.settings.domain.model.NotificationSound
 import com.uzuu.diuchat.feature.settings.domain.model.QuietSchedule
 import com.uzuu.diuchat.feature.settings.domain.model.UserProfile
 
@@ -20,12 +21,20 @@ sealed class SettingsAction : BaseAction<SettingsUiState> {
         override fun reduce(state: SettingsUiState): SettingsUiState = state.copy(notificationPrivacy = notificationPrivacy)
     }
 
+    data class SetNotificationSound(val notificationSound: NotificationSound) : SettingsAction() {
+        override fun reduce(state: SettingsUiState): SettingsUiState = state.copy(notificationSound = notificationSound)
+    }
+
     data class SetBlockedContacts(val blockedContacts: List<BlockedContact>) : SettingsAction() {
         override fun reduce(state: SettingsUiState): SettingsUiState = state.copy(blockedContacts = blockedContacts)
     }
 
     data class ToggleReadReceipts(val enabled: Boolean) : SettingsAction() {
         override fun reduce(state: SettingsUiState): SettingsUiState = state.copy(readReceiptsEnabled = enabled)
+    }
+
+    data class ToggleSoftSendAnimation(val enabled: Boolean) : SettingsAction() {
+        override fun reduce(state: SettingsUiState): SettingsUiState = state.copy(softSendAnimationEnabled = enabled)
     }
 
     data class SetThemeMode(val themeMode: String) : SettingsAction() {

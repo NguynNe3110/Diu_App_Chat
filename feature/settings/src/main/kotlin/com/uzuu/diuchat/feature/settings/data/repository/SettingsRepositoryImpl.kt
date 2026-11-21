@@ -3,6 +3,7 @@ package com.uzuu.diuchat.feature.settings.data.repository
 import com.uzuu.diuchat.feature.settings.data.datasource.preferences.SettingsPreferencesDataSource
 import com.uzuu.diuchat.feature.settings.domain.model.BlockedContact
 import com.uzuu.diuchat.feature.settings.domain.model.NotificationPrivacy
+import com.uzuu.diuchat.feature.settings.domain.model.NotificationSound
 import com.uzuu.diuchat.feature.settings.domain.model.QuietSchedule
 import com.uzuu.diuchat.feature.settings.domain.model.UserProfile
 import com.uzuu.diuchat.feature.settings.domain.repository.SettingsRepository
@@ -18,6 +19,7 @@ class SettingsRepositoryImpl(
 
     private val inMemoryThemeModeFlow = MutableStateFlow("SYSTEM")
     private val inMemoryReadReceiptsFlow = MutableStateFlow(true)
+    private val inMemorySoftSendAnimationFlow = MutableStateFlow(true)
 
     private val inMemoryQuietScheduleFlow = MutableStateFlow(
         QuietSchedule(
@@ -30,6 +32,7 @@ class SettingsRepositoryImpl(
     )
 
     private val inMemoryNotificationPrivacyFlow = MutableStateFlow(NotificationPrivacy.FULL_CONTENT)
+    private val inMemoryNotificationSoundFlow = MutableStateFlow(NotificationSound.WATER_DROP)
 
     private val inMemoryBlockedContactsFlow = MutableStateFlow(
         SettingsPreferencesDataSource.defaultBlockedContacts(),
@@ -61,6 +64,24 @@ class SettingsRepositoryImpl(
     override suspend fun updateReadReceiptsEnabled(enabled: Boolean) {
         preferencesDataSource?.updateReadReceipts(enabled) ?: run {
             inMemoryReadReceiptsFlow.value = enabled
+        }
+    }
+
+    @Suppress("MaxLineLength")
+    override fun getSoftSendAnimationEnabled(): Flow<Boolean> = preferencesDataSource?.softSendAnimationFlow ?: inMemorySoftSendAnimationFlow.asStateFlow()
+
+    override suspend fun updateSoftSendAnimationEnabled(enabled: Boolean) {
+        preferencesDataSource?.updateSoftSendAnimation(enabled) ?: run {
+            inMemorySoftSendAnimationFlow.value = enabled
+        }
+    }
+
+    @Suppress("MaxLineLength")
+    override fun getNotificationSound(): Flow<NotificationSound> = preferencesDataSource?.notificationSoundFlow ?: inMemoryNotificationSoundFlow.asStateFlow()
+
+    override suspend fun updateNotificationSound(sound: NotificationSound) {
+        preferencesDataSource?.updateNotificationSound(sound) ?: run {
+            inMemoryNotificationSoundFlow.value = sound
         }
     }
 

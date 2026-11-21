@@ -4,38 +4,48 @@ import androidx.lifecycle.viewModelScope
 import com.uzuu.diuchat.feature.base.presentation.viewmodel.BaseViewModel
 import com.uzuu.diuchat.feature.settings.domain.model.AccountDeletionState
 import com.uzuu.diuchat.feature.settings.domain.model.NotificationPrivacy
+import com.uzuu.diuchat.feature.settings.domain.model.NotificationSound
 import com.uzuu.diuchat.feature.settings.domain.usecase.DeleteAccountUseCase
 import com.uzuu.diuchat.feature.settings.domain.usecase.GetBlockedContactsUseCase
 import com.uzuu.diuchat.feature.settings.domain.usecase.GetNotificationPrivacyUseCase
+import com.uzuu.diuchat.feature.settings.domain.usecase.GetNotificationSoundUseCase
 import com.uzuu.diuchat.feature.settings.domain.usecase.GetProfileUseCase
 import com.uzuu.diuchat.feature.settings.domain.usecase.GetQuietScheduleUseCase
 import com.uzuu.diuchat.feature.settings.domain.usecase.GetReadReceiptsEnabledUseCase
+import com.uzuu.diuchat.feature.settings.domain.usecase.GetSoftSendAnimationEnabledUseCase
 import com.uzuu.diuchat.feature.settings.domain.usecase.GetThemeModeUseCase
 import com.uzuu.diuchat.feature.settings.domain.usecase.LogoutUseCase
 import com.uzuu.diuchat.feature.settings.domain.usecase.UnblockContactUseCase
 import com.uzuu.diuchat.feature.settings.domain.usecase.UpdateNotificationPrivacyUseCase
+import com.uzuu.diuchat.feature.settings.domain.usecase.UpdateNotificationSoundUseCase
 import com.uzuu.diuchat.feature.settings.domain.usecase.UpdateProfileUseCase
 import com.uzuu.diuchat.feature.settings.domain.usecase.UpdateQuietScheduleUseCase
 import com.uzuu.diuchat.feature.settings.domain.usecase.UpdateReadReceiptsEnabledUseCase
+import com.uzuu.diuchat.feature.settings.domain.usecase.UpdateSoftSendAnimationEnabledUseCase
 import com.uzuu.diuchat.feature.settings.domain.usecase.UpdateThemeModeUseCase
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 
+@Suppress("LongParameterList")
 class SettingsViewModel(
     private val deleteAccountUseCase: DeleteAccountUseCase,
     private val getBlockedContactsUseCase: GetBlockedContactsUseCase,
     private val getNotificationPrivacyUseCase: GetNotificationPrivacyUseCase,
+    private val getNotificationSoundUseCase: GetNotificationSoundUseCase,
     private val getProfileUseCase: GetProfileUseCase,
     private val getQuietScheduleUseCase: GetQuietScheduleUseCase,
     private val getReadReceiptsEnabledUseCase: GetReadReceiptsEnabledUseCase,
+    private val getSoftSendAnimationEnabledUseCase: GetSoftSendAnimationEnabledUseCase,
     private val getThemeModeUseCase: GetThemeModeUseCase,
     private val logoutUseCase: LogoutUseCase,
     private val unblockContactUseCase: UnblockContactUseCase,
     private val updateNotificationPrivacyUseCase: UpdateNotificationPrivacyUseCase,
+    private val updateNotificationSoundUseCase: UpdateNotificationSoundUseCase,
     private val updateProfileUseCase: UpdateProfileUseCase,
     private val updateQuietScheduleUseCase: UpdateQuietScheduleUseCase,
     private val updateReadReceiptsEnabledUseCase: UpdateReadReceiptsEnabledUseCase,
+    private val updateSoftSendAnimationEnabledUseCase: UpdateSoftSendAnimationEnabledUseCase,
     private val updateThemeModeUseCase: UpdateThemeModeUseCase,
 ) : BaseViewModel<SettingsUiState, SettingsAction>(SettingsUiState()) {
 
@@ -66,6 +76,14 @@ class SettingsViewModel(
 
         getThemeModeUseCase()
             .onEach { sendAction(SettingsAction.SetThemeMode(it)) }
+            .launchIn(viewModelScope)
+
+        getSoftSendAnimationEnabledUseCase()
+            .onEach { sendAction(SettingsAction.ToggleSoftSendAnimation(it)) }
+            .launchIn(viewModelScope)
+
+        getNotificationSoundUseCase()
+            .onEach { sendAction(SettingsAction.SetNotificationSound(it)) }
             .launchIn(viewModelScope)
     }
 
@@ -101,6 +119,44 @@ class SettingsViewModel(
     fun setThemeMode(themeMode: String) {
         viewModelScope.launch {
             updateThemeModeUseCase(themeMode)
+        }
+    }
+
+    fun toggleSoftSendAnimation(enabled: Boolean) {
+        viewModelScope.launch {
+            updateSoftSendAnimationEnabledUseCase(enabled)
+        }
+    }
+
+    fun setNotificationSound(sound: NotificationSound) {
+        viewModelScope.launch {
+            updateNotificationSoundUseCase(sound)
+        }
+    }
+
+    fun toggleQuietRepeatDay(day: Int) {
+        val current = uiStateFlow.value.quietSchedule
+        val updatedDays = if (day in current.repeatDays) {
+            current.repeatDays - day
+        } else {
+            current.repeatDays + day
+        }
+        val updated = current.copy(repeatDays = updatedDays)
+        viewModelScope.launch {
+            updateQuietScheduleUseCase(updated)
+        }
+    }
+
+    fun toggleEmergencyContact(contactId: String) {
+        val current = uiStateFlow.value.quietSchedule
+        val updatedContacts = if (contactId in current.allowedEmergencyContactIds) {
+            current.allowedEmergencyContactIds - contactId
+        } else {
+            current.allowedEmergencyContactIds + contactId
+        }
+        val updated = current.copy(allowedEmergencyContactIds = updatedContacts)
+        viewModelScope.launch {
+            updateQuietScheduleUseCase(updated)
         }
     }
 
