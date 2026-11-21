@@ -51,6 +51,7 @@ Các tên như SyncCoordinator, OutboxWorker, CallCoordinator trong file này l�
 | T31 | Migration, environment và CI release gates | SQL migration (00001 - 00006), CODE | Local DB/backend/release | P1/P12 |
 | T32 | Quyền sở hữu dữ liệu, cleanup và deletion workflow | CODE trong :feature:media (ClearCacheUseCase); ĐỀ XUẤT backend | Cache/recall/logout/delete account | P6/P12 |
 | T33 | DataStore Preferences cho cấu hình người dùng và riêng tư | CODE trong :feature:settings | Cấu hình theme, privacy toggle, quiet schedule, user profile | P1/P5 |
+| T34 | Android Credential Manager + Google Sign-In & Profile Username Guard | CODE trong :feature:auth | M1 Google-first Auth | P2/G1a |
 
 ## 3. Phần đã có trong repo và điều cần đọc
 
@@ -564,6 +565,23 @@ Các tên như SyncCoordinator, OutboxWorker, CallCoordinator trong file này l�
 - Tách tầng Clean Architecture rõ ràng qua các UseCase: [GetThemeModeUseCase.kt](../../../feature/settings/src/main/kotlin/com/uzuu/diuchat/feature/settings/domain/usecase/GetThemeModeUseCase.kt), [UpdateThemeModeUseCase.kt](../../../feature/settings/src/main/kotlin/com/uzuu/diuchat/feature/settings/domain/usecase/UpdateThemeModeUseCase.kt), [GetReadReceiptsEnabledUseCase.kt](../../../feature/settings/src/main/kotlin/com/uzuu/diuchat/feature/settings/domain/usecase/GetReadReceiptsEnabledUseCase.kt), [UpdateReadReceiptsEnabledUseCase.kt](../../../feature/settings/src/main/kotlin/com/uzuu/diuchat/feature/settings/domain/usecase/UpdateReadReceiptsEnabledUseCase.kt).
 - Kết quả thu được: Cấu hình người dùng không bao giờ bị mất khi khởi động lại app / restart process, UI phản ứng tức thì khi cấu hình thay đổi thông qua DataStore Flow.
 - Đã kiểm chứng: 46/46 unit test `:feature:settings` pass, 15/15 architecture test `:konsist-test` pass.
+
+### T34 — Android Credential Manager Sign-In with Google & Username Onboarding Guard (M1)
+
+**Vượt flow basic:** Không dùng web view OAuth cũ kỹ hay chờ đợi SMS OTP vốn tốn chi phí và rủi ro rớt mạng; sử dụng chuẩn hiện đại Android Credential Manager API kết hợp với cơ chế Profile Guard bắt buộc khởi tạo `@username` duy nhất trước khi người dùng được phép truy cập vào ứng dụng.
+
+- Đã triển khai trong `:feature:auth` (theo Mốc M1 [DIU_TECHNOLOGY_INTEGRATION_PLAN.md](../DIU_TECHNOLOGY_INTEGRATION_PLAN.md)):
+  - Presentation: [GoogleSignInHelper.kt](../../../feature/auth/src/main/kotlin/com/uzuu/diuchat/feature/auth/presentation/util/GoogleSignInHelper.kt), [AuthScreen.kt](../../../feature/auth/src/main/kotlin/com/uzuu/diuchat/feature/auth/presentation/screen/AuthScreen.kt), [AuthViewModel.kt](../../../feature/auth/src/main/kotlin/com/uzuu/diuchat/feature/auth/presentation/screen/AuthViewModel.kt), [AuthAction.kt](../../../feature/auth/src/main/kotlin/com/uzuu/diuchat/feature/auth/presentation/screen/AuthAction.kt), [AuthUiState.kt](../../../feature/auth/src/main/kotlin/com/uzuu/diuchat/feature/auth/presentation/screen/AuthUiState.kt).
+  - Domain Use Cases: [SignInWithGoogleUseCase.kt](../../../feature/auth/src/main/kotlin/com/uzuu/diuchat/feature/auth/domain/usecase/SignInWithGoogleUseCase.kt), [CheckHasUsernameUseCase.kt](../../../feature/auth/src/main/kotlin/com/uzuu/diuchat/feature/auth/domain/usecase/CheckHasUsernameUseCase.kt), [ClaimUsernameUseCase.kt](../../../feature/auth/src/main/kotlin/com/uzuu/diuchat/feature/auth/domain/usecase/ClaimUsernameUseCase.kt), [AuthRepository.kt](../../../feature/auth/src/main/kotlin/com/uzuu/diuchat/feature/auth/domain/repository/AuthRepository.kt).
+  - Data & Backend: [AuthRepositoryImpl.kt](../../../feature/auth/src/main/kotlin/com/uzuu/diuchat/feature/auth/data/repository/AuthRepositoryImpl.kt).
+- Luồng kỹ thuật chi tiết:
+  1. **Credential Manager Integration:** Gọi `CredentialManager.getCredential()` với `GetGoogleIdOption` sử dụng Web Application Client ID từ Google Cloud Console (cấu hình an toàn qua `BuildConfig.GRADLE_GOOGLE_WEB_CLIENT_ID`).
+  2. **Supabase IDToken Authentication:** Trích xuất ID Token và xác thực vào Supabase thông qua `client.auth.signInWith(IDToken)`.
+  3. **Profile Guard & Username Claiming:**
+     - Sau khi đăng nhập thành công, ViewModel lập tức gọi `CheckHasUsernameUseCase` query bảng `user_profiles` để kiểm tra sự tồn tại của `username`.
+     - Nếu đã có username -> hoàn tất đăng nhập và chuyển hướng sang `Home`.
+     - Nếu chưa có username -> hiển thị giao diện Onboarding Claim Username ngay trong `AuthScreen`. Kiểm tra định dạng username (chỉ chữ cái, số, gạch dưới, độ dài 3-20 ký tự) và gọi RPC `bootstrap_profile(p_username, ...)` trên Supabase để ghi nhận profile, settings và quiet schedule nguyên tử trong một transaction.
+- Đã kiểm chứng: 35/35 unit test `:feature:auth` pass, 15/15 architecture test `:konsist-test` pass, kiểm tra định dạng Spotless pass.
 
 ## 7. Ba luồng đáng học trước
 
