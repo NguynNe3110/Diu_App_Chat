@@ -18,6 +18,25 @@ interface ChatRepository {
         replyQuote: String? = null,
     ): ChatMessage
 
+    suspend fun sendPhotoMessage(
+        conversationId: String,
+        photoUri: String,
+        caption: String?,
+        mood: MoodType,
+        replyToId: String? = null,
+        replyQuote: String? = null,
+    ): ChatMessage
+
+    suspend fun sendVoiceMessage(
+        conversationId: String,
+        audioUri: String,
+        durationMs: Long,
+        waveform: List<Float>,
+        mood: MoodType,
+        replyToId: String? = null,
+        replyQuote: String? = null,
+    ): ChatMessage
+
     suspend fun retryFailedMessage(messageId: String)
 
     suspend fun markAsRead(conversationId: String)

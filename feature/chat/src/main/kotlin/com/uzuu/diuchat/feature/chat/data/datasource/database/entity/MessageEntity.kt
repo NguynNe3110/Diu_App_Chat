@@ -17,4 +17,9 @@ data class MessageEntity(
     val replyQuote: String? = null,
     val createdAtEpochMs: Long = System.currentTimeMillis(),
     val isFromMe: Boolean = true,
+    val mediaType: String = "TEXT",
+    val mediaUri: String? = null,
+    val audioDurationMs: Long? = null,
+    val audioWaveformCsv: String? = null,
+    val caption: String? = null,
 )

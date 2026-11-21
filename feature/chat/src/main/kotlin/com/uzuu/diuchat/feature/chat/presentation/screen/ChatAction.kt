@@ -3,6 +3,7 @@ package com.uzuu.diuchat.feature.chat.presentation.screen
 import com.uzuu.diuchat.feature.base.presentation.viewmodel.BaseAction
 import com.uzuu.diuchat.feature.chat.domain.model.ChatMessage
 import com.uzuu.diuchat.feature.chat.domain.model.MoodType
+import com.uzuu.diuchat.feature.chat.domain.model.VoiceRecordingState
 
 sealed interface ChatAction : BaseAction<ChatUiState> {
     data class SetMessages(
@@ -41,7 +42,35 @@ sealed interface ChatAction : BaseAction<ChatUiState> {
         override fun reduce(state: ChatUiState): ChatUiState = state.copy(isSending = isSending)
     }
 
+    data class SetVoiceRecordingState(
+        val recordingState: VoiceRecordingState,
+    ) : ChatAction {
+        override fun reduce(state: ChatUiState): ChatUiState = state.copy(voiceRecordingState = recordingState)
+    }
+
+    data class SetPendingPhoto(
+        val uri: String?,
+    ) : ChatAction {
+        override fun reduce(state: ChatUiState): ChatUiState = state.copy(pendingPhotoUri = uri)
+    }
+
+    data class SetAudioPlayback(
+        val messageId: String?,
+        val progress: Float = 0f,
+    ) : ChatAction {
+        override fun reduce(state: ChatUiState): ChatUiState = state.copy(
+            playingAudioMessageId = messageId,
+            audioPlaybackProgress = progress,
+        )
+    }
+
     data object ClearInput : ChatAction {
-        override fun reduce(state: ChatUiState): ChatUiState = state.copy(inputContent = "", replyingTo = null, isMoodTrayOpen = false)
+        override fun reduce(state: ChatUiState): ChatUiState = state.copy(
+            inputContent = "",
+            replyingTo = null,
+            isMoodTrayOpen = false,
+            pendingPhotoUri = null,
+            voiceRecordingState = VoiceRecordingState.Idle,
+        )
     }
 }

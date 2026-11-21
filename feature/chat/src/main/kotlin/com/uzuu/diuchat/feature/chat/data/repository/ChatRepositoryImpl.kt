@@ -8,6 +8,7 @@ import com.uzuu.diuchat.feature.chat.data.datasource.database.entity.MessageEnti
 import com.uzuu.diuchat.feature.chat.data.datasource.database.entity.OutboxOperationEntity
 import com.uzuu.diuchat.feature.chat.domain.model.ChatMessage
 import com.uzuu.diuchat.feature.chat.domain.model.Conversation
+import com.uzuu.diuchat.feature.chat.domain.model.MessageMediaType
 import com.uzuu.diuchat.feature.chat.domain.model.MessageStatus
 import com.uzuu.diuchat.feature.chat.domain.model.MoodType
 import com.uzuu.diuchat.feature.chat.domain.repository.ChatRepository
@@ -41,7 +42,7 @@ class ChatRepositoryImpl(
         val operationId = UUID.randomUUID().toString()
         val now = System.currentTimeMillis()
 
-        // 1. Transactional Outbox: Write Pending message and outbox operation atomically to Room
+        // 1. Transactional Outbox: Write Pending message and outbox operation atomically
         val messageEntity =
             MessageEntity(
                 id = messageId,
@@ -55,6 +56,7 @@ class ChatRepositoryImpl(
                 replyQuote = replyQuote,
                 createdAtEpochMs = now,
                 isFromMe = true,
+                mediaType = MessageMediaType.TEXT.name,
             )
 
         val outboxEntity =
@@ -70,24 +72,117 @@ class ChatRepositoryImpl(
         messageDao.insert(messageEntity)
         outboxDao.insert(outboxEntity)
 
-        // Ensure conversation exists or update its last message
-        val existingConversation = conversationDao.getConversation(conversationId)
-        if (existingConversation != null) {
-            conversationDao.updateLastMessage(conversationId, content, now)
-        } else {
-            conversationDao.upsert(
-                ConversationEntity(
-                    id = conversationId,
-                    title = "Cuộc hội thoại",
-                    mood = mood.id,
-                    lastMessage = content,
-                    lastMessageTimeEpochMs = now,
-                    unreadCount = 0,
-                ),
-            )
-        }
+        updateConversationSummary(conversationId, content, mood, now)
 
         // 2. Optimistic drain / sync: Transition status to SENT
+        messageDao.updateStatus(messageId, MessageStatus.SENT.value)
+        outboxDao.updateStatus(operationId, MessageStatus.SENT.value)
+
+        return messageEntity.copy(status = MessageStatus.SENT.value).toDomain()
+    }
+
+    override suspend fun sendPhotoMessage(
+        conversationId: String,
+        photoUri: String,
+        caption: String?,
+        mood: MoodType,
+        replyToId: String?,
+        replyQuote: String?,
+    ): ChatMessage {
+        val messageId = UUID.randomUUID().toString()
+        val operationId = UUID.randomUUID().toString()
+        val now = System.currentTimeMillis()
+
+        val displayContent = caption?.takeIf { it.isNotBlank() } ?: "📷 [Hình ảnh]"
+
+        val messageEntity =
+            MessageEntity(
+                id = messageId,
+                conversationId = conversationId,
+                senderId = "me",
+                senderName = "Tôi",
+                content = displayContent,
+                mood = mood.id,
+                status = MessageStatus.PENDING.value,
+                replyToId = replyToId,
+                replyQuote = replyQuote,
+                createdAtEpochMs = now,
+                isFromMe = true,
+                mediaType = MessageMediaType.PHOTO.name,
+                mediaUri = photoUri,
+                caption = caption,
+            )
+
+        val outboxEntity =
+            OutboxOperationEntity(
+                id = operationId,
+                conversationId = conversationId,
+                messageId = messageId,
+                status = MessageStatus.PENDING.value,
+                attemptCount = 0,
+                createdAtEpochMs = now,
+            )
+
+        messageDao.insert(messageEntity)
+        outboxDao.insert(outboxEntity)
+
+        updateConversationSummary(conversationId, displayContent, mood, now)
+
+        messageDao.updateStatus(messageId, MessageStatus.SENT.value)
+        outboxDao.updateStatus(operationId, MessageStatus.SENT.value)
+
+        return messageEntity.copy(status = MessageStatus.SENT.value).toDomain()
+    }
+
+    override suspend fun sendVoiceMessage(
+        conversationId: String,
+        audioUri: String,
+        durationMs: Long,
+        waveform: List<Float>,
+        mood: MoodType,
+        replyToId: String?,
+        replyQuote: String?,
+    ): ChatMessage {
+        val messageId = UUID.randomUUID().toString()
+        val operationId = UUID.randomUUID().toString()
+        val now = System.currentTimeMillis()
+
+        val summary = "🎤 [Tin nhắn thoại]"
+
+        val messageEntity =
+            MessageEntity(
+                id = messageId,
+                conversationId = conversationId,
+                senderId = "me",
+                senderName = "Tôi",
+                content = summary,
+                mood = mood.id,
+                status = MessageStatus.PENDING.value,
+                replyToId = replyToId,
+                replyQuote = replyQuote,
+                createdAtEpochMs = now,
+                isFromMe = true,
+                mediaType = MessageMediaType.VOICE.name,
+                mediaUri = audioUri,
+                audioDurationMs = durationMs,
+                audioWaveformCsv = waveform.joinToString(","),
+            )
+
+        val outboxEntity =
+            OutboxOperationEntity(
+                id = operationId,
+                conversationId = conversationId,
+                messageId = messageId,
+                status = MessageStatus.PENDING.value,
+                attemptCount = 0,
+                createdAtEpochMs = now,
+            )
+
+        messageDao.insert(messageEntity)
+        outboxDao.insert(outboxEntity)
+
+        updateConversationSummary(conversationId, summary, mood, now)
+
         messageDao.updateStatus(messageId, MessageStatus.SENT.value)
         outboxDao.updateStatus(operationId, MessageStatus.SENT.value)
 
@@ -118,6 +213,29 @@ class ChatRepositoryImpl(
         }
     }
 
+    private suspend fun updateConversationSummary(
+        conversationId: String,
+        lastMessage: String,
+        mood: MoodType,
+        now: Long,
+    ) {
+        val existingConversation = conversationDao.getConversation(conversationId)
+        if (existingConversation != null) {
+            conversationDao.updateLastMessage(conversationId, lastMessage, now)
+        } else {
+            conversationDao.upsert(
+                ConversationEntity(
+                    id = conversationId,
+                    title = "Cuộc hội thoại",
+                    mood = mood.id,
+                    lastMessage = lastMessage,
+                    lastMessageTimeEpochMs = now,
+                    unreadCount = 0,
+                ),
+            )
+        }
+    }
+
     private fun MessageEntity.toDomain(): ChatMessage = ChatMessage(
         id = id,
         conversationId = conversationId,
@@ -130,6 +248,11 @@ class ChatRepositoryImpl(
         replyQuote = replyQuote,
         createdAtEpochMs = createdAtEpochMs,
         isFromMe = isFromMe,
+        mediaType = runCatching { MessageMediaType.valueOf(mediaType) }.getOrDefault(MessageMediaType.TEXT),
+        mediaUri = mediaUri,
+        audioDurationMs = audioDurationMs,
+        audioWaveform = audioWaveformCsv?.split(",")?.mapNotNull { it.toFloatOrNull() } ?: emptyList(),
+        caption = caption,
     )
 
     private fun ConversationEntity.toDomain(): Conversation = Conversation(
