@@ -67,6 +67,10 @@ sealed interface JournalAction : BaseAction<JournalUiState> {
     }
 
     data class SetError(val message: String?) : JournalAction {
-        override fun reduce(state: JournalUiState): JournalUiState = state.copy(errorMessage = message, isLoading = false, isSavingCheckin = false)
+        override fun reduce(state: JournalUiState): JournalUiState = state.copy(
+            errorMessage = message,
+            isLoading = false,
+            isSavingCheckin = false,
+        )
     }
 }

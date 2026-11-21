@@ -5,10 +5,8 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -71,7 +69,7 @@ fun VoiceRecorderBar(
                     val seconds = (recordingState.elapsedMs / 1000) % 60
                     val minutes = (recordingState.elapsedMs / 1000) / 60
                     val durationText = remember(seconds, minutes) {
-                        String.format("%02d:%02d", minutes, seconds)
+                        String.format(java.util.Locale.US, "%02d:%02d", minutes, seconds)
                     }
 
                     Row(
@@ -182,7 +180,7 @@ fun VoiceRecorderBar(
                     val totalSec = (recordingState.durationMs / 1000) % 60
                     val totalMin = (recordingState.durationMs / 1000) / 60
                     val totalDurationText = remember(totalSec, totalMin) {
-                        String.format("%02d:%02d", totalMin, totalSec)
+                        String.format(java.util.Locale.US, "%02d:%02d", totalMin, totalSec)
                     }
 
                     Row(

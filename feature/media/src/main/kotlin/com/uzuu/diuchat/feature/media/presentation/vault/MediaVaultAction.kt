@@ -7,8 +7,7 @@ import com.uzuu.diuchat.feature.media.domain.model.MediaVaultItem
 sealed interface MediaVaultAction : BaseAction<MediaVaultUiState> {
 
     data class SetLoading(val isLoading: Boolean) : MediaVaultAction {
-        override fun reduce(state: MediaVaultUiState): MediaVaultUiState =
-            state.copy(isLoading = isLoading)
+        override fun reduce(state: MediaVaultUiState): MediaVaultUiState = state.copy(isLoading = isLoading)
     }
 
     data class SetItems(val items: List<MediaVaultItem>) : MediaVaultAction {
@@ -33,17 +32,16 @@ sealed interface MediaVaultAction : BaseAction<MediaVaultUiState> {
     }
 
     data class TogglePlayVoice(val voiceId: String) : MediaVaultAction {
-        override fun reduce(state: MediaVaultUiState): MediaVaultUiState =
-            state.copy(
-                currentlyPlayingVoiceId = if (state.currentlyPlayingVoiceId == voiceId) null else voiceId,
-            )
+        override fun reduce(state: MediaVaultUiState): MediaVaultUiState = state.copy(
+            currentlyPlayingVoiceId = if (state.currentlyPlayingVoiceId == voiceId) null else voiceId,
+        )
     }
 
     companion object {
-        fun filterItems(items: List<MediaVaultItem>, type: MediaType): List<MediaVaultItem> =
-            when (type) {
-                MediaType.ALL -> items
-                else -> items.filter { it.type == type }
-            }
+        fun filterItems(items: List<MediaVaultItem>, type: MediaType): List<MediaVaultItem> = if (type == MediaType.ALL) {
+            items
+        } else {
+            items.filter { it.type == type }
+        }
     }
 }

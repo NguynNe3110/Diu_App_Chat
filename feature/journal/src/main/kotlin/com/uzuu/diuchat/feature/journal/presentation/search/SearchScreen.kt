@@ -10,11 +10,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -48,11 +46,11 @@ import org.koin.androidx.compose.koinViewModel
 @Composable
 fun SearchScreen(
     onBackClick: () -> Unit,
+    modifier: Modifier = Modifier,
     conversationId: String? = null,
     conversationName: String? = null,
     onResultClick: (SearchResultItem) -> Unit = {},
     viewModel: SearchViewModel = koinViewModel(),
-    modifier: Modifier = Modifier,
 ) {
     val state by viewModel.uiStateFlow.collectAsStateWithLifecycle()
 

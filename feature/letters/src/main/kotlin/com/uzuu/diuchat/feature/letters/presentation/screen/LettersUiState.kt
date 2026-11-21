@@ -2,6 +2,7 @@ package com.uzuu.diuchat.feature.letters.presentation.screen
 
 import com.uzuu.diuchat.feature.base.presentation.viewmodel.BaseState
 import com.uzuu.diuchat.feature.letters.domain.model.LetterScheduleType
+import com.uzuu.diuchat.feature.letters.domain.model.LetterStatus
 import com.uzuu.diuchat.feature.letters.domain.model.SealedLetter
 
 data class LettersUiState(
@@ -22,8 +23,8 @@ data class LettersUiState(
     val filteredLetters: List<SealedLetter>
         get() = when (selectedTab) {
             LetterTab.ALL -> letters
-            LetterTab.PENDING -> letters.filter { it.status == com.uzuu.diuchat.feature.letters.domain.model.LetterStatus.SEALED_PENDING }
-            LetterTab.READY_TO_OPEN -> letters.filter { it.status == com.uzuu.diuchat.feature.letters.domain.model.LetterStatus.READY_TO_OPEN }
-            LetterTab.OPENED -> letters.filter { it.status == com.uzuu.diuchat.feature.letters.domain.model.LetterStatus.OPENED }
+            LetterTab.PENDING -> letters.filter { it.status == LetterStatus.SEALED_PENDING }
+            LetterTab.READY_TO_OPEN -> letters.filter { it.status == LetterStatus.READY_TO_OPEN }
+            LetterTab.OPENED -> letters.filter { it.status == LetterStatus.OPENED }
         }
 }

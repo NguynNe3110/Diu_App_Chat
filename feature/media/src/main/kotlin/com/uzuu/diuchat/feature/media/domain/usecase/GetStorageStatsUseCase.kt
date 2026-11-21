@@ -7,6 +7,5 @@ import kotlinx.coroutines.flow.Flow
 class GetStorageStatsUseCase(
     private val mediaRepository: MediaRepository,
 ) {
-    operator fun invoke(): Flow<StorageStats> =
-        mediaRepository.getStorageStats()
+    operator fun invoke(): Flow<StorageStats> = mediaRepository.getStorageStats()
 }

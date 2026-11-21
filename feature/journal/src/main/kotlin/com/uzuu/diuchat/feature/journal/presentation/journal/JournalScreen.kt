@@ -50,9 +50,9 @@ import org.koin.androidx.compose.koinViewModel
 @Composable
 fun JournalScreen(
     onBackClick: () -> Unit,
-    onOpenSearch: () -> Unit = {},
-    viewModel: JournalViewModel = koinViewModel(),
     modifier: Modifier = Modifier,
+    @Suppress("UnusedParameter") onOpenSearch: () -> Unit = {},
+    viewModel: JournalViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiStateFlow.collectAsStateWithLifecycle()
 

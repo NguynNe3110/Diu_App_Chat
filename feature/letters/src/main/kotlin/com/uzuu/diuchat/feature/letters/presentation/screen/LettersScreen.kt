@@ -69,7 +69,12 @@ fun LettersScreen(
         ComposeLetterScreen(
             uiState = uiState,
             onBackClick = { viewModel.cancelComposing() },
-            viewModel = viewModel,
+            onTitleChange = viewModel::updateDraftTitle,
+            onMoodChange = viewModel::updateDraftMood,
+            onShowScheduleSheet = viewModel::showScheduleSheet,
+            onContentChange = viewModel::updateDraftContent,
+            onSealAndSend = viewModel::sealAndSendLetter,
+            onSetSchedule = viewModel::setSchedule,
         )
         return
     }
@@ -98,7 +103,9 @@ fun LettersScreen(
                                 )
                             }
                         }
-                    } else null,
+                    } else {
+                        null
+                    },
                 )
 
                 // Tab Filter Chips

@@ -7,10 +7,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -43,14 +41,20 @@ import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuButton
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuCard
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuFilterChip
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuTopBar
+import com.uzuu.diuchat.feature.letters.domain.model.LetterScheduleType
 import com.uzuu.diuchat.feature.letters.presentation.composable.ScheduleSheet
 
 @Composable
 fun ComposeLetterScreen(
     uiState: LettersUiState,
     onBackClick: () -> Unit,
-    viewModel: LettersViewModel,
     modifier: Modifier = Modifier,
+    onTitleChange: (String) -> Unit = {},
+    onMoodChange: (String) -> Unit = {},
+    onShowScheduleSheet: (Boolean) -> Unit = {},
+    onContentChange: (String) -> Unit = {},
+    onSealAndSend: () -> Unit = {},
+    onSetSchedule: (LetterScheduleType, String) -> Unit = { _, _ -> },
 ) {
     val colors = AppTheme.colors
     val scrollState = rememberScrollState()
@@ -94,7 +98,7 @@ fun ComposeLetterScreen(
                 )
                 OutlinedTextField(
                     value = uiState.draftTitle,
-                    onValueChange = { viewModel.updateDraftTitle(it) },
+                    onValueChange = onTitleChange,
                     placeholder = { Text("Ví dụ: Gửi em buổi sáng mai...", color = colors.inkSecondary.copy(alpha = 0.6f)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
@@ -125,7 +129,7 @@ fun ComposeLetterScreen(
                         DiuFilterChip(
                             text = mood,
                             selected = uiState.draftMood == mood,
-                            onClick = { viewModel.updateDraftMood(mood) },
+                            onClick = { onMoodChange(mood) },
                         )
                     }
                 }
@@ -142,7 +146,7 @@ fun ComposeLetterScreen(
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(12.dp))
                         .background(colors.surface)
-                        .clickable { viewModel.showScheduleSheet(true) }
+                        .clickable { onShowScheduleSheet(true) }
                         .padding(14.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -196,7 +200,7 @@ fun ComposeLetterScreen(
                 )
                 OutlinedTextField(
                     value = uiState.draftContent,
-                    onValueChange = { viewModel.updateDraftContent(it) },
+                    onValueChange = onContentChange,
                     placeholder = {
                         Text(
                             "Viết những điều bạn muốn nói nhưng chưa vội gửi ngay...",
@@ -230,7 +234,8 @@ fun ComposeLetterScreen(
                                 modifier = Modifier.size(20.dp),
                             )
                             Text(
-                                text = "Lá thư được niêm phong an toàn. Người nhận chỉ thấy thời điểm đếm ngược và không thể xem nội dung trước giờ hẹn.",
+                                text = "Lá thư được niêm phong an toàn. " +
+                                    "Người nhận chỉ thấy thời điểm đếm ngược và không thể xem nội dung trước giờ hẹn.",
                                 style = AppTheme.typography.bodySmall,
                                 color = colors.inkSecondary,
                                 lineHeight = 18.sp,
@@ -247,7 +252,7 @@ fun ComposeLetterScreen(
                     .padding(16.dp),
             ) {
                 DiuButton(
-                    onClick = { viewModel.sealAndSendLetter() },
+                    onClick = onSealAndSend,
                     modifier = Modifier.fillMaxWidth(),
                     enabled = uiState.draftTitle.isNotBlank() && uiState.draftContent.isNotBlank(),
                 ) {
@@ -270,10 +275,8 @@ fun ComposeLetterScreen(
     if (uiState.showScheduleSheet) {
         ScheduleSheet(
             selectedType = uiState.draftScheduleType,
-            onSelectSchedule = { type, formatted ->
-                viewModel.setSchedule(type, formatted)
-            },
-            onDismiss = { viewModel.showScheduleSheet(false) },
+            onSelectSchedule = onSetSchedule,
+            onDismiss = { onShowScheduleSheet(false) },
         )
     }
 }

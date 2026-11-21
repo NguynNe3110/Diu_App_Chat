@@ -100,6 +100,7 @@ class JournalRepositoryImpl : JournalRepository {
     }
 
     private companion object {
+        private const val CONV_MINH = "conv_minh"
         fun seedMonthlyCheckins(): List<DailyMoodCheckin> {
             val list = mutableListOf<DailyMoodCheckin>()
             val moods = listOf(
@@ -157,7 +158,7 @@ class JournalRepositoryImpl : JournalRepository {
         fun seedMessages(): List<SearchResultItem> = listOf(
             SearchResultItem(
                 id = "msg_1",
-                conversationId = "conv_minh",
+                conversationId = CONV_MINH,
                 conversationName = "Minh",
                 senderName = "Minh",
                 snippet = "Vậy anh ghé tiệm bánh flan đầu hẻm nha",
@@ -166,7 +167,7 @@ class JournalRepositoryImpl : JournalRepository {
             ),
             SearchResultItem(
                 id = "msg_2",
-                conversationId = "conv_minh",
+                conversationId = CONV_MINH,
                 conversationName = "Minh",
                 senderName = "Bạn",
                 snippet = "Flan ở Đà Lạt ăn trong tiết trời se lạnh ngon hơn á",
@@ -175,7 +176,7 @@ class JournalRepositoryImpl : JournalRepository {
             ),
             SearchResultItem(
                 id = "msg_3",
-                conversationId = "conv_minh",
+                conversationId = CONV_MINH,
                 conversationName = "Minh",
                 senderName = "Bạn",
                 snippet = "Mai mình làm flan ở nhà thử không, em chuẩn bị trứng sữa rồi",
@@ -184,7 +185,7 @@ class JournalRepositoryImpl : JournalRepository {
             ),
             SearchResultItem(
                 id = "msg_4",
-                conversationId = "conv_minh",
+                conversationId = CONV_MINH,
                 conversationName = "Minh",
                 senderName = "Minh",
                 snippet = "Nhớ cái flan hôm bữa ghê, ngọt thanh dịu dàng",
@@ -211,7 +212,7 @@ class JournalRepositoryImpl : JournalRepository {
             ),
             SearchResultItem(
                 id = "msg_7",
-                conversationId = "conv_minh",
+                conversationId = CONV_MINH,
                 conversationName = "Minh",
                 senderName = "Minh",
                 snippet = "Anh tới đầu hẻm rồi nè, có mua bánh flan cho em đó",

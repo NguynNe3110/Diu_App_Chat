@@ -12,19 +12,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -57,7 +51,6 @@ import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuConfirma
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuSettingsRow
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuSwitch
 import com.uzuu.diuchat.feature.chat.domain.model.Conversation
-import com.uzuu.diuchat.feature.chat.domain.model.GroupMember
 import com.uzuu.diuchat.feature.chat.domain.model.GroupRole
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -69,7 +62,7 @@ fun ChatInfoScreen(
     onUpdateNickname: (String) -> Unit,
     onToggleMute: (Boolean) -> Unit,
     onManageMemberRole: (String, GroupRole) -> Unit,
-    onRemoveMember: (String) -> Unit,
+    @Suppress("UnusedParameter") onRemoveMember: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var isMuted by remember(conversation.isMuted) { mutableStateOf(conversation.isMuted) }
@@ -447,7 +440,9 @@ fun ChatInfoScreen(
                     }
                     Spacer(modifier = Modifier.height(10.dp))
                     Text(
-                        text = "Bạn là Quản trị viên duy nhất còn lại trong nhóm. Để đảm bảo nhóm có người quản lý, vui lòng chuyển quyền Quản trị viên cho một thành viên khác trước khi rời nhóm (DEC-07).",
+                        text = "Bạn là Quản trị viên duy nhất còn lại trong nhóm. " +
+                            "Để đảm bảo nhóm có người quản lý, vui lòng chuyển quyền Quản trị viên " +
+                            "cho một thành viên khác trước khi rời nhóm (DEC-07).",
                         style = AppTheme.typography.bodyMedium,
                         color = AppTheme.colors.inkSecondary,
                     )

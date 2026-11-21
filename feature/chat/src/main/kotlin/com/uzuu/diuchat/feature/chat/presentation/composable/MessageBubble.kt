@@ -20,15 +20,15 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Forward
+import androidx.compose.material.icons.automirrored.filled.Reply
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.DoneAll
 import androidx.compose.material.icons.filled.ErrorOutline
-import androidx.compose.material.icons.filled.Forward
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.PushPin
-import androidx.compose.material.icons.filled.Reply
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
@@ -154,7 +154,7 @@ fun MessageBubble(
                         modifier = Modifier.size(28.dp),
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Reply,
+                            imageVector = Icons.AutoMirrored.Filled.Reply,
                             contentDescription = "Trả lời",
                             tint = AppTheme.colors.inkSecondary,
                             modifier = Modifier.size(16.dp),
@@ -186,7 +186,7 @@ fun MessageBubble(
                         modifier = Modifier.size(28.dp),
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Forward,
+                            imageVector = Icons.AutoMirrored.Filled.Forward,
                             contentDescription = "Chuyển tiếp",
                             tint = AppTheme.colors.inkSecondary,
                             modifier = Modifier.size(16.dp),
@@ -273,6 +273,7 @@ fun MessageBubble(
                             moodColor = moodColor,
                         )
                     }
+
                     MessageMediaType.VOICE -> {
                         VoiceMessageContent(
                             message = message,
@@ -282,6 +283,7 @@ fun MessageBubble(
                             onTogglePlay = { onToggleAudioPlayback(message) },
                         )
                     }
+
                     MessageMediaType.TEXT -> {
                         Text(
                             text = message.content,
@@ -391,7 +393,7 @@ private fun VoiceMessageContent(
     val totalSec = (durationMs / 1000) % 60
     val totalMin = (durationMs / 1000) / 60
     val durationStr = remember(totalSec, totalMin) {
-        String.format("%02d:%02d", totalMin, totalSec)
+        String.format(java.util.Locale.US, "%02d:%02d", totalMin, totalSec)
     }
 
     Row(
@@ -467,6 +469,7 @@ private fun MessageStatusIcon(
                 modifier = Modifier.size(iconSize),
             )
         }
+
         MessageStatus.SENT -> {
             Icon(
                 imageVector = Icons.Default.Check,
@@ -475,6 +478,7 @@ private fun MessageStatusIcon(
                 modifier = Modifier.size(iconSize),
             )
         }
+
         MessageStatus.DELIVERED -> {
             Icon(
                 imageVector = Icons.Default.DoneAll,
@@ -483,6 +487,7 @@ private fun MessageStatusIcon(
                 modifier = Modifier.size(iconSize),
             )
         }
+
         MessageStatus.READ -> {
             Icon(
                 imageVector = Icons.Default.DoneAll,
@@ -491,6 +496,7 @@ private fun MessageStatusIcon(
                 modifier = Modifier.size(iconSize),
             )
         }
+
         MessageStatus.FAILED -> {
             Icon(
                 imageVector = Icons.Default.ErrorOutline,

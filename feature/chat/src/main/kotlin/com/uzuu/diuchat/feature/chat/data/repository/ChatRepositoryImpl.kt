@@ -35,8 +35,9 @@ class ChatRepositoryImpl(
         entities.map { it.toDomain() }
     }
 
-    override fun observeConversation(conversationId: String): Flow<Conversation?> =
-        conversationDao.observeConversation(conversationId).map { it?.toDomain() }
+    override fun observeConversation(
+        conversationId: String,
+    ): Flow<Conversation?> = conversationDao.observeConversation(conversationId).map { it?.toDomain() }
 
     override suspend fun sendMessage(
         conversationId: String,
@@ -463,8 +464,7 @@ class ChatRepositoryImpl(
         members = membersCsv.toMemberList(),
     )
 
-    private fun List<GroupMember>.toCsv(): String =
-        joinToString(";") { "${it.userId}|${it.displayName}|${it.role.name}|${it.mood.id}" }
+    private fun List<GroupMember>.toCsv(): String = joinToString(";") { "${it.userId}|${it.displayName}|${it.role.name}|${it.mood.id}" }
 
     private fun String?.toMemberList(): List<GroupMember> {
         if (this.isNullOrBlank()) return emptyList()
@@ -478,7 +478,9 @@ class ChatRepositoryImpl(
                     mood = MoodType.fromId(tokens[3]),
                     isFromMe = tokens[0] == "me",
                 )
-            } else null
+            } else {
+                null
+            }
         }
     }
 
@@ -494,7 +496,9 @@ class ChatRepositoryImpl(
                     mood = MoodType.fromId(tokens[2]),
                     isFromMe = tokens[0] == "me",
                 )
-            } else null
+            } else {
+                null
+            }
         }
     }
 }

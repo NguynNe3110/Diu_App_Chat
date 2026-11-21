@@ -54,6 +54,7 @@ import com.uzuu.diuchat.feature.chat.presentation.composable.ReplyQuoteBar
 import com.uzuu.diuchat.feature.chat.presentation.composable.VoiceRecorderBar
 import org.koin.androidx.compose.koinViewModel
 
+@Suppress("compose:vm-forwarding-check")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatScreen(
@@ -118,7 +119,14 @@ fun ChatScreen(
             onCreateGroupSuccess = { _ ->
                 viewModel.onOpenNewGroup(false)
             },
-            viewModel = viewModel,
+            onCreateGroup = { title, mood, members, onSuccess ->
+                viewModel.onCreateGroup(
+                    title = title,
+                    mood = mood,
+                    memberIds = members,
+                    onSuccess = onSuccess,
+                )
+            },
         )
         return
     }

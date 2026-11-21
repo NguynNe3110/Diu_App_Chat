@@ -69,14 +69,14 @@ class LettersActionTest {
         val initial = LettersUiState()
         val action = LettersAction.SetDraftSchedule(
             scheduleType = LetterScheduleType.TONIGHT,
-            epochMs = 99999L,
+            epochMs = 99_999L,
             formatted = "22:00 Tối nay",
         )
 
         val newState = action.reduce(initial)
 
         newState.draftScheduleType shouldBeEqualTo LetterScheduleType.TONIGHT
-        newState.draftScheduledUnlockEpochMs shouldBeEqualTo 99999L
+        newState.draftScheduledUnlockEpochMs shouldBeEqualTo 99_999L
         newState.draftScheduledUnlockFormatted shouldBeEqualTo "22:00 Tối nay"
     }
 }

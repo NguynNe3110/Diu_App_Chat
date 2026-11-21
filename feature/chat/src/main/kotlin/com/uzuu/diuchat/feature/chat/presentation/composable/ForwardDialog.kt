@@ -44,11 +44,13 @@ fun ForwardDialog(
     availableConversations: List<Conversation>,
     onDismiss: () -> Unit,
     onConfirmForward: (List<String>) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val selectedIds = remember { mutableStateListOf<String>() }
 
     BasicAlertDialog(
         onDismissRequest = onDismiss,
+        modifier = modifier,
     ) {
         Surface(
             shape = RoundedCornerShape(20.dp),
@@ -96,9 +98,28 @@ fun ForwardDialog(
                     availableConversations
                 } else {
                     listOf(
-                        Conversation(id = "conv_linh_diu", title = "Linh Dịu", mood = com.uzuu.diuchat.feature.chat.domain.model.MoodType.BINHYEN, lastMessage = "", lastMessageTimeEpochMs = 0L),
-                        Conversation(id = "conv_gia_dinh", title = "Gia đình nhỏ", mood = com.uzuu.diuchat.feature.chat.domain.model.MoodType.THUONG, lastMessage = "", lastMessageTimeEpochMs = 0L, isGroup = true),
-                        Conversation(id = "conv_minh", title = "Minh Trí", mood = com.uzuu.diuchat.feature.chat.domain.model.MoodType.VUI, lastMessage = "", lastMessageTimeEpochMs = 0L),
+                        Conversation(
+                            id = "conv_linh_diu",
+                            title = "Linh Dịu",
+                            mood = com.uzuu.diuchat.feature.chat.domain.model.MoodType.BINHYEN,
+                            lastMessage = "",
+                            lastMessageTimeEpochMs = 0L,
+                        ),
+                        Conversation(
+                            id = "conv_gia_dinh",
+                            title = "Gia đình nhỏ",
+                            mood = com.uzuu.diuchat.feature.chat.domain.model.MoodType.THUONG,
+                            lastMessage = "",
+                            lastMessageTimeEpochMs = 0L,
+                            isGroup = true,
+                        ),
+                        Conversation(
+                            id = "conv_minh",
+                            title = "Minh Trí",
+                            mood = com.uzuu.diuchat.feature.chat.domain.model.MoodType.VUI,
+                            lastMessage = "",
+                            lastMessageTimeEpochMs = 0L,
+                        ),
                     )
                 }
 
