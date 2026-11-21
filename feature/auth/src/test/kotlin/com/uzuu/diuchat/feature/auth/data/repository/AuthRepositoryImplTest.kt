@@ -65,4 +65,22 @@ class AuthRepositoryImplTest {
     fun `short OTP returns a validation failure`() = runTest {
         sut.verifyOtp("912345678", "123").isFailure shouldBeEqualTo true
     }
+
+    @Test
+    fun `signInWithGoogle rejects blank id token`() = runTest {
+        sut.signInWithGoogle("   ").isFailure shouldBeEqualTo true
+    }
+
+    @Test
+    fun `claimUsername rejects invalid username format`() = runTest {
+        sut.claimUsername("ab").isFailure shouldBeEqualTo true
+        sut.claimUsername("user@name!").isFailure shouldBeEqualTo true
+        sut.claimUsername("a".repeat(31)).isFailure shouldBeEqualTo true
+    }
+
+    @Test
+    fun `claimUsername accepts valid canonical username`() = runTest {
+        sut.claimUsername("minh_an").isSuccess shouldBeEqualTo true
+        sut.claimUsername("@minh_an2026").isSuccess shouldBeEqualTo true
+    }
 }
