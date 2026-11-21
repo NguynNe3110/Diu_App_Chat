@@ -15,7 +15,7 @@ android {
 
         buildConfigFieldFromGradleProperty(project, "apiBaseUrl")
         buildConfigFieldFromGradleProperty(project, "apiToken")
-        //supabase
+        // supabase
         buildConfigFieldFromGradleProperty(project, "supabaseUrl")
         buildConfigFieldFromGradleProperty(project, "supabaseAnonKey")
     }
@@ -42,5 +42,8 @@ dependencies {
     implementation(projects.feature.base)
     implementation(projects.feature.album)
     implementation(projects.feature.onboarding)
-
+    implementation(projects.feature.auth)
+    implementation(projects.feature.contacts)
+    implementation(projects.feature.home)
+    implementation(projects.feature.chat)
 }

@@ -8,3 +8,5 @@ ktlint_function_naming_ignore_when_annotated_with=Composable
 
 # Detekt orders imports correctly, while ktlint does not
 ktlint_standard_import-ordering = disabled
+ktlint_compose_compositionlocal-allowlist = disabled
+ktlint_standard_no-consecutive-comments = disabled
