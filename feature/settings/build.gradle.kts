@@ -7,5 +7,7 @@ android {
 }
 
 dependencies {
+    implementation(platform(libs.supabase.bom))
+    implementation(libs.bundles.supabase)
     implementation(libs.datastore.preferences)
 }

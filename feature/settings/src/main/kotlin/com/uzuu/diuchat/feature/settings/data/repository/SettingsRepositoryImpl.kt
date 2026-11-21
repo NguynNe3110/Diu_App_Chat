@@ -1,20 +1,28 @@
 package com.uzuu.diuchat.feature.settings.data.repository
 
+import com.uzuu.diuchat.feature.settings.data.datasource.api.SettingRemoteDataSource
 import com.uzuu.diuchat.feature.settings.data.datasource.preferences.SettingsPreferencesDataSource
+import com.uzuu.diuchat.feature.settings.data.mapper.UserProfileMapper
+import com.uzuu.diuchat.feature.settings.data.mapper.UserSettingsMapper
+import com.uzuu.diuchat.feature.settings.data.mapper.UserSettingsSnapshot
 import com.uzuu.diuchat.feature.settings.domain.model.BlockedContact
 import com.uzuu.diuchat.feature.settings.domain.model.NotificationPrivacy
 import com.uzuu.diuchat.feature.settings.domain.model.NotificationSound
 import com.uzuu.diuchat.feature.settings.domain.model.QuietSchedule
 import com.uzuu.diuchat.feature.settings.domain.model.UserProfile
 import com.uzuu.diuchat.feature.settings.domain.repository.SettingsRepository
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 
-class SettingsRepositoryImpl(
+internal class SettingsRepositoryImpl(
     private val preferencesDataSource: SettingsPreferencesDataSource? = null,
+    private val remoteDataSource: SettingRemoteDataSource? = null,
+    private val userProfileMapper: UserProfileMapper = UserProfileMapper(),
+    private val userSettingsMapper: UserSettingsMapper = UserSettingsMapper(),
 ) : SettingsRepository {
 
     private val inMemoryThemeModeFlow = MutableStateFlow("SYSTEM")
@@ -24,8 +32,8 @@ class SettingsRepositoryImpl(
     private val inMemoryQuietScheduleFlow = MutableStateFlow(
         QuietSchedule(
             enabled = true,
-            startMinuteOfDay = 22 * 60 + 30, // 22:30
-            endMinuteOfDay = 6 * 60, // 06:00
+            startMinuteOfDay = DEFAULT_QUIET_START_MINUTE,
+            endMinuteOfDay = DEFAULT_QUIET_END_MINUTE,
             timeZoneId = "Asia/Ho_Chi_Minh",
             allowedEmergencyContactIds = setOf("emergency_contact_linh"),
         ),
@@ -54,53 +62,48 @@ class SettingsRepositoryImpl(
     override fun getThemeMode(): Flow<String> = preferencesDataSource?.themeModeFlow ?: inMemoryThemeModeFlow.asStateFlow()
 
     override suspend fun updateThemeMode(themeMode: String) {
-        preferencesDataSource?.updateThemeMode(themeMode) ?: run {
-            inMemoryThemeModeFlow.value = themeMode
-        }
+        saveThemeModeLocally(themeMode)
+        syncSettingsToRemote()
     }
 
+    @Suppress("MaxLineLength")
     override fun getReadReceiptsEnabled(): Flow<Boolean> = preferencesDataSource?.readReceiptsFlow ?: inMemoryReadReceiptsFlow.asStateFlow()
 
     override suspend fun updateReadReceiptsEnabled(enabled: Boolean) {
-        preferencesDataSource?.updateReadReceipts(enabled) ?: run {
-            inMemoryReadReceiptsFlow.value = enabled
-        }
+        saveReadReceiptsLocally(enabled)
+        syncSettingsToRemote()
     }
 
     @Suppress("MaxLineLength")
     override fun getSoftSendAnimationEnabled(): Flow<Boolean> = preferencesDataSource?.softSendAnimationFlow ?: inMemorySoftSendAnimationFlow.asStateFlow()
 
     override suspend fun updateSoftSendAnimationEnabled(enabled: Boolean) {
-        preferencesDataSource?.updateSoftSendAnimation(enabled) ?: run {
-            inMemorySoftSendAnimationFlow.value = enabled
-        }
+        saveSoftSendAnimationLocally(enabled)
+        syncSettingsToRemote()
     }
 
     @Suppress("MaxLineLength")
     override fun getNotificationSound(): Flow<NotificationSound> = preferencesDataSource?.notificationSoundFlow ?: inMemoryNotificationSoundFlow.asStateFlow()
 
     override suspend fun updateNotificationSound(sound: NotificationSound) {
-        preferencesDataSource?.updateNotificationSound(sound) ?: run {
-            inMemoryNotificationSoundFlow.value = sound
-        }
+        saveNotificationSoundLocally(sound)
+        syncSettingsToRemote()
     }
 
     @Suppress("MaxLineLength")
     override fun getQuietSchedule(): Flow<QuietSchedule> = preferencesDataSource?.quietScheduleFlow ?: inMemoryQuietScheduleFlow.asStateFlow()
 
     override suspend fun updateQuietSchedule(quietSchedule: QuietSchedule) {
-        preferencesDataSource?.updateQuietSchedule(quietSchedule) ?: run {
-            inMemoryQuietScheduleFlow.value = quietSchedule
-        }
+        saveQuietScheduleLocally(quietSchedule)
+        syncSettingsToRemote()
     }
 
     @Suppress("MaxLineLength")
     override fun getNotificationPrivacy(): Flow<NotificationPrivacy> = preferencesDataSource?.notificationPrivacyFlow ?: inMemoryNotificationPrivacyFlow.asStateFlow()
 
     override suspend fun updateNotificationPrivacy(notificationPrivacy: NotificationPrivacy) {
-        preferencesDataSource?.updateNotificationPrivacy(notificationPrivacy) ?: run {
-            inMemoryNotificationPrivacyFlow.value = notificationPrivacy
-        }
+        saveNotificationPrivacyLocally(notificationPrivacy)
+        syncSettingsToRemote()
     }
 
     @Suppress("MaxLineLength")
@@ -137,12 +140,16 @@ class SettingsRepositoryImpl(
     override fun getUserProfile(): Flow<UserProfile> = preferencesDataSource?.userProfileFlow ?: inMemoryUserProfileFlow.asStateFlow()
 
     override suspend fun updateUserProfile(userProfile: UserProfile) {
-        preferencesDataSource?.updateUserProfile(userProfile) ?: run {
-            inMemoryUserProfileFlow.value = userProfile
+        saveUserProfileLocally(userProfile)
+        runRemoteSafely {
+            remoteDataSource?.upsertUserProfile(userProfileMapper.toDto(userProfile))
         }
     }
 
     override suspend fun logout() {
+        runRemoteSafely {
+            remoteDataSource?.signOut()
+        }
         val emptyProfile = UserProfile(
             id = "",
             displayName = "",
@@ -153,9 +160,7 @@ class SettingsRepositoryImpl(
             primaryMood = "Bình yên",
             avatarUrl = null,
         )
-        preferencesDataSource?.updateUserProfile(emptyProfile) ?: run {
-            inMemoryUserProfileFlow.value = emptyProfile
-        }
+        saveUserProfileLocally(emptyProfile)
     }
 
     override suspend fun deleteAccount(confirmPhone: String) {
@@ -173,8 +178,104 @@ class SettingsRepositoryImpl(
             primaryMood = "Bình yên",
             avatarUrl = null,
         )
-        preferencesDataSource?.updateUserProfile(anonymizedProfile) ?: run {
-            inMemoryUserProfileFlow.value = anonymizedProfile
+        runRemoteSafely {
+            remoteDataSource?.upsertUserProfile(userProfileMapper.toDto(anonymizedProfile))
+            remoteDataSource?.signOut()
         }
+        saveUserProfileLocally(anonymizedProfile)
+    }
+
+    suspend fun syncFromRemote() {
+        val bundle = runRemoteSafely {
+            remoteDataSource?.fetchUserBundle()
+        } ?: return
+
+        bundle.profile?.let { profileDto ->
+            saveUserProfileLocally(userProfileMapper.toDomain(profileDto))
+        }
+        bundle.settings?.let { settingsDto ->
+            saveThemeModeLocally(settingsDto.themeMode)
+            saveReadReceiptsLocally(settingsDto.readReceiptsEnabled)
+            saveSoftSendAnimationLocally(settingsDto.softSendAnimationEnabled)
+            saveNotificationPrivacyLocally(userSettingsMapper.toNotificationPrivacy(settingsDto))
+            saveNotificationSoundLocally(userSettingsMapper.toNotificationSound(settingsDto))
+            saveQuietScheduleLocally(userSettingsMapper.toQuietSchedule(settingsDto))
+        }
+    }
+
+    private suspend fun syncSettingsToRemote() {
+        val remote = remoteDataSource ?: return
+        val userId = getUserProfile().first().id
+        if (userId.isBlank()) return
+
+        val dto = userSettingsMapper.toDto(
+            userId = userId,
+            snapshot = UserSettingsSnapshot(
+                themeMode = getThemeMode().first(),
+                readReceiptsEnabled = getReadReceiptsEnabled().first(),
+                softSendAnimationEnabled = getSoftSendAnimationEnabled().first(),
+                notificationPrivacy = getNotificationPrivacy().first(),
+                notificationSound = getNotificationSound().first(),
+                quietSchedule = getQuietSchedule().first(),
+            ),
+        )
+        runRemoteSafely {
+            remote.upsertUserSettings(dto)
+        }
+    }
+
+    private suspend fun saveThemeModeLocally(themeMode: String) {
+        preferencesDataSource?.updateThemeMode(themeMode) ?: run {
+            inMemoryThemeModeFlow.value = themeMode
+        }
+    }
+
+    private suspend fun saveReadReceiptsLocally(enabled: Boolean) {
+        preferencesDataSource?.updateReadReceipts(enabled) ?: run {
+            inMemoryReadReceiptsFlow.value = enabled
+        }
+    }
+
+    private suspend fun saveSoftSendAnimationLocally(enabled: Boolean) {
+        preferencesDataSource?.updateSoftSendAnimation(enabled) ?: run {
+            inMemorySoftSendAnimationFlow.value = enabled
+        }
+    }
+
+    private suspend fun saveNotificationSoundLocally(sound: NotificationSound) {
+        preferencesDataSource?.updateNotificationSound(sound) ?: run {
+            inMemoryNotificationSoundFlow.value = sound
+        }
+    }
+
+    private suspend fun saveQuietScheduleLocally(quietSchedule: QuietSchedule) {
+        preferencesDataSource?.updateQuietSchedule(quietSchedule) ?: run {
+            inMemoryQuietScheduleFlow.value = quietSchedule
+        }
+    }
+
+    private suspend fun saveNotificationPrivacyLocally(privacy: NotificationPrivacy) {
+        preferencesDataSource?.updateNotificationPrivacy(privacy) ?: run {
+            inMemoryNotificationPrivacyFlow.value = privacy
+        }
+    }
+
+    private suspend fun saveUserProfileLocally(userProfile: UserProfile) {
+        preferencesDataSource?.updateUserProfile(userProfile) ?: run {
+            inMemoryUserProfileFlow.value = userProfile
+        }
+    }
+
+    private inline fun <T> runRemoteSafely(block: () -> T): T? = try {
+        block()
+    } catch (cancellation: CancellationException) {
+        throw cancellation
+    } catch (_: Throwable) {
+        null
+    }
+
+    private companion object {
+        const val DEFAULT_QUIET_START_MINUTE = 22 * 60 + 30
+        const val DEFAULT_QUIET_END_MINUTE = 6 * 60
     }
 }
