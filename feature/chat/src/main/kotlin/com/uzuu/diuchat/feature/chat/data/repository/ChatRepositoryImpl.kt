@@ -80,8 +80,7 @@ class ChatRepositoryImpl(
             )
 
         suspend fun persistLocalMessage() {
-            messageDao.insert(messageEntity)
-            outboxDao.insert(outboxEntity)
+            messageDao.insertMessageWithOutbox(messageEntity, outboxEntity)
             updateConversationSummary(conversationId, content, mood, now)
         }
 
@@ -135,8 +134,7 @@ class ChatRepositoryImpl(
             )
 
         suspend fun persistLocalPhoto() {
-            messageDao.insert(messageEntity)
-            outboxDao.insert(outboxEntity)
+            messageDao.insertMessageWithOutbox(messageEntity, outboxEntity)
             updateConversationSummary(conversationId, displayContent, mood, now)
         }
 
@@ -192,8 +190,7 @@ class ChatRepositoryImpl(
             )
 
         suspend fun persistLocalVoice() {
-            messageDao.insert(messageEntity)
-            outboxDao.insert(outboxEntity)
+            messageDao.insertMessageWithOutbox(messageEntity, outboxEntity)
             updateConversationSummary(conversationId, summary, mood, now)
         }
 
@@ -380,8 +377,7 @@ class ChatRepositoryImpl(
             )
 
             suspend fun persistForward() {
-                messageDao.insert(entity)
-                outboxDao.insert(outbox)
+                messageDao.insertMessageWithOutbox(entity, outbox)
                 updateConversationSummary(targetConvoId, message.content, message.mood, now)
             }
 
@@ -408,8 +404,7 @@ class ChatRepositoryImpl(
         )
 
         suspend fun persistRetry() {
-            messageDao.updateStatus(messageId, MessageStatus.PENDING.value)
-            outboxDao.insert(outbox)
+            messageDao.retryMessageWithOutbox(messageId, MessageStatus.PENDING.value, outbox)
         }
 
         database?.withTransaction {
