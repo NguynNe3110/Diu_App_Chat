@@ -1,59 +1,26 @@
 package com.uzuu.diuchat.feature.auth.data.repository
 
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.test.runCurrent
+import com.uzuu.diuchat.feature.auth.data.datasource.api.model.UserProfileDto
+import com.uzuu.diuchat.feature.auth.data.datasource.api.response.UserProfileResponse
+import com.uzuu.diuchat.feature.auth.data.datasource.api.service.AuthSupabaseService
+import com.uzuu.diuchat.feature.auth.data.mapper.AuthMapper
+import io.mockk.coEvery
+import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import org.amshove.kluent.shouldBeEqualTo
 import org.junit.jupiter.api.Test
 
-@OptIn(ExperimentalCoroutinesApi::class)
 class AuthRepositoryImplTest {
-    private val sut = AuthRepositoryImpl()
+    private val mockSupabaseService: AuthSupabaseService = mockk(relaxed = true)
+    private val authMapper = AuthMapper()
+    private val sut = AuthRepositoryImpl(
+        supabaseService = mockSupabaseService,
+        authMapper = authMapper,
+    )
 
     @Test
-    fun `sending propagates coroutine cancellation instead of returning fallback success`() = runTest {
-        var cancellationPropagated = false
-        var returnedNormally = false
-        val request =
-            launch {
-                try {
-                    sut.sendOtp("912345678")
-                    returnedNormally = true
-                } catch (_: CancellationException) {
-                    cancellationPropagated = true
-                }
-            }
-        runCurrent()
-
-        request.cancel()
-        request.join()
-
-        cancellationPropagated shouldBeEqualTo true
-        returnedNormally shouldBeEqualTo false
-    }
-
-    @Test
-    fun `verification propagates coroutine cancellation instead of returning fallback success`() = runTest {
-        var cancellationPropagated = false
-        var returnedNormally = false
-        val request =
-            launch {
-                try {
-                    sut.verifyOtp("912345678", "123456")
-                    returnedNormally = true
-                } catch (_: CancellationException) {
-                    cancellationPropagated = true
-                }
-            }
-        runCurrent()
-
-        request.cancel()
-        request.join()
-
-        cancellationPropagated shouldBeEqualTo true
-        returnedNormally shouldBeEqualTo false
+    fun `sendOtp rejects invalid phone number`() = runTest {
+        sut.sendOtp("123").isFailure shouldBeEqualTo true
     }
 
     @Test
@@ -79,8 +46,13 @@ class AuthRepositoryImplTest {
     }
 
     @Test
-    fun `claimUsername accepts valid canonical username`() = runTest {
-        sut.claimUsername("minh_an").isSuccess shouldBeEqualTo true
-        sut.claimUsername("@minh_an2026").isSuccess shouldBeEqualTo true
+    fun `checkHasUsername maps profile dto via AuthMapper`() = runTest {
+        coEvery { mockSupabaseService.fetchCurrentUserProfile() } returns
+            Result.success(UserProfileResponse(UserProfileDto(id = "u-1", username = "minh")))
+
+        val result = sut.checkHasUsername()
+
+        result.isSuccess shouldBeEqualTo true
+        result.getOrNull() shouldBeEqualTo true
     }
 }

@@ -13,12 +13,23 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.outlined.LockClock
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TimePicker
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -27,16 +38,25 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.uzuu.diuchat.feature.base.common.res.AppTheme
 import com.uzuu.diuchat.feature.letters.domain.model.LetterScheduleType
+import java.time.Instant
+import java.time.LocalDateTime
+import java.time.LocalTime
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ScheduleSheet(
     selectedType: LetterScheduleType,
-    onSelectSchedule: (LetterScheduleType, String) -> Unit,
+    onSelectSchedule: (LetterScheduleType, String, Long?) -> Unit,
     onDismiss: () -> Unit,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val colors = AppTheme.colors
+    var showDatePicker by remember { mutableStateOf(false) }
+    var showTimePicker by remember { mutableStateOf(false) }
+    var pickedDateMillis by remember { mutableStateOf<Long?>(null) }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -82,13 +102,17 @@ fun ScheduleSheet(
                         .clip(RoundedCornerShape(12.dp))
                         .background(if (isSelected) colors.surface else colors.background)
                         .clickable {
-                            val formattedTime = when (option) {
-                                LetterScheduleType.WAKE_UP -> "06:00 Sáng (Khi đối phương thức dậy)"
-                                LetterScheduleType.TOMORROW_MORNING -> "08:00 Sáng mai"
-                                LetterScheduleType.TONIGHT -> "22:00 Tối nay"
-                                LetterScheduleType.CUSTOM_DATE -> "22:00 Ngày kỷ niệm tới"
+                            if (option == LetterScheduleType.CUSTOM_DATE) {
+                                showDatePicker = true
+                            } else {
+                                val formattedTime = when (option) {
+                                    LetterScheduleType.WAKE_UP -> "06:00 Sáng (Khi đối phương thức dậy)"
+                                    LetterScheduleType.TOMORROW_MORNING -> "08:00 Sáng mai"
+                                    LetterScheduleType.TONIGHT -> "22:00 Tối nay"
+                                    LetterScheduleType.CUSTOM_DATE -> ""
+                                }
+                                onSelectSchedule(option, formattedTime, null)
                             }
-                            onSelectSchedule(option, formattedTime)
                         }
                         .padding(horizontal = 16.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -120,5 +144,79 @@ fun ScheduleSheet(
 
             Spacer(modifier = Modifier.height(16.dp))
         }
+    }
+
+    if (showDatePicker) {
+        val datePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = System.currentTimeMillis() + 24 * 3600 * 1000L,
+        )
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        pickedDateMillis = datePickerState.selectedDateMillis
+                        showDatePicker = false
+                        showTimePicker = true
+                    },
+                ) {
+                    Text("Chọn giờ", color = colors.accent)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) {
+                    Text("Hủy", color = colors.inkSecondary)
+                }
+            },
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
+
+    if (showTimePicker) {
+        val timePickerState = rememberTimePickerState(
+            initialHour = 20,
+            initialMinute = 0,
+            is24Hour = true,
+        )
+        AlertDialog(
+            onDismissRequest = { showTimePicker = false },
+            title = {
+                Text(
+                    text = "Chọn giờ mở thư",
+                    style = AppTheme.typography.titleMedium,
+                    color = colors.ink,
+                )
+            },
+            text = {
+                TimePicker(state = timePickerState)
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val baseDate = Instant.ofEpochMilli(
+                            pickedDateMillis ?: System.currentTimeMillis(),
+                        ).atZone(ZoneId.of("UTC")).toLocalDate()
+                        val selectedDateTime = LocalDateTime.of(
+                            baseDate,
+                            LocalTime.of(timePickerState.hour, timePickerState.minute),
+                        )
+                        val epochMs = selectedDateTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+                        val formatted = selectedDateTime.format(
+                            DateTimeFormatter.ofPattern("HH:mm · dd/MM/yyyy", Locale.forLanguageTag("vi-VN")),
+                        )
+                        showTimePicker = false
+                        onSelectSchedule(LetterScheduleType.CUSTOM_DATE, formatted, epochMs)
+                    },
+                ) {
+                    Text("Xác nhận", color = colors.accent, fontWeight = FontWeight.SemiBold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showTimePicker = false }) {
+                    Text("Hủy", color = colors.inkSecondary)
+                }
+            },
+        )
     }
 }

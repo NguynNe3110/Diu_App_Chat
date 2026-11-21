@@ -6,13 +6,22 @@ import com.uzuu.diuchat.feature.contacts.domain.model.ConnectionRequest
 import com.uzuu.diuchat.feature.contacts.domain.model.Contact
 import com.uzuu.diuchat.feature.contacts.domain.model.ContactCircle
 
+enum class QrSheetTab {
+    MY_CODE,
+    SCAN_CODE,
+}
+
 @Immutable
 data class ContactsUiState(
     val contacts: List<Contact> = emptyList(),
     val pendingRequests: List<ConnectionRequest> = emptyList(),
     val selectedCircle: ContactCircle = ContactCircle.ALL,
+    val selectedMoodHex: String? = null,
     val searchQuery: String = "",
     val isQrSheetVisible: Boolean = false,
+    val selectedQrTab: QrSheetTab = QrSheetTab.MY_CODE,
+    val inviteCodeInput: String = "",
+    val scanResultMessage: String? = null,
     val myInviteLink: String = "diu.vn/linh/7K2M9P",
     val copiedLink: Boolean = false,
     val isLoading: Boolean = false,
@@ -27,10 +36,17 @@ data class ContactsUiState(
                     contacts.filter { it.circle == selectedCircle }
                 }
 
-            if (searchQuery.isBlank()) return byCircle
+            val byMood =
+                if (selectedMoodHex == null) {
+                    byCircle
+                } else {
+                    byCircle.filter { it.moodColorHex.equals(selectedMoodHex, ignoreCase = true) }
+                }
+
+            if (searchQuery.isBlank()) return byMood
 
             val query = searchQuery.trim().lowercase()
-            return byCircle.filter {
+            return byMood.filter {
                 it.name.lowercase().contains(query) ||
                     (it.nickname?.lowercase()?.contains(query) == true) ||
                     it.phone.contains(query)

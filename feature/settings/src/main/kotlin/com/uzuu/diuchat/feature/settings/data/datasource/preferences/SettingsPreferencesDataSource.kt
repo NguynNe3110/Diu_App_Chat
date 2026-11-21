@@ -9,6 +9,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import com.uzuu.diuchat.feature.settings.domain.model.BlockedContact
 import com.uzuu.diuchat.feature.settings.domain.model.NotificationPrivacy
+import com.uzuu.diuchat.feature.settings.domain.model.NotificationSound
 import com.uzuu.diuchat.feature.settings.domain.model.QuietSchedule
 import com.uzuu.diuchat.feature.settings.domain.model.UserProfile
 import kotlinx.coroutines.flow.Flow
@@ -25,12 +26,25 @@ class SettingsPreferencesDataSource(
         preferences[KEY_READ_RECEIPTS_ENABLED] ?: DEFAULT_READ_RECEIPTS_ENABLED
     }
 
+    val softSendAnimationFlow: Flow<Boolean> = dataStore.data.map { preferences ->
+        preferences[KEY_SOFT_SEND_ANIMATION_ENABLED] ?: DEFAULT_SOFT_SEND_ANIMATION_ENABLED
+    }
+
     val notificationPrivacyFlow: Flow<NotificationPrivacy> = dataStore.data.map { preferences ->
         val raw = preferences[KEY_NOTIFICATION_PRIVACY] ?: NotificationPrivacy.FULL_CONTENT.name
         runCatching { NotificationPrivacy.valueOf(raw) }.getOrDefault(NotificationPrivacy.FULL_CONTENT)
     }
 
+    val notificationSoundFlow: Flow<NotificationSound> = dataStore.data.map { preferences ->
+        val raw = preferences[KEY_NOTIFICATION_SOUND] ?: NotificationSound.WATER_DROP.name
+        runCatching { NotificationSound.valueOf(raw) }.getOrDefault(NotificationSound.WATER_DROP)
+    }
+
     val quietScheduleFlow: Flow<QuietSchedule> = dataStore.data.map { preferences ->
+        val repeatDays = preferences[KEY_QUIET_HOURS_REPEAT_DAYS]
+            ?.mapNotNull { it.toIntOrNull() }
+            ?.toSet()
+            ?: QuietSchedule.DEFAULT_REPEAT_DAYS
         QuietSchedule(
             enabled = preferences[KEY_QUIET_HOURS_ENABLED] ?: true,
             startMinuteOfDay = preferences[KEY_QUIET_HOURS_START_MINUTE] ?: (22 * 60 + 30),
@@ -38,6 +52,7 @@ class SettingsPreferencesDataSource(
             timeZoneId = preferences[KEY_QUIET_HOURS_TIMEZONE] ?: "Asia/Ho_Chi_Minh",
             allowedEmergencyContactIds = preferences[KEY_QUIET_HOURS_ALLOWED_CONTACTS]
                 ?: setOf("emergency_contact_linh"),
+            repeatDays = repeatDays,
         )
     }
 
@@ -87,9 +102,21 @@ class SettingsPreferencesDataSource(
         }
     }
 
+    suspend fun updateSoftSendAnimation(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[KEY_SOFT_SEND_ANIMATION_ENABLED] = enabled
+        }
+    }
+
     suspend fun updateNotificationPrivacy(privacy: NotificationPrivacy) {
         dataStore.edit { preferences ->
             preferences[KEY_NOTIFICATION_PRIVACY] = privacy.name
+        }
+    }
+
+    suspend fun updateNotificationSound(sound: NotificationSound) {
+        dataStore.edit { preferences ->
+            preferences[KEY_NOTIFICATION_SOUND] = sound.name
         }
     }
 
@@ -100,6 +127,7 @@ class SettingsPreferencesDataSource(
             preferences[KEY_QUIET_HOURS_END_MINUTE] = schedule.endMinuteOfDay
             preferences[KEY_QUIET_HOURS_TIMEZONE] = schedule.timeZoneId
             preferences[KEY_QUIET_HOURS_ALLOWED_CONTACTS] = schedule.allowedEmergencyContactIds
+            preferences[KEY_QUIET_HOURS_REPEAT_DAYS] = schedule.repeatDays.map { it.toString() }.toSet()
         }
     }
 
@@ -131,15 +159,19 @@ class SettingsPreferencesDataSource(
     companion object {
         private const val DEFAULT_THEME_MODE = "SYSTEM"
         private const val DEFAULT_READ_RECEIPTS_ENABLED = true
+        private const val DEFAULT_SOFT_SEND_ANIMATION_ENABLED = true
 
         val KEY_THEME_MODE = stringPreferencesKey("diu_theme_mode")
         val KEY_READ_RECEIPTS_ENABLED = booleanPreferencesKey("diu_read_receipts_enabled")
+        val KEY_SOFT_SEND_ANIMATION_ENABLED = booleanPreferencesKey("diu_soft_send_animation_enabled")
         val KEY_NOTIFICATION_PRIVACY = stringPreferencesKey("diu_notification_privacy")
+        val KEY_NOTIFICATION_SOUND = stringPreferencesKey("diu_notification_sound")
         val KEY_QUIET_HOURS_ENABLED = booleanPreferencesKey("diu_quiet_hours_enabled")
         val KEY_QUIET_HOURS_START_MINUTE = intPreferencesKey("diu_quiet_hours_start_minute")
         val KEY_QUIET_HOURS_END_MINUTE = intPreferencesKey("diu_quiet_hours_end_minute")
         val KEY_QUIET_HOURS_TIMEZONE = stringPreferencesKey("diu_quiet_hours_timezone")
         val KEY_QUIET_HOURS_ALLOWED_CONTACTS = stringSetPreferencesKey("diu_quiet_hours_allowed_contacts")
+        val KEY_QUIET_HOURS_REPEAT_DAYS = stringSetPreferencesKey("diu_quiet_hours_repeat_days")
 
         val KEY_USER_ID = stringPreferencesKey("diu_user_id")
         val KEY_USER_DISPLAY_NAME = stringPreferencesKey("diu_user_display_name")

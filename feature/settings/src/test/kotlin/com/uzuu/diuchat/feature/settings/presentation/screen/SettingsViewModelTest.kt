@@ -3,21 +3,26 @@ package com.uzuu.diuchat.feature.settings.presentation.screen
 import com.uzuu.diuchat.feature.settings.domain.model.AccountDeletionState
 import com.uzuu.diuchat.feature.settings.domain.model.BlockedContact
 import com.uzuu.diuchat.feature.settings.domain.model.NotificationPrivacy
+import com.uzuu.diuchat.feature.settings.domain.model.NotificationSound
 import com.uzuu.diuchat.feature.settings.domain.model.QuietSchedule
 import com.uzuu.diuchat.feature.settings.domain.model.UserProfile
 import com.uzuu.diuchat.feature.settings.domain.usecase.DeleteAccountUseCase
 import com.uzuu.diuchat.feature.settings.domain.usecase.GetBlockedContactsUseCase
 import com.uzuu.diuchat.feature.settings.domain.usecase.GetNotificationPrivacyUseCase
+import com.uzuu.diuchat.feature.settings.domain.usecase.GetNotificationSoundUseCase
 import com.uzuu.diuchat.feature.settings.domain.usecase.GetProfileUseCase
 import com.uzuu.diuchat.feature.settings.domain.usecase.GetQuietScheduleUseCase
 import com.uzuu.diuchat.feature.settings.domain.usecase.GetReadReceiptsEnabledUseCase
+import com.uzuu.diuchat.feature.settings.domain.usecase.GetSoftSendAnimationEnabledUseCase
 import com.uzuu.diuchat.feature.settings.domain.usecase.GetThemeModeUseCase
 import com.uzuu.diuchat.feature.settings.domain.usecase.LogoutUseCase
 import com.uzuu.diuchat.feature.settings.domain.usecase.UnblockContactUseCase
 import com.uzuu.diuchat.feature.settings.domain.usecase.UpdateNotificationPrivacyUseCase
+import com.uzuu.diuchat.feature.settings.domain.usecase.UpdateNotificationSoundUseCase
 import com.uzuu.diuchat.feature.settings.domain.usecase.UpdateProfileUseCase
 import com.uzuu.diuchat.feature.settings.domain.usecase.UpdateQuietScheduleUseCase
 import com.uzuu.diuchat.feature.settings.domain.usecase.UpdateReadReceiptsEnabledUseCase
+import com.uzuu.diuchat.feature.settings.domain.usecase.UpdateSoftSendAnimationEnabledUseCase
 import com.uzuu.diuchat.feature.settings.domain.usecase.UpdateThemeModeUseCase
 import com.uzuu.diuchat.library.testutils.CoroutinesTestDispatcherExtension
 import io.mockk.coEvery
@@ -42,16 +47,20 @@ class SettingsViewModelTest {
     private val deleteAccountUseCase: DeleteAccountUseCase = mockk(relaxed = true)
     private val getBlockedContactsUseCase: GetBlockedContactsUseCase = mockk()
     private val getNotificationPrivacyUseCase: GetNotificationPrivacyUseCase = mockk()
+    private val getNotificationSoundUseCase: GetNotificationSoundUseCase = mockk()
     private val getProfileUseCase: GetProfileUseCase = mockk()
     private val getQuietScheduleUseCase: GetQuietScheduleUseCase = mockk()
     private val getReadReceiptsEnabledUseCase: GetReadReceiptsEnabledUseCase = mockk()
+    private val getSoftSendAnimationEnabledUseCase: GetSoftSendAnimationEnabledUseCase = mockk()
     private val getThemeModeUseCase: GetThemeModeUseCase = mockk()
     private val logoutUseCase: LogoutUseCase = mockk(relaxed = true)
     private val unblockContactUseCase: UnblockContactUseCase = mockk(relaxed = true)
     private val updateNotificationPrivacyUseCase: UpdateNotificationPrivacyUseCase = mockk(relaxed = true)
+    private val updateNotificationSoundUseCase: UpdateNotificationSoundUseCase = mockk(relaxed = true)
     private val updateProfileUseCase: UpdateProfileUseCase = mockk(relaxed = true)
     private val updateQuietScheduleUseCase: UpdateQuietScheduleUseCase = mockk(relaxed = true)
     private val updateReadReceiptsEnabledUseCase: UpdateReadReceiptsEnabledUseCase = mockk(relaxed = true)
+    private val updateSoftSendAnimationEnabledUseCase: UpdateSoftSendAnimationEnabledUseCase = mockk(relaxed = true)
     private val updateThemeModeUseCase: UpdateThemeModeUseCase = mockk(relaxed = true)
 
     private val testProfile = UserProfile(
@@ -81,24 +90,30 @@ class SettingsViewModelTest {
         every { getProfileUseCase() } returns flowOf(testProfile)
         every { getQuietScheduleUseCase() } returns flowOf(testQuietSchedule)
         every { getNotificationPrivacyUseCase() } returns flowOf(testNotificationPrivacy)
+        every { getNotificationSoundUseCase() } returns flowOf(NotificationSound.WATER_DROP)
         every { getBlockedContactsUseCase() } returns flowOf(testBlockedContacts)
         every { getReadReceiptsEnabledUseCase() } returns flowOf(true)
+        every { getSoftSendAnimationEnabledUseCase() } returns flowOf(true)
         every { getThemeModeUseCase() } returns flowOf("SYSTEM")
 
         sut = SettingsViewModel(
             deleteAccountUseCase = deleteAccountUseCase,
             getBlockedContactsUseCase = getBlockedContactsUseCase,
             getNotificationPrivacyUseCase = getNotificationPrivacyUseCase,
+            getNotificationSoundUseCase = getNotificationSoundUseCase,
             getProfileUseCase = getProfileUseCase,
             getQuietScheduleUseCase = getQuietScheduleUseCase,
             getReadReceiptsEnabledUseCase = getReadReceiptsEnabledUseCase,
+            getSoftSendAnimationEnabledUseCase = getSoftSendAnimationEnabledUseCase,
             getThemeModeUseCase = getThemeModeUseCase,
             logoutUseCase = logoutUseCase,
             unblockContactUseCase = unblockContactUseCase,
             updateNotificationPrivacyUseCase = updateNotificationPrivacyUseCase,
+            updateNotificationSoundUseCase = updateNotificationSoundUseCase,
             updateProfileUseCase = updateProfileUseCase,
             updateQuietScheduleUseCase = updateQuietScheduleUseCase,
             updateReadReceiptsEnabledUseCase = updateReadReceiptsEnabledUseCase,
+            updateSoftSendAnimationEnabledUseCase = updateSoftSendAnimationEnabledUseCase,
             updateThemeModeUseCase = updateThemeModeUseCase,
         )
     }
@@ -110,9 +125,27 @@ class SettingsViewModelTest {
         sut.uiStateFlow.value.userProfile shouldBeEqualTo testProfile
         sut.uiStateFlow.value.quietSchedule shouldBeEqualTo testQuietSchedule
         sut.uiStateFlow.value.notificationPrivacy shouldBeEqualTo testNotificationPrivacy
+        sut.uiStateFlow.value.notificationSound shouldBeEqualTo NotificationSound.WATER_DROP
         sut.uiStateFlow.value.blockedContacts shouldBeEqualTo testBlockedContacts
         sut.uiStateFlow.value.readReceiptsEnabled shouldBeEqualTo true
+        sut.uiStateFlow.value.softSendAnimationEnabled shouldBeEqualTo true
         sut.uiStateFlow.value.themeMode shouldBeEqualTo "SYSTEM"
+    }
+
+    @Test
+    fun `toggleSoftSendAnimation invokes usecase`() = runTest {
+        sut.toggleSoftSendAnimation(false)
+        advanceUntilIdle()
+
+        coVerify(exactly = 1) { updateSoftSendAnimationEnabledUseCase(false) }
+    }
+
+    @Test
+    fun `setNotificationSound invokes usecase`() = runTest {
+        sut.setNotificationSound(NotificationSound.WIND_CHIME)
+        advanceUntilIdle()
+
+        coVerify(exactly = 1) { updateNotificationSoundUseCase(NotificationSound.WIND_CHIME) }
     }
 
     @Test

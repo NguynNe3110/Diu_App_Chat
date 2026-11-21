@@ -1,6 +1,7 @@
 package com.uzuu.diuchat.feature.journal.domain.repository
 
 import com.uzuu.diuchat.feature.journal.domain.model.DailyMoodCheckin
+import com.uzuu.diuchat.feature.journal.domain.model.FavouriteMemory
 import com.uzuu.diuchat.feature.journal.domain.model.JournalMoodType
 import com.uzuu.diuchat.feature.journal.domain.model.MoodComparison
 import com.uzuu.diuchat.feature.journal.domain.model.SearchResultItem
@@ -21,4 +22,8 @@ interface JournalRepository {
         mood: JournalMoodType? = null,
         conversationId: String? = null,
     ): Flow<List<SearchResultItem>>
+
+    fun getFavourites(): Flow<List<FavouriteMemory>>
+
+    suspend fun toggleFavourite(memoryId: String): Result<Unit>
 }

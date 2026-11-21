@@ -10,6 +10,7 @@ import com.uzuu.diuchat.feature.letters.domain.usecase.GetLettersUseCase
 import com.uzuu.diuchat.feature.letters.domain.usecase.OpenSealedLetterUseCase
 import com.uzuu.diuchat.feature.letters.domain.usecase.SendLetterImmediatelyUseCase
 import com.uzuu.diuchat.feature.letters.domain.usecase.SendSealedLetterUseCase
+import com.uzuu.diuchat.feature.letters.domain.usecase.UpdateSealedLetterUseCase
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
@@ -21,6 +22,7 @@ class LettersViewModel(
     private val openSealedLetterUseCase: OpenSealedLetterUseCase,
     private val sendLetterImmediatelyUseCase: SendLetterImmediatelyUseCase,
     private val sendSealedLetterUseCase: SendSealedLetterUseCase,
+    private val updateSealedLetterUseCase: UpdateSealedLetterUseCase,
 ) : BaseViewModel<LettersUiState, LettersAction>(LettersUiState()) {
 
     init {
@@ -41,6 +43,10 @@ class LettersViewModel(
         sendAction(LettersAction.SetComposing(true))
     }
 
+    fun startEditing(letter: SealedLetter) {
+        sendAction(LettersAction.StartEditingLetter(letter))
+    }
+
     fun cancelComposing() {
         sendAction(LettersAction.ResetDraft)
     }
@@ -57,12 +63,16 @@ class LettersViewModel(
         sendAction(LettersAction.UpdateDraftMood(mood))
     }
 
+    fun updateDraftRecipient(recipientId: String, recipientName: String) {
+        sendAction(LettersAction.UpdateDraftRecipient(recipientId, recipientName))
+    }
+
     fun showScheduleSheet(show: Boolean) {
         sendAction(LettersAction.SetShowScheduleSheet(show))
     }
 
-    fun setSchedule(type: LetterScheduleType, formatted: String) {
-        val epochMs = when (type) {
+    fun setSchedule(type: LetterScheduleType, formatted: String, customEpochMs: Long? = null) {
+        val epochMs = customEpochMs ?: when (type) {
             LetterScheduleType.WAKE_UP -> System.currentTimeMillis() + 8 * 3600 * 1000L
             LetterScheduleType.TOMORROW_MORNING -> System.currentTimeMillis() + 14 * 3600 * 1000L
             LetterScheduleType.TONIGHT -> System.currentTimeMillis() + 4 * 3600 * 1000L
@@ -76,8 +86,9 @@ class LettersViewModel(
         val currentState = uiStateFlow.value
         if (currentState.draftTitle.isBlank() || currentState.draftContent.isBlank()) return
 
-        val newLetter = SealedLetter(
-            id = "letter_${UUID.randomUUID().toString().take(8)}",
+        val editingId = currentState.draftEditingLetterId
+        val letter = SealedLetter(
+            id = editingId ?: "letter_${UUID.randomUUID().toString().take(8)}",
             senderId = "user_me",
             senderName = "Tôi",
             recipientId = currentState.draftRecipientId,
@@ -93,7 +104,11 @@ class LettersViewModel(
         )
 
         viewModelScope.launch {
-            sendSealedLetterUseCase(newLetter)
+            if (editingId != null) {
+                updateSealedLetterUseCase(letter)
+            } else {
+                sendSealedLetterUseCase(letter)
+            }
             sendAction(LettersAction.ResetDraft)
         }
     }

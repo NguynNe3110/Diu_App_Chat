@@ -27,11 +27,15 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
@@ -39,6 +43,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil.compose.AsyncImage
 import com.uzuu.diuchat.feature.base.common.res.AppIcons
 import com.uzuu.diuchat.feature.base.common.res.AppTheme
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuAmbientBackground
@@ -212,6 +217,8 @@ private fun PhotoThumbnail(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    var hasLoadError by remember(item.url) { mutableStateOf(false) }
+
     Box(
         modifier = modifier
             .aspectRatio(1f)
@@ -227,6 +234,26 @@ private fun PhotoThumbnail(
             )
             .clickable(role = Role.Button, onClick = onClick),
     ) {
+        if (item.url.isNotBlank() && !hasLoadError) {
+            AsyncImage(
+                model = item.url,
+                contentDescription = item.caption.ifBlank { "Hình ảnh" },
+                contentScale = ContentScale.Crop,
+                onError = { hasLoadError = true },
+                onSuccess = { hasLoadError = false },
+                modifier = Modifier.fillMaxSize(),
+            )
+        } else {
+            Icon(
+                painter = painterResource(AppIcons.Image),
+                contentDescription = null,
+                tint = item.moodColor.copy(alpha = 0.8f),
+                modifier = Modifier
+                    .size(28.dp)
+                    .align(Alignment.Center),
+            )
+        }
+
         // Mood dot top right
         Box(
             modifier = Modifier

@@ -8,4 +8,6 @@ android {
 
 dependencies {
     implementation(projects.feature.base)
+    implementation(platform(libs.supabase.bom))
+    implementation(libs.bundles.supabase)
 }

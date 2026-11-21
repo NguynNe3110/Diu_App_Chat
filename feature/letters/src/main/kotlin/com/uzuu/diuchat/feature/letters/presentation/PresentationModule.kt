@@ -12,6 +12,7 @@ val presentationModule = module {
             openSealedLetterUseCase = get(),
             sendLetterImmediatelyUseCase = get(),
             sendSealedLetterUseCase = get(),
+            updateSealedLetterUseCase = get(),
         )
     }
 }

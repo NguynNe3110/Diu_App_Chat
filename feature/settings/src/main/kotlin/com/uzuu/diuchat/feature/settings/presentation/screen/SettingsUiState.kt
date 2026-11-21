@@ -4,6 +4,7 @@ import com.uzuu.diuchat.feature.base.presentation.viewmodel.BaseState
 import com.uzuu.diuchat.feature.settings.domain.model.AccountDeletionState
 import com.uzuu.diuchat.feature.settings.domain.model.BlockedContact
 import com.uzuu.diuchat.feature.settings.domain.model.NotificationPrivacy
+import com.uzuu.diuchat.feature.settings.domain.model.NotificationSound
 import com.uzuu.diuchat.feature.settings.domain.model.QuietSchedule
 import com.uzuu.diuchat.feature.settings.domain.model.UserProfile
 
@@ -11,8 +12,10 @@ data class SettingsUiState(
     val userProfile: UserProfile = UserProfile(),
     val quietSchedule: QuietSchedule = QuietSchedule(),
     val notificationPrivacy: NotificationPrivacy = NotificationPrivacy.FULL_CONTENT,
+    val notificationSound: NotificationSound = NotificationSound.WATER_DROP,
     val blockedContacts: List<BlockedContact> = emptyList(),
     val readReceiptsEnabled: Boolean = true,
+    val softSendAnimationEnabled: Boolean = true,
     val themeMode: String = "SYSTEM",
     val subScreen: SettingsSubScreen = SettingsSubScreen.OVERVIEW,
     val showPrivacyDialog: Boolean = false,

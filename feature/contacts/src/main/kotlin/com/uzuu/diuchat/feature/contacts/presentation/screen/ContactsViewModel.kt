@@ -40,6 +40,10 @@ class ContactsViewModel(
         sendAction(ContactsAction.SelectCircle(circle))
     }
 
+    fun onSelectMood(moodHex: String?) {
+        sendAction(ContactsAction.SelectMood(moodHex))
+    }
+
     fun onSearchQueryChange(query: String) {
         sendAction(ContactsAction.UpdateSearchQuery(query))
     }
@@ -54,6 +58,28 @@ class ContactsViewModel(
 
     fun onDismissQrSheet() {
         sendAction(ContactsAction.SetQrSheetVisible(false))
+    }
+
+    fun onSelectQrTab(tab: QrSheetTab) {
+        sendAction(ContactsAction.SelectQrTab(tab))
+    }
+
+    fun onInviteCodeInputChange(code: String) {
+        sendAction(ContactsAction.UpdateInviteCodeInput(code))
+    }
+
+    fun onSubmitInviteCode(code: String = uiStateFlow.value.inviteCodeInput) {
+        val trimmed = code.trim()
+        if (trimmed.isEmpty()) {
+            sendAction(ContactsAction.SetScanResultMessage("Vui lòng nhập mã kết nối"))
+            return
+        }
+        sendAction(
+            ContactsAction.SetScanResultMessage(
+                message = "Đã gửi lời mời kết nối tới $trimmed",
+                clearInput = true,
+            ),
+        )
     }
 
     fun onCopyInviteLink() {

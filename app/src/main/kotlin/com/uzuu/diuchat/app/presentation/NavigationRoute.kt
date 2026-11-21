@@ -37,16 +37,6 @@ sealed interface NavigationRoute {
     data object Storage : NavigationRoute
 
     @Serializable
-    data object AlbumList : NavigationRoute
-
-    @Serializable
-    data class AlbumDetail(
-        val albumName: String,
-        val artistName: String,
-        val albumMbId: String?,
-    ) : NavigationRoute
-
-    @Serializable
     data object Favourites : NavigationRoute
 
     @Serializable

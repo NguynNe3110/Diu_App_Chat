@@ -5,3 +5,8 @@ plugins {
 android {
     namespace = "com.uzuu.diuchat.feature.contacts"
 }
+
+dependencies {
+    implementation(platform(libs.supabase.bom))
+    implementation(libs.bundles.supabase)
+}

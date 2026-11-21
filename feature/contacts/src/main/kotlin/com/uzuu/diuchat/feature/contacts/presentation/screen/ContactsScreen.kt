@@ -1,5 +1,9 @@
 package com.uzuu.diuchat.feature.contacts.presentation.screen
 
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -28,21 +32,30 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import com.uzuu.diuchat.feature.base.common.res.AppIcons
 import com.uzuu.diuchat.feature.base.common.res.AppTheme
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuButton
@@ -52,10 +65,11 @@ import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuFilterCh
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuIconButton
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuInviteCodeCard
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuOrbAvatar
-import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuQrCodeImage
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuPersonRow
+import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuQrCodeImage
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuSearchField
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuTextButton
+import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuTextField
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuTopBar
 import com.uzuu.diuchat.feature.contacts.domain.model.ConnectionRequest
 import com.uzuu.diuchat.feature.contacts.domain.model.Contact
@@ -77,9 +91,13 @@ fun ContactsScreen(
         onStartCall = onStartCall,
         onShowQrSheet = viewModel::onShowQrSheet,
         onDismissQrSheet = viewModel::onDismissQrSheet,
+        onSelectQrTab = viewModel::onSelectQrTab,
+        onInviteCodeInputChange = viewModel::onInviteCodeInputChange,
+        onSubmitInviteCode = { viewModel.onSubmitInviteCode() },
         onSearchQueryChange = viewModel::onSearchQueryChange,
         onClearSearch = viewModel::onClearSearch,
         onSelectCircle = viewModel::onSelectCircle,
+        onSelectMood = viewModel::onSelectMood,
         onAcceptRequest = { id ->
             val req = uiState.pendingRequests.find { it.id == id }
             val circle = req?.proposedCircle ?: ContactCircle.FRIENDS
@@ -99,15 +117,20 @@ fun ContactsScreenContent(
     onStartCall: (String) -> Unit = {},
     onShowQrSheet: () -> Unit = {},
     onDismissQrSheet: () -> Unit = {},
+    onSelectQrTab: (QrSheetTab) -> Unit = {},
+    onInviteCodeInputChange: (String) -> Unit = {},
+    onSubmitInviteCode: () -> Unit = {},
     onSearchQueryChange: (String) -> Unit = {},
     onClearSearch: () -> Unit = {},
     onSelectCircle: (ContactCircle) -> Unit = {},
+    onSelectMood: (String?) -> Unit = {},
     onAcceptRequest: (String) -> Unit = {},
     onDeclineRequest: (String) -> Unit = {},
     onCopyInviteLink: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val colors = AppTheme.colors
+    val clipboardManager = LocalClipboardManager.current
 
     Column(
         modifier =
@@ -184,6 +207,8 @@ fun ContactsScreenContent(
                     item {
                         MoodFilterRow(
                             contacts = uiState.contacts,
+                            selectedMoodHex = uiState.selectedMoodHex,
+                            onSelectMood = onSelectMood,
                             modifier = Modifier.padding(bottom = 8.dp),
                         )
                     }
@@ -290,9 +315,20 @@ fun ContactsScreenContent(
         }
     }
 
-    // QR Code Bottom Sheet
+    // QR Code / Scanner Bottom Sheet (#48)
     if (uiState.isQrSheetVisible) {
         val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        val context = LocalContext.current
+        var hasCameraPermission by remember {
+            mutableStateOf(
+                ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) ==
+                    PackageManager.PERMISSION_GRANTED,
+            )
+        }
+        val permissionLauncher =
+            rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+                hasCameraPermission = granted
+            }
 
         ModalBottomSheet(
             onDismissRequest = onDismissQrSheet,
@@ -306,54 +342,213 @@ fun ContactsScreenContent(
                     .padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Text(
-                    text = "Mã dịu của bạn",
-                    style =
-                    AppTheme.typography.headlineSmall.copy(
-                        fontFamily = FontFamily.Serif,
-                        fontWeight = FontWeight.Bold,
-                    ),
-                    color = colors.ink,
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Text(
-                    text = "Chỉ người có mã này mới có thể tìm thấy và gửi lời mời kết nối tới bạn.",
-                    style = AppTheme.typography.bodyMedium,
-                    color = colors.inkSecondary,
-                )
-
-                Spacer(modifier = Modifier.height(20.dp))
-
-                DiuQrCodeImage(
-                    content = "https://${uiState.myInviteLink}",
-                    size = 200.dp,
-                    contentDescription = "Mã QR kết nối cá nhân",
-                )
-
-                Spacer(modifier = Modifier.height(20.dp))
-
-                DiuInviteCodeCard(
-                    code = uiState.myInviteLink,
-                    label = "Đường dẫn kết nối riêng",
-                    copyLabel = if (uiState.copiedLink) "Đã sao chép!" else "Sao chép",
-                    onCopy = onCopyInviteLink,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                DiuButton(
-                    onClick = onDismissQrSheet,
-                    modifier = Modifier.fillMaxWidth(),
+                Row(
+                    modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(colors.surface)
+                        .padding(4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
-                    Text("Đóng")
+                    QrSheetTabButton(
+                        text = "Mã của tôi",
+                        selected = uiState.selectedQrTab == QrSheetTab.MY_CODE,
+                        onClick = { onSelectQrTab(QrSheetTab.MY_CODE) },
+                        modifier = Modifier.weight(1f),
+                    )
+                    QrSheetTabButton(
+                        text = "Quét mã",
+                        selected = uiState.selectedQrTab == QrSheetTab.SCAN_CODE,
+                        onClick = { onSelectQrTab(QrSheetTab.SCAN_CODE) },
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                if (uiState.selectedQrTab == QrSheetTab.MY_CODE) {
+                    Text(
+                        text = "Mã dịu của bạn",
+                        style =
+                        AppTheme.typography.headlineSmall.copy(
+                            fontFamily = FontFamily.Serif,
+                            fontWeight = FontWeight.Bold,
+                        ),
+                        color = colors.ink,
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Text(
+                        text = "Chỉ người có mã này mới có thể tìm thấy và gửi lời mời kết nối tới bạn.",
+                        style = AppTheme.typography.bodyMedium,
+                        color = colors.inkSecondary,
+                        textAlign = TextAlign.Center,
+                    )
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    DiuQrCodeImage(
+                        content =
+                        if (uiState.myInviteLink.startsWith("http")) {
+                            uiState.myInviteLink
+                        } else {
+                            "https://${uiState.myInviteLink}"
+                        },
+                        size = 200.dp,
+                        contentDescription = "Mã QR kết nối cá nhân",
+                    )
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    DiuInviteCodeCard(
+                        code = uiState.myInviteLink,
+                        label = "Đường dẫn kết nối riêng",
+                        copyLabel = if (uiState.copiedLink) "Đã sao chép!" else "Sao chép",
+                        onCopy = {
+                            val link =
+                                if (uiState.myInviteLink.startsWith("http")) {
+                                    uiState.myInviteLink
+                                } else {
+                                    "https://${uiState.myInviteLink}"
+                                }
+                            clipboardManager.setText(AnnotatedString(link))
+                            onCopyInviteLink()
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                } else {
+                    Text(
+                        text = "Quét mã kết nối",
+                        style =
+                        AppTheme.typography.headlineSmall.copy(
+                            fontFamily = FontFamily.Serif,
+                            fontWeight = FontWeight.Bold,
+                        ),
+                        color = colors.ink,
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Text(
+                        text = "Hướng camera về mã QR dịu của người thân hoặc nhập mã kết nối thủ công.",
+                        style = AppTheme.typography.bodyMedium,
+                        color = colors.inkSecondary,
+                        textAlign = TextAlign.Center,
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Surface(
+                        modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .height(168.dp),
+                        shape = RoundedCornerShape(20.dp),
+                        color = colors.surface,
+                    ) {
+                        Column(
+                            modifier = Modifier.fillMaxSize().padding(16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center,
+                        ) {
+                            Icon(
+                                painter = painterResource(AppIcons.Camera),
+                                contentDescription = null,
+                                tint = colors.accent,
+                                modifier = Modifier.size(32.dp),
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            if (hasCameraPermission) {
+                                Text(
+                                    text = "Camera sẵn sàng · Đưa mã QR vào khung hình",
+                                    style = AppTheme.typography.bodyMedium,
+                                    color = colors.ink,
+                                    textAlign = TextAlign.Center,
+                                )
+                            } else {
+                                Text(
+                                    text = "Cần quyền Camera để quét mã QR trực tiếp",
+                                    style = AppTheme.typography.bodySmall,
+                                    color = colors.inkSecondary,
+                                    textAlign = TextAlign.Center,
+                                )
+                                Spacer(modifier = Modifier.height(10.dp))
+                                DiuButton(
+                                    onClick = { permissionLauncher.launch(Manifest.permission.CAMERA) },
+                                ) {
+                                    Text("Cấp quyền Camera")
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    DiuTextField(
+                        value = uiState.inviteCodeInput,
+                        onValueChange = onInviteCodeInputChange,
+                        label = "Nhập mã hoặc đường dẫn mời",
+                        placeholder = "Ví dụ: diu.vn/minh/8X3K2P",
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+
+                    if (uiState.scanResultMessage != null) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = uiState.scanResultMessage,
+                            style = AppTheme.typography.bodySmall,
+                            color = colors.accent,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    DiuButton(
+                        onClick = onSubmitInviteCode,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text("Kết nối bằng mã")
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
+
+                DiuTextButton(
+                    text = "Đóng",
+                    onClick = onDismissQrSheet,
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
             }
         }
+    }
+}
+
+@Composable
+private fun QrSheetTabButton(
+    text: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val colors = AppTheme.colors
+    Box(
+        modifier =
+        modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(if (selected) colors.accent else Color.Transparent)
+            .clickable(onClick = onClick)
+            .padding(vertical = 10.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = text,
+            style = AppTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+            color = if (selected) colors.onAccent else colors.inkSecondary,
+        )
     }
 }
 
@@ -452,19 +647,29 @@ private fun ContactItemRow(
     )
 }
 
+private data class MoodFilterOption(
+    val key: String,
+    val label: String,
+    val hex: String,
+    val color: Color,
+)
+
 @Composable
 private fun MoodFilterRow(
     contacts: List<Contact>,
+    selectedMoodHex: String?,
+    onSelectMood: (String?) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = AppTheme.colors
-    val moods = listOf(
-        Triple("thuong", "Thương", colors.moods.thuong),
-        Triple("vui", "Vui", colors.moods.vui),
-        Triple("binhYen", "Bình yên", colors.moods.binhyen),
-        Triple("nho", "Nhớ", colors.moods.nho),
-        Triple("tram", "Trầm", colors.moods.tram),
-    )
+    val moods =
+        listOf(
+            MoodFilterOption("thuong", "Thương", "#F7A3A9", colors.moods.thuong),
+            MoodFilterOption("vui", "Vui", "#F4CA84", colors.moods.vui),
+            MoodFilterOption("binhYen", "Bình yên", "#A2D7AC", colors.moods.binhyen),
+            MoodFilterOption("nho", "Nhớ", "#C5B3EA", colors.moods.nho),
+            MoodFilterOption("tram", "Trầm", "#95C4E7", colors.moods.tram),
+        )
 
     Column(modifier = modifier.fillMaxWidth()) {
         Text(
@@ -485,21 +690,32 @@ private fun MoodFilterRow(
                 .padding(horizontal = 20.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            moods.forEach { (moodKey, moodName, moodColor) ->
-                val matchedContacts = contacts.filter { contact ->
-                    contact.moodColorHex.contains(moodKey, ignoreCase = true) ||
-                        runCatching {
-                            val parsed = Color(android.graphics.Color.parseColor(contact.moodColorHex))
-                            parsed == moodColor
-                        }.getOrDefault(false)
-                }
+            moods.forEach { mood ->
+                val isSelected = selectedMoodHex.equals(mood.hex, ignoreCase = true)
+                val matchedContacts =
+                    contacts.filter { contact ->
+                        contact.moodColorHex.equals(mood.hex, ignoreCase = true) ||
+                            contact.moodColorHex.contains(mood.key, ignoreCase = true) ||
+                            runCatching {
+                                val parsed = Color(android.graphics.Color.parseColor(contact.moodColorHex))
+                                parsed == mood.color
+                            }.getOrDefault(false)
+                    }
 
                 Column(
                     modifier =
                     Modifier
                         .weight(1f)
                         .clip(RoundedCornerShape(20.dp))
-                        .background(moodColor.copy(alpha = 0.22f))
+                        .background(mood.color.copy(alpha = if (isSelected) 0.40f else 0.22f))
+                        .then(
+                            if (isSelected) {
+                                Modifier.border(2.dp, mood.color, RoundedCornerShape(20.dp))
+                            } else {
+                                Modifier
+                            },
+                        )
+                        .clickable { onSelectMood(mood.hex) }
                         .padding(vertical = 12.dp, horizontal = 4.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -515,7 +731,7 @@ private fun MoodFilterRow(
                                     .size(26.dp)
                                     .border(
                                         width = 1.5.dp,
-                                        color = moodColor.copy(alpha = 0.5f),
+                                        color = mood.color.copy(alpha = 0.5f),
                                         shape = CircleShape,
                                     ),
                             )
@@ -535,7 +751,7 @@ private fun MoodFilterRow(
                                     ) {
                                         DiuOrbAvatar(
                                             initials = c.initials,
-                                            moodColor = parseColorSafely(c.moodColorHex, moodColor),
+                                            moodColor = parseColorSafely(c.moodColorHex, mood.color),
                                             size = 26.dp,
                                         )
                                     }
@@ -544,8 +760,12 @@ private fun MoodFilterRow(
                         }
                     }
                     Text(
-                        text = moodName,
-                        style = AppTheme.typography.bodySmall.copy(fontSize = 12.sp),
+                        text = mood.label,
+                        style =
+                        AppTheme.typography.bodySmall.copy(
+                            fontSize = 12.sp,
+                            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                        ),
                         color = colors.ink,
                         maxLines = 1,
                     )

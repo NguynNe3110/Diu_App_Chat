@@ -1,8 +1,11 @@
 package com.uzuu.diuchat.feature.contacts.data.repository
 
+import com.uzuu.diuchat.feature.contacts.data.datasource.api.service.ContactsSupabaseService
 import com.uzuu.diuchat.feature.contacts.data.datasource.database.dao.ContactDao
 import com.uzuu.diuchat.feature.contacts.data.datasource.database.entity.ConnectionRequestEntity
 import com.uzuu.diuchat.feature.contacts.data.datasource.database.entity.ContactEntity
+import com.uzuu.diuchat.feature.contacts.data.mapper.ConnectionRequestMapper
+import com.uzuu.diuchat.feature.contacts.data.mapper.ContactMapper
 import com.uzuu.diuchat.feature.contacts.domain.model.ConnectionRequest
 import com.uzuu.diuchat.feature.contacts.domain.model.Contact
 import com.uzuu.diuchat.feature.contacts.domain.model.ContactCircle
@@ -11,26 +14,29 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 class ContactsRepositoryImpl(
     private val contactDao: ContactDao,
+    private val contactsSupabaseService: ContactsSupabaseService,
+    private val contactMapper: ContactMapper,
+    private val connectionRequestMapper: ConnectionRequestMapper,
     coroutineScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
 ) : ContactsRepository {
     init {
         coroutineScope.launch {
-            seedInitialDataIfNeeded()
+            syncOrSeedInitialData()
         }
     }
 
     override fun getContacts(): Flow<List<Contact>> = contactDao.observeContacts().map { entities ->
-        entities.map { it.toDomain() }
+        entities.map(contactMapper::toDomain)
     }
 
     override fun getPendingRequests(): Flow<List<ConnectionRequest>> = contactDao.observeRequests().map { entities ->
-        entities.map { it.toDomain() }
+        entities.map(connectionRequestMapper::toDomain)
     }
 
     override suspend fun respondToRequest(
@@ -41,6 +47,12 @@ class ContactsRepositoryImpl(
         val request =
             contactDao.getRequestById(requestId)
                 ?: throw IllegalArgumentException("Lời mời không tồn tại hoặc đã xử lý")
+
+        contactsSupabaseService.respondToRequest(
+            requestId = requestId,
+            accept = accept,
+            circle = circle.name,
+        )
 
         if (accept) {
             val newContact =
@@ -64,12 +76,32 @@ class ContactsRepositoryImpl(
 
     override suspend fun searchUserByPhone(phone: String): Result<Contact?> = runCatching {
         val clean = phone.replace("\\s".toRegex(), "")
-        contactDao.getAllContacts()
-            .find { it.phone.replace("\\s".toRegex(), "") == clean }
-            ?.toDomain()
+        val localMatch =
+            contactDao.getAllContacts()
+                .find { it.phone.replace("\\s".toRegex(), "") == clean }
+                ?.let(contactMapper::toDomain)
+
+        localMatch ?: contactsSupabaseService.searchUserByPhone(clean)?.let(contactMapper::toDomain)
     }
 
-    override fun getMyInviteLink(): Flow<String> = flowOf("diu.vn/linh/7K2M9P")
+    override fun getMyInviteLink(): Flow<String> = flow {
+        val remoteUrl = contactsSupabaseService.fetchMyInviteLink()?.url
+        emit(remoteUrl ?: DEFAULT_INVITE_LINK)
+    }
+
+    suspend fun syncOrSeedInitialData() {
+        val remoteSync = contactsSupabaseService.syncContacts()
+        if (remoteSync != null) {
+            if (remoteSync.contacts.isNotEmpty()) {
+                contactDao.insertAll(remoteSync.contacts.map(contactMapper::toEntity))
+            }
+            if (remoteSync.pendingRequests.isNotEmpty()) {
+                contactDao.insertAllRequests(remoteSync.pendingRequests.map(connectionRequestMapper::toEntity))
+            }
+            return
+        }
+        seedInitialDataIfNeeded()
+    }
 
     private suspend fun seedInitialDataIfNeeded() {
         if (contactDao.getCount() == 0) {
@@ -80,31 +112,9 @@ class ContactsRepositoryImpl(
         }
     }
 
-    private fun ContactEntity.toDomain(): Contact = Contact(
-        id = id,
-        name = name,
-        initials = initials,
-        phone = phone,
-        circle = ContactCircle.entries.find { it.name == circle } ?: ContactCircle.FRIENDS,
-        moodColorHex = moodColorHex,
-        nickname = nickname,
-        anniversary = anniversary,
-        isQuiet = isQuiet,
-        lastSeen = lastSeen,
-    )
-
-    private fun ConnectionRequestEntity.toDomain(): ConnectionRequest = ConnectionRequest(
-        id = id,
-        senderId = senderId,
-        senderName = senderName,
-        senderInitials = senderInitials,
-        senderPhone = senderPhone,
-        senderMoodColorHex = senderMoodColorHex,
-        proposedCircle = ContactCircle.entries.find { it.name == proposedCircle } ?: ContactCircle.FRIENDS,
-        createdAt = createdAt,
-    )
-
     companion object {
+        private const val DEFAULT_INVITE_LINK = "diu.vn/linh/7K2M9P"
+
         private fun createInitialContacts(): List<ContactEntity> = listOf(
             ContactEntity(
                 id = "c1",
@@ -112,7 +122,7 @@ class ContactsRepositoryImpl(
                 initials = "MA",
                 phone = "0912 345 678",
                 circle = ContactCircle.LOVE.name,
-                moodColorHex = "#F5A894",
+                moodColorHex = "#F7A3A9",
                 nickname = "Anh thương",
                 anniversary = "24/11",
                 isQuiet = false,
@@ -124,7 +134,7 @@ class ContactsRepositoryImpl(
                 initials = "M",
                 phone = "0903 111 222",
                 circle = ContactCircle.FAMILY.name,
-                moodColorHex = "#F1C574",
+                moodColorHex = "#F4CA84",
                 nickname = "Mẹ yêu",
                 anniversary = "15/08",
                 isQuiet = true,
@@ -136,7 +146,7 @@ class ContactsRepositoryImpl(
                 initials = "BV",
                 phone = "0988 777 666",
                 circle = ContactCircle.FRIENDS.name,
-                moodColorHex = "#A6C5A2",
+                moodColorHex = "#A2D7AC",
                 nickname = "Vy bạn thân",
                 anniversary = "01/06",
                 isQuiet = false,
@@ -148,7 +158,7 @@ class ContactsRepositoryImpl(
                 initials = "BN",
                 phone = "0909 333 444",
                 circle = ContactCircle.FAMILY.name,
-                moodColorHex = "#C1B3DC",
+                moodColorHex = "#C5B3EA",
                 nickname = "Ngoại",
                 anniversary = null,
                 isQuiet = true,
@@ -163,7 +173,7 @@ class ContactsRepositoryImpl(
                 senderName = "Hoàng Nam",
                 senderInitials = "HN",
                 senderPhone = "0933 555 777",
-                senderMoodColorHex = "#A6C5A2",
+                senderMoodColorHex = "#A2D7AC",
                 proposedCircle = ContactCircle.FRIENDS.name,
                 createdAt = "Hôm nay, 10:15",
             ),

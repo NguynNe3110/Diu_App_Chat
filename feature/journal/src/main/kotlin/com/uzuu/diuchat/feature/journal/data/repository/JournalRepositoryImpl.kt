@@ -1,26 +1,50 @@
 package com.uzuu.diuchat.feature.journal.data.repository
 
+import com.uzuu.diuchat.feature.journal.data.datasource.api.service.JournalSupabaseService
+import com.uzuu.diuchat.feature.journal.data.mapper.JournalMapper
 import com.uzuu.diuchat.feature.journal.domain.model.DailyMoodCheckin
+import com.uzuu.diuchat.feature.journal.domain.model.FavouriteMemory
 import com.uzuu.diuchat.feature.journal.domain.model.JournalMoodType
 import com.uzuu.diuchat.feature.journal.domain.model.MoodComparison
 import com.uzuu.diuchat.feature.journal.domain.model.SearchResultItem
 import com.uzuu.diuchat.feature.journal.domain.repository.JournalRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
 
-class JournalRepositoryImpl : JournalRepository {
+class JournalRepositoryImpl(
+    private val supabaseService: JournalSupabaseService,
+    private val mapper: JournalMapper,
+) : JournalRepository {
     private val checkinsFlow = MutableStateFlow(seedMonthlyCheckins())
     private val allMessages = seedMessages()
+    private val allSeededFavourites = seedFavourites()
+    private val favouritesFlow = MutableStateFlow(allSeededFavourites)
 
     override fun getMonthlyMoodCheckins(
         month: Int,
         year: Int,
-    ): Flow<List<DailyMoodCheckin>> = checkinsFlow.map { list ->
-        val expectedPrefix = "%04d-%02d".format(year, month)
-        list.filter { it.dateIso.startsWith(expectedPrefix) }
-    }
+    ): Flow<List<DailyMoodCheckin>> = checkinsFlow
+        .onStart {
+            supabaseService.fetchMonthlyCheckins(month, year).onSuccess { response ->
+                if (response.checkins.isNotEmpty()) {
+                    val remoteCheckins = mapper.toDomainList(response.checkins)
+                    val merged = checkinsFlow.value.toMutableList()
+                    remoteCheckins.forEach { remote ->
+                        val idx = merged.indexOfFirst { it.dateIso == remote.dateIso }
+                        if (idx >= 0) merged[idx] = remote else merged.add(remote)
+                    }
+                    merged.sortBy { it.dayNumber }
+                    checkinsFlow.value = merged
+                }
+            }
+        }.map { list ->
+            val expectedPrefix = "%04d-%02d".format(year, month)
+            list.filter { it.dateIso.startsWith(expectedPrefix) }
+        }
 
     override suspend fun saveMoodCheckin(checkin: DailyMoodCheckin): Result<Unit> {
         val current = checkinsFlow.value.toMutableList()
@@ -32,6 +56,8 @@ class JournalRepositoryImpl : JournalRepository {
             current.sortBy { it.dayNumber }
         }
         checkinsFlow.value = current
+
+        supabaseService.upsertMoodCheckin(mapper.toDto(checkin))
         return Result.success(Unit)
     }
 
@@ -101,8 +127,35 @@ class JournalRepositoryImpl : JournalRepository {
         }
     }
 
+    override fun getFavourites(): Flow<List<FavouriteMemory>> = favouritesFlow
+        .asStateFlow()
+        .onStart {
+            supabaseService.fetchFavourites().onSuccess { dtos ->
+                if (dtos.isNotEmpty()) {
+                    favouritesFlow.value = mapper.toFavouriteDomainList(dtos)
+                }
+            }
+        }
+
+    override suspend fun toggleFavourite(memoryId: String): Result<Unit> {
+        val current = favouritesFlow.value.toMutableList()
+        val existingIndex = current.indexOfFirst { it.id == memoryId }
+        if (existingIndex >= 0) {
+            current.removeAt(existingIndex)
+            supabaseService.deleteFavourite(memoryId)
+        } else {
+            allSeededFavourites.find { it.id == memoryId }?.let { memory ->
+                current.add(memory)
+                supabaseService.insertFavourite(mapper.toDto(memory))
+            }
+        }
+        favouritesFlow.value = current
+        return Result.success(Unit)
+    }
+
     private companion object {
         private const val CONV_MINH = "conv_minh"
+
         fun seedMonthlyCheckins(): List<DailyMoodCheckin> {
             val list = mutableListOf<DailyMoodCheckin>()
             val moods = listOf(
@@ -220,6 +273,33 @@ class JournalRepositoryImpl : JournalRepository {
                 snippet = "Anh tới đầu hẻm rồi nè, có mua bánh flan cho em đó",
                 timestamp = "Hôm qua 21:30",
                 mood = JournalMoodType.THUONG,
+            ),
+        )
+
+        fun seedFavourites(): List<FavouriteMemory> = listOf(
+            FavouriteMemory(
+                id = "fav_1",
+                senderName = "Minh",
+                mood = JournalMoodType.THUONG,
+                content = "Cảm ơn vì đã luôn ở bên mình.",
+                savedDate = "14/02/2024",
+                conversationId = CONV_MINH,
+            ),
+            FavouriteMemory(
+                id = "fav_2",
+                senderName = "Bà nội",
+                mood = JournalMoodType.BINH_YEN,
+                content = "Con gái nhớ ăn uống đúng giờ nhé.",
+                savedDate = "08/03/2024",
+                conversationId = "conv_nha",
+            ),
+            FavouriteMemory(
+                id = "fav_3",
+                senderName = "Thảo",
+                mood = JournalMoodType.NHO,
+                content = "Bộ ảnh hôm đi Đà Lạt đẹp xỉu!",
+                savedDate = "20/05/2024",
+                conversationId = "conv_thao",
             ),
         )
     }

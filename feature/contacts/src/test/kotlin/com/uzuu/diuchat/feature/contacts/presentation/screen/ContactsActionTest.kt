@@ -36,4 +36,22 @@ class ContactsActionTest {
 
         next.copiedLink shouldBeEqualTo true
     }
+
+    @Test
+    fun `SelectMood sets and toggles mood hex`() {
+        val initial = ContactsUiState()
+        val selected = ContactsAction.SelectMood("#F7A3A9").reduce(initial)
+        selected.selectedMoodHex shouldBeEqualTo "#F7A3A9"
+
+        val toggledOff = ContactsAction.SelectMood("#f7a3a9").reduce(selected)
+        toggledOff.selectedMoodHex shouldBeEqualTo null
+    }
+
+    @Test
+    fun `SelectQrTab switches tab`() {
+        val initial = ContactsUiState()
+        val next = ContactsAction.SelectQrTab(QrSheetTab.SCAN_CODE).reduce(initial)
+
+        next.selectedQrTab shouldBeEqualTo QrSheetTab.SCAN_CODE
+    }
 }

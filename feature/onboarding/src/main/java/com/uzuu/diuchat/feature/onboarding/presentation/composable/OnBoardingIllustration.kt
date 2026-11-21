@@ -35,6 +35,7 @@ import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuMoodDot
 import com.uzuu.diuchat.feature.base.R
 import com.uzuu.diuchat.feature.base.common.res.AppPalette
 import com.uzuu.diuchat.feature.base.common.res.AppTheme
+import com.uzuu.diuchat.feature.base.common.res.DiuSerif
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuOrbAvatar
 
 // ─── Màu 5 cảm xúc ───────────────────────────────────────────────────────────
@@ -80,7 +81,7 @@ private fun Slide0Illustration() {
     ) {
         // Orb L — Vui — to nhất, góc trái
         DiuOrbAvatar(
-            initials = "T",
+            initials = "L",
             moodColor = AppTheme.colors.moods.vui,
             size = 130.dp,
             floatOffsetY = float1.dp,
@@ -102,7 +103,7 @@ private fun Slide0Illustration() {
         )
 
         DiuOrbAvatar(
-            initials = "T",
+            initials = "N",
             moodColor = AppTheme.colors.moods.binhyen,
             size = 60.dp,
             floatOffsetY = float3.dp,
@@ -140,6 +141,7 @@ private fun Slide1Illustration() {
                 )
                 Text(
                     text = mood.name,
+                    fontFamily = DiuSerif,
                     fontSize = 22.sp,
                     fontStyle = FontStyle.Italic,
                     color = AppTheme.colors.ink,

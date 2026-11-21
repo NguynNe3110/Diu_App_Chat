@@ -7,6 +7,8 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
 
 // ═══════════════════════════════════════════════
 // Material 3 ColorScheme mapping
@@ -112,10 +114,23 @@ fun AppTheme(
  * ```
  */
 object AppTheme {
-    /** Shared Material type styles, all using Be Vietnam Pro. */
+    /** Shared Material type styles (Serif display/headline + Be Vietnam Pro body/label). */
     val typography: Typography
         @Composable
         get() = MaterialTheme.typography
+
+    /** Official Serif display text style for screen titles. */
+    val displaySerif: TextStyle
+        @Composable
+        get() = DiuSerifTypography.displayMedium
+
+    /** Official Serif headline text style for section and header titles. */
+    val headlineSerif: TextStyle
+        @Composable
+        get() = DiuSerifTypography.headlineMedium
+
+    /** Official Serif font family token. */
+    val serifFontFamily: FontFamily = DiuSerif
 
     /**
      * Bộ màu hiện tại theo theme (Light hoặc Dark).

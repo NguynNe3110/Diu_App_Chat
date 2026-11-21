@@ -8,6 +8,7 @@ import com.uzuu.diuchat.feature.letters.domain.usecase.GetLettersUseCase
 import com.uzuu.diuchat.feature.letters.domain.usecase.OpenSealedLetterUseCase
 import com.uzuu.diuchat.feature.letters.domain.usecase.SendLetterImmediatelyUseCase
 import com.uzuu.diuchat.feature.letters.domain.usecase.SendSealedLetterUseCase
+import com.uzuu.diuchat.feature.letters.domain.usecase.UpdateSealedLetterUseCase
 import com.uzuu.diuchat.library.testutils.CoroutinesTestDispatcherExtension
 import io.mockk.coVerify
 import io.mockk.every
@@ -33,6 +34,7 @@ class LettersViewModelTest {
     private val openSealedLetterUseCase: OpenSealedLetterUseCase = mockk(relaxed = true)
     private val sendLetterImmediatelyUseCase: SendLetterImmediatelyUseCase = mockk(relaxed = true)
     private val sendSealedLetterUseCase: SendSealedLetterUseCase = mockk(relaxed = true)
+    private val updateSealedLetterUseCase: UpdateSealedLetterUseCase = mockk(relaxed = true)
 
     private val testLetters = listOf(
         SealedLetter(
@@ -62,6 +64,7 @@ class LettersViewModelTest {
             openSealedLetterUseCase = openSealedLetterUseCase,
             sendLetterImmediatelyUseCase = sendLetterImmediatelyUseCase,
             sendSealedLetterUseCase = sendSealedLetterUseCase,
+            updateSealedLetterUseCase = updateSealedLetterUseCase,
         )
     }
 
@@ -137,5 +140,33 @@ class LettersViewModelTest {
         advanceUntilIdle()
 
         coVerify { sendLetterImmediatelyUseCase("l1") }
+    }
+
+    @Test
+    fun `startEditing populates draft and sealAndSendLetter invokes updateSealedLetterUseCase`() = runTest {
+        val existing = testLetters.first()
+        sut.startEditing(existing)
+
+        sut.uiStateFlow.value.isComposing shouldBeEqualTo true
+        sut.uiStateFlow.value.draftEditingLetterId shouldBeEqualTo existing.id
+        sut.uiStateFlow.value.draftTitle shouldBeEqualTo existing.title
+
+        sut.updateDraftTitle("Tiêu đề đã sửa")
+        sut.updateDraftRecipient("user_minh", "Minh")
+        sut.sealAndSendLetter()
+        advanceUntilIdle()
+
+        coVerify {
+            updateSealedLetterUseCase(
+                match {
+                    it.id == existing.id &&
+                        it.title == "Tiêu đề đã sửa" &&
+                        it.recipientId == "user_minh" &&
+                        it.recipientName == "Minh"
+                },
+            )
+        }
+        sut.uiStateFlow.value.isComposing shouldBeEqualTo false
+        sut.uiStateFlow.value.draftEditingLetterId shouldBeEqualTo null
     }
 }

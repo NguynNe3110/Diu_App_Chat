@@ -2,7 +2,6 @@ package com.uzuu.diuchat.app
 
 import android.app.Application
 import com.uzuu.diuchat.app.di.appModule
-import com.uzuu.diuchat.feature.album.featureAlbumModules
 import com.uzuu.diuchat.feature.auth.featureAuthModules
 import com.uzuu.diuchat.feature.calls.featureCallsModules
 import com.uzuu.diuchat.feature.chat.featureChatModules
@@ -33,7 +32,6 @@ class ShowcaseApplication : Application() {
             androidContext(this@ShowcaseApplication)
 
             modules(appModule)
-            modules(featureAlbumModules)
             modules(featureOnboardingModules)
             modules(featureAuthModules)
             modules(featureChatModules)

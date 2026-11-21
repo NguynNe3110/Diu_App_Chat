@@ -11,6 +11,5 @@ import org.koin.dsl.module
  */
 val appModule =
     module {
-//        includes(retrofitModule) // project này dùng supabase
         includes(supabaseModule)
     }

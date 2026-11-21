@@ -7,6 +7,7 @@ android {
 }
 
 dependencies {
+    implementation(libs.datastore.preferences)
     // Thêm các dependency nếu cần, ví dụ:
     // implementation(projects.feature.base)
     // (Plugin convention.feature đã cấu hình sẵn Jetpack Compose, Kotlin,

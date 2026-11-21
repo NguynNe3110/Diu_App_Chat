@@ -24,7 +24,6 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
@@ -33,6 +32,7 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.uzuu.diuchat.feature.base.R
 import com.uzuu.diuchat.feature.base.common.res.AppTheme
+import com.uzuu.diuchat.feature.base.common.res.DiuSerif
 
 @Composable
 fun DiuOrbAvatar(
@@ -96,7 +96,7 @@ fun DiuOrbAvatar(
                 text = initials,
                 color = AppTheme.colors.orbText,
                 style = AppTheme.typography.titleMedium,
-                fontFamily = FontFamily.Serif,
+                fontFamily = DiuSerif,
                 fontSize = (size.value * 0.4f).sp,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,

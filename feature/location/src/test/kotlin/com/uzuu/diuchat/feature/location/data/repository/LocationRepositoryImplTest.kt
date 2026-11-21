@@ -1,6 +1,8 @@
 package com.uzuu.diuchat.feature.location.data.repository
 
 import com.uzuu.diuchat.feature.location.data.adapter.LocationProviderAdapter
+import com.uzuu.diuchat.feature.location.data.datasource.api.service.LocationSupabaseService
+import com.uzuu.diuchat.feature.location.data.mapper.LocationMapper
 import com.uzuu.diuchat.feature.location.domain.model.LocationSnapshot
 import io.mockk.coEvery
 import io.mockk.mockk
@@ -15,7 +17,20 @@ import org.junit.jupiter.api.Test
 class LocationRepositoryImplTest {
 
     private val mockLocationProviderAdapter: LocationProviderAdapter = mockk()
-    private val sut = LocationRepositoryImpl(mockLocationProviderAdapter)
+    private val mockSupabaseService: LocationSupabaseService = mockk {
+        coEvery { fetchLiveSession(any()) } returns Result.failure(IllegalStateException("offline"))
+        coEvery { upsertLiveSession(any()) } returns Result.failure(IllegalStateException("offline"))
+        coEvery { stopLiveSession(any()) } returns Result.failure(IllegalStateException("offline"))
+        coEvery {
+            updateLiveCoordinates(any())
+        } returns Result.failure(IllegalStateException("offline"))
+    }
+    private val mapper = LocationMapper()
+    private val sut = LocationRepositoryImpl(
+        locationProviderAdapter = mockLocationProviderAdapter,
+        supabaseService = mockSupabaseService,
+        mapper = mapper,
+    )
 
     @Test
     fun `getCurrentLocation delegates to adapter`() = runTest {

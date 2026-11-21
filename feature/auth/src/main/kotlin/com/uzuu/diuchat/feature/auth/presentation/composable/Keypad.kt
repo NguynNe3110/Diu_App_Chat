@@ -25,9 +25,9 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.uzuu.diuchat.feature.base.common.res.DiuSerif
 import androidx.compose.ui.unit.sp
 import com.uzuu.diuchat.feature.base.common.res.AppTheme
 
@@ -114,7 +114,7 @@ private fun KeypadButton(
                 text = key,
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Medium,
-                fontFamily = FontFamily.Serif,
+                fontFamily = DiuSerif,
                 color = if (enabled) AppTheme.colors.ink else AppTheme.colors.inkTertiary,
             )
         }

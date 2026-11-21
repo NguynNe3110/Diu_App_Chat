@@ -6,7 +6,7 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import com.uzuu.diuchat.feature.base.R
 
-/** The single font family used throughout Diu, with explicit weight and italic faces. */
+/** The primary sans-serif font family used throughout Diu, with explicit weight and italic faces. */
 internal val BeVietnamPro =
     FontFamily(
         Font(R.font.be_vietnam_pro_thin, FontWeight.Thin),
@@ -28,3 +28,6 @@ internal val BeVietnamPro =
         Font(R.font.be_vietnam_pro_extra_bold_italic, FontWeight.ExtraBold, FontStyle.Italic),
         Font(R.font.be_vietnam_pro_black_italic, FontWeight.Black, FontStyle.Italic),
     )
+
+/** Official Serif font family token used for prototype display and screen titles. */
+val DiuSerif: FontFamily = FontFamily.Serif

@@ -2,7 +2,6 @@ rootProject.name = "DiuAppChat"
 
 include(
     ":app",
-    ":feature:album",
     ":feature:base",
     ":library:test-utils",
     ":konsist-test",

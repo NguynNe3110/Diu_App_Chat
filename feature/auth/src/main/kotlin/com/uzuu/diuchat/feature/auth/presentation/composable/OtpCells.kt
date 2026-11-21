@@ -18,11 +18,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.uzuu.diuchat.feature.base.common.res.AppTheme
+import com.uzuu.diuchat.feature.base.common.res.DiuSerif
 
 @Composable
 fun OtpCells(
@@ -89,7 +89,7 @@ fun OtpCells(
                     text = digit,
                     fontSize = 28.sp,
                     fontWeight = FontWeight.SemiBold,
-                    fontFamily = FontFamily.Serif,
+                    fontFamily = DiuSerif,
                     color = colors.ink,
                 )
             }

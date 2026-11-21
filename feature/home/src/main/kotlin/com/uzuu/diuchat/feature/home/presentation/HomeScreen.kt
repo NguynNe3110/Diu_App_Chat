@@ -8,6 +8,7 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -72,6 +73,7 @@ fun HomeScreen(
     onOpenCheckin: () -> Unit = {},
     onOpenQuietHours: () -> Unit = {},
     onInvite: () -> Unit = {},
+    onSearchClick: () -> Unit = onOpenContacts,
 ) {
     val state by viewModel.uiStateFlow.collectAsStateWithLifecycle()
 
@@ -83,6 +85,7 @@ fun HomeScreen(
         onOpenCheckin = onOpenCheckin,
         onOpenQuietHours = onOpenQuietHours,
         onInvite = onInvite,
+        onSearchClick = onSearchClick,
     )
 }
 
@@ -95,6 +98,7 @@ fun HomeScreenContent(
     onOpenCheckin: () -> Unit = {},
     onOpenQuietHours: () -> Unit = {},
     onInvite: () -> Unit = {},
+    onSearchClick: () -> Unit = onOpenContacts,
 ) {
     DiuAmbientBackground(modifier = modifier) {
         LazyColumn(
@@ -105,7 +109,7 @@ fun HomeScreenContent(
             item {
                 HomeHeader(
                     greeting = "${state.greeting}, ${state.userName}",
-                    onSearchClick = onOpenContacts,
+                    onSearchClick = onSearchClick,
                 )
             }
 
@@ -390,6 +394,28 @@ private fun ConstellationSection(
                             size = star.size,
                             contentDescription = star.name,
                         )
+                        if (star.memberCount > 1) {
+                            Box(
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .offset(x = 2.dp, y = (-2).dp)
+                                    .size(20.dp)
+                                    .clip(CircleShape)
+                                    .background(AppTheme.colors.surface)
+                                    .border(1.dp, AppTheme.colors.line, CircleShape)
+                                    .semantics {
+                                        contentDescription = "${star.memberCount} thành viên"
+                                    },
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Text(
+                                    text = "${star.memberCount}",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = AppTheme.colors.ink,
+                                )
+                            }
+                        }
                         if (star.isQuiet) {
                             Box(
                                 modifier = Modifier
@@ -435,7 +461,7 @@ private fun HomeScreenPreview() {
                 isQuietModeActive = true,
                 stars = listOf(
                     StarPerson("minh", "Minh", "M", AppPalette.MoodThuong, 88.dp, 0.46f, 0.15f, isQuiet = true),
-                    StarPerson("nha", "Nhà mình", "N", AppPalette.MoodVui, 64.dp, 0.16f, 0.36f),
+                    StarPerson("nha", "Nhà mình", "N", AppPalette.MoodVui, 64.dp, 0.16f, 0.36f, memberCount = 3),
                     StarPerson("thao", "Thảo", "T", AppPalette.MoodNho, 58.dp, 0.80f, 0.38f),
                     StarPerson("ba", "Ba", "B", AppPalette.MoodBinhYen, 44.dp, 0.30f, 0.70f),
                     StarPerson("vy", "Bảo Vy", "V", AppPalette.MoodTram, 40.dp, 0.70f, 0.72f),
