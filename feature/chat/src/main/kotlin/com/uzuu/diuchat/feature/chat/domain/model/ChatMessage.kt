@@ -12,4 +12,9 @@ data class ChatMessage(
     val replyQuote: String? = null,
     val createdAtEpochMs: Long = System.currentTimeMillis(),
     val isFromMe: Boolean = true,
+    val mediaType: MessageMediaType = MessageMediaType.TEXT,
+    val mediaUri: String? = null,
+    val audioDurationMs: Long? = null,
+    val audioWaveform: List<Float> = emptyList(),
+    val caption: String? = null,
 )

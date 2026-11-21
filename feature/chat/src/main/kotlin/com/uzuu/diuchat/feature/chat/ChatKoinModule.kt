@@ -6,6 +6,8 @@ import com.uzuu.diuchat.feature.chat.data.repository.ChatRepositoryImpl
 import com.uzuu.diuchat.feature.chat.domain.repository.ChatRepository
 import com.uzuu.diuchat.feature.chat.domain.usecase.GetMessagesUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.SendMessageUseCase
+import com.uzuu.diuchat.feature.chat.domain.usecase.SendPhotoMessageUseCase
+import com.uzuu.diuchat.feature.chat.domain.usecase.SendVoiceMessageUseCase
 import com.uzuu.diuchat.feature.chat.presentation.screen.ChatViewModel
 import org.koin.core.module.dsl.bind
 import org.koin.core.module.dsl.singleOf
@@ -31,6 +33,8 @@ val featureChatModules =
         singleOf(::ChatRepositoryImpl) { bind<ChatRepository>() }
         singleOf(::GetMessagesUseCase)
         singleOf(::SendMessageUseCase)
+        singleOf(::SendPhotoMessageUseCase)
+        singleOf(::SendVoiceMessageUseCase)
 
         viewModelOf(::ChatViewModel)
     }

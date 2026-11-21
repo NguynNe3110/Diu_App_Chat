@@ -1,5 +1,9 @@
 package com.uzuu.diuchat.feature.chat.presentation.screen
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -36,9 +40,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.uzuu.diuchat.feature.base.common.res.AppTheme
+import com.uzuu.diuchat.feature.chat.domain.model.VoiceRecordingState
 import com.uzuu.diuchat.feature.chat.presentation.composable.ChatComposer
 import com.uzuu.diuchat.feature.chat.presentation.composable.MessageBubble
 import com.uzuu.diuchat.feature.chat.presentation.composable.ReplyQuoteBar
+import com.uzuu.diuchat.feature.chat.presentation.composable.VoiceRecorderBar
 import org.koin.androidx.compose.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -50,6 +56,14 @@ fun ChatScreen(
 ) {
     val state by viewModel.uiStateFlow.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
+
+    val photoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia(),
+    ) { uri: Uri? ->
+        if (uri != null) {
+            viewModel.onPhotoSelected(uri.toString())
+        }
+    }
 
     // Scroll to bottom on new message
     LaunchedEffect(state.messages.size) {
@@ -125,16 +139,40 @@ fun ChatScreen(
                     )
                 }
 
-                ChatComposer(
-                    inputContent = state.inputContent,
-                    selectedMood = state.selectedMood,
-                    isMoodTrayOpen = state.isMoodTrayOpen,
-                    isSending = state.isSending,
-                    onInputChange = viewModel::onInputChanged,
-                    onSelectMood = viewModel::onSelectMood,
-                    onToggleMoodTray = viewModel::onToggleMoodTray,
-                    onSendClick = viewModel::onSendMessage,
-                )
+                if (state.voiceRecordingState !is VoiceRecordingState.Idle) {
+                    VoiceRecorderBar(
+                        recordingState = state.voiceRecordingState,
+                        selectedMood = state.selectedMood,
+                        onCancelRecording = viewModel::onCancelVoiceRecording,
+                        onStopRecording = { viewModel.onStopVoiceRecording() },
+                        onSendVoiceMessage = viewModel::onSendVoiceMessage,
+                        onTogglePreviewPlay = viewModel::onTogglePreviewPlay,
+                    )
+                } else {
+                    ChatComposer(
+                        inputContent = state.inputContent,
+                        selectedMood = state.selectedMood,
+                        isMoodTrayOpen = state.isMoodTrayOpen,
+                        isSending = state.isSending,
+                        pendingPhotoUri = state.pendingPhotoUri,
+                        onInputChange = viewModel::onInputChanged,
+                        onSelectMood = viewModel::onSelectMood,
+                        onToggleMoodTray = viewModel::onToggleMoodTray,
+                        onAttachPhotoClick = {
+                            try {
+                                photoPickerLauncher.launch(
+                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
+                                )
+                            } catch (_: Exception) {
+                                // Fallback sample photo for testing / preview
+                                viewModel.onPhotoSelected("https://picsum.photos/400/300")
+                            }
+                        },
+                        onClearPhotoClick = viewModel::onClearPhoto,
+                        onStartVoiceRecording = viewModel::onStartVoiceRecording,
+                        onSendClick = viewModel::onSendMessage,
+                    )
+                }
             }
         },
     ) { paddingValues ->
@@ -194,6 +232,9 @@ fun ChatScreen(
                         MessageBubble(
                             message = message,
                             onReplyClick = viewModel::onReplyToMessage,
+                            isPlayingAudio = state.playingAudioMessageId == message.id,
+                            audioProgress = state.audioPlaybackProgress,
+                            onToggleAudioPlayback = viewModel::onToggleAudioPlayback,
                         )
                     }
                 }
