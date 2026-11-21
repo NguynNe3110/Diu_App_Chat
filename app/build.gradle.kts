@@ -46,5 +46,6 @@ dependencies {
     implementation(projects.feature.contacts)
     implementation(projects.feature.home)
     implementation(projects.feature.chat)
+    implementation(projects.feature.settings)
     implementation(projects.feature.media)
 }

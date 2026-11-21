@@ -200,7 +200,7 @@ private fun getBottomNavigationItems() = listOf(
     DiuNavigationItem(
         iconRes = AppIcons.People,
         contentDescription = "Danh bạ",
-        route = NavigationRoute.AboutLibraries, // todo refactor route
+        route = NavigationRoute.Contacts,
     ),
     DiuNavigationItem(
         iconRes = AppIcons.QrCode,

@@ -29,6 +29,7 @@ import com.uzuu.diuchat.feature.media.presentation.vault.MediaVaultScreen
 import com.uzuu.diuchat.feature.media.presentation.viewer.PhotoViewerScreen
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuAmbientBackground
 import com.uzuu.diuchat.feature.onboarding.presentation.screen.OnBoardingScreen
+import com.uzuu.diuchat.feature.settings.presentation.screen.SettingsScreen
 
 @Composable
 fun MainShowcaseScreen(modifier: Modifier = Modifier) {
@@ -159,6 +160,9 @@ fun MainShowcaseScreen(modifier: Modifier = Modifier) {
                             navController.popBackStack()
                         },
                     )
+                }
+                composable<NavigationRoute.Settings> {
+                    SettingsScreen()
                 }
 //            composable<NavigationRoute.Favourites> {
 //                FavouriteScreen()

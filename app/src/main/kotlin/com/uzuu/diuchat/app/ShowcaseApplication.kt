@@ -9,6 +9,7 @@ import com.uzuu.diuchat.feature.contacts.featureContactsModules
 import com.uzuu.diuchat.feature.home.di.featureHomeModule
 import com.uzuu.diuchat.feature.media.featureMediaModule
 import com.uzuu.diuchat.feature.onboarding.featureOnboardingModules
+import com.uzuu.diuchat.feature.settings.featureSettingsModules
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
 import org.koin.core.context.GlobalContext
@@ -35,6 +36,7 @@ class ShowcaseApplication : Application() {
             modules(featureContactsModules)
             modules(featureHomeModule)
             modules(featureMediaModule)
+            modules(featureSettingsModules)
         }
     }
 
