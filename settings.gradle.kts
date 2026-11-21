@@ -35,3 +35,6 @@ enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
 include(":feature:onboarding")
 include(":feature:auth")
+include(":feature:home")
+include(":feature:contacts")
+include(":feature:chat")

@@ -187,7 +187,7 @@ private fun getBottomNavigationItems() =
         DiuNavigationItem(
             iconRes = AppIcons.Chat,
             contentDescription = "Trò chuyện",
-            route = NavigationRoute.AlbumList, //todo refactor route
+            route = NavigationRoute.Home,
         ),
         DiuNavigationItem(
             iconRes = AppIcons.Phone,

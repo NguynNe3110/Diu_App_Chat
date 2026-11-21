@@ -21,6 +21,9 @@ import com.uzuu.diuchat.app.presentation.util.NavigationDestinationLogger
 import com.uzuu.diuchat.feature.album.presentation.screen.albumdetail.AlbumDetailScreen
 import com.uzuu.diuchat.feature.album.presentation.screen.albumlist.AlbumListScreen
 import com.uzuu.diuchat.feature.auth.presentation.screen.AuthScreen
+import com.uzuu.diuchat.feature.chat.presentation.screen.ChatScreen
+import com.uzuu.diuchat.feature.contacts.presentation.screen.ContactsScreen
+import com.uzuu.diuchat.feature.home.presentation.HomeScreen
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuAmbientBackground
 import com.uzuu.onboarding.presentation.screen.OnBoardingScreen
 
@@ -40,7 +43,8 @@ fun MainShowcaseScreen(modifier: Modifier = Modifier) {
             containerColor = Color.Transparent,
             bottomBar = {
                 val isAuthOrOnboarding = backStackEntry?.destination?.hasRoute<NavigationRoute.OnBoarding>() == true ||
-                    backStackEntry?.destination?.hasRoute<NavigationRoute.Auth>() == true
+                    backStackEntry?.destination?.hasRoute<NavigationRoute.Auth>() == true ||
+                    backStackEntry?.destination?.hasRoute<NavigationRoute.Chat>() == true
                 if (!isAuthOrOnboarding) {
                     BottomNavigationBar(navController)
                 }
@@ -65,10 +69,27 @@ fun MainShowcaseScreen(modifier: Modifier = Modifier) {
             composable<NavigationRoute.Auth> {
                 AuthScreen(
                     onAuthSuccess = {
-                        navController.navigate(NavigationRoute.AlbumList) {
+                        navController.navigate(NavigationRoute.Home) {
                             popUpTo<NavigationRoute.Auth> { inclusive = true }
                             launchSingleTop = true
                         }
+                    },
+                )
+            }
+            composable<NavigationRoute.Home> {
+                HomeScreen(
+                    onOpenContacts = {
+                        navController.navigate(NavigationRoute.AboutLibraries)
+                    },
+                )
+            }
+            composable<NavigationRoute.Contacts> {
+                ContactsScreen()
+            }
+            composable<NavigationRoute.Chat> {
+                ChatScreen(
+                    onBackClick = {
+                        navController.popBackStack()
                     },
                 )
             }

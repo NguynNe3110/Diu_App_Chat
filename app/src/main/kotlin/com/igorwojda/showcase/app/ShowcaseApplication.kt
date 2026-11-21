@@ -4,6 +4,9 @@ import android.app.Application
 import com.uzuu.diuchat.app.di.appModule
 import com.uzuu.diuchat.feature.album.featureAlbumModules
 import com.uzuu.diuchat.feature.auth.featureAuthModules
+import com.uzuu.diuchat.feature.chat.featureChatModules
+import com.uzuu.diuchat.feature.contacts.featureContactsModules
+import com.uzuu.diuchat.feature.home.di.featureHomeModule
 import com.uzuu.onboarding.featureOnboardingModules
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
@@ -27,6 +30,9 @@ class ShowcaseApplication : Application() {
             modules(featureAlbumModules)
             modules(featureOnboardingModules)
             modules(featureAuthModules)
+            modules(featureChatModules)
+            modules(featureContactsModules)
+            modules(featureHomeModule)
         }
     }
 

@@ -43,5 +43,8 @@ dependencies {
     implementation(projects.feature.album)
     implementation(projects.feature.onboarding)
     implementation(projects.feature.auth)
+    implementation(projects.feature.contacts)
+    implementation(projects.feature.home)
+    implementation(projects.feature.chat)
 
 }

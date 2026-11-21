@@ -10,6 +10,15 @@ sealed interface NavigationRoute {
     data object Auth : NavigationRoute
 
     @Serializable
+    data object Home : NavigationRoute
+
+    @Serializable
+    data object Contacts : NavigationRoute
+
+    @Serializable
+    data class Chat(val conversationId: String = "conv_linh_diu") : NavigationRoute
+
+    @Serializable
     data object AlbumList : NavigationRoute
 
     @Serializable

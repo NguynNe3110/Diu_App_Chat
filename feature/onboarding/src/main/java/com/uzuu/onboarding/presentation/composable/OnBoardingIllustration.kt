@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -27,64 +28,29 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.igorwojda.showcase.feature.base.domain.domain.Mood
+import com.igorwojda.showcase.feature.base.presentation.compose.composable.DiuMoodDot
+import com.uzuu.diuchat.feature.base.R
 import com.uzuu.diuchat.feature.base.common.res.AppPalette
 import com.uzuu.diuchat.feature.base.common.res.AppTheme
+import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuOrbAvatar
 
 // ─── Màu 5 cảm xúc ───────────────────────────────────────────────────────────
-private data class MoodItem(val name: String, val color: Color)
 
 private val moods = listOf(
-    MoodItem("Thương", AppPalette.MoodThuong),
-    MoodItem("Vui", AppPalette.MoodVui),
-    MoodItem("Bình yên", AppPalette.MoodBinhYen),
-    MoodItem("Nhớ", AppPalette.MoodNho),
-    MoodItem("Trầm", AppPalette.MoodTram),
+    Mood("Thương", AppPalette.MoodThuong),
+    Mood("Vui", AppPalette.MoodVui),
+    Mood("Bình yên", AppPalette.MoodBinhYen),
+    Mood("Nhớ", AppPalette.MoodNho),
+    Mood("Trầm", AppPalette.MoodTram),
 )
 
-// ─── Orb đơn giản (quả cầu phát sáng) ───────────────────────────────────────
-@Composable
-private fun MiniOrb(
-    initial: String,
-    color: Color,
-    size: Dp,
-    floatOffsetY: Dp,
-    modifier: Modifier = Modifier,
-) {
-    Box(
-        modifier = modifier
-            .size(size)
-            .offset(y = floatOffsetY)
-            .shadow(elevation = 0.dp, shape = CircleShape)
-            .clip(CircleShape)
-            .background(
-                brush = Brush.radialGradient(
-                    colors = listOf(
-                        color.copy(alpha = 0.5f),
-                        color,
-                        color.copy(alpha = 0.8f),
-                    ),
-                ),
-            )
-            .border(
-                width = 0.5.dp,
-                color = color.copy(alpha = 0.3f),
-                shape = CircleShape,
-            ),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            text = initial,
-            color = Color.White.copy(alpha = 0.9f),
-            fontSize = (size.value * 0.3f).sp,
-            textAlign = TextAlign.Center,
-        )
-    }
-}
 
 // ─── Slide 0: Chòm sao Orb bồng bềnh ─────────────────────────────────────────
 @Composable
@@ -110,31 +76,37 @@ private fun Slide0Illustration() {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(260.dp),
+            .height(300.dp),
     ) {
         // Orb L — Vui — to nhất, góc trái
-        MiniOrb(
-            initial = "L",
-            color = AppPalette.MoodVui,
-            size = 110.dp,
+        DiuOrbAvatar(
+            initials = "T",
+            moodColor = AppTheme.colors.moods.vui,
+            size = 130.dp,
             floatOffsetY = float1.dp,
-            modifier = Modifier.align(Alignment.TopStart).offset(x = 40.dp, y = 60.dp),
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .offset(x = 40.dp, y = 60.dp),
         )
-        // Orb M — Thương — cỡ vừa, giữa trên
-        MiniOrb(
-            initial = "M",
-            color = AppPalette.MoodThuong,
-            size = 82.dp,
+
+        DiuOrbAvatar(
+            initials = "M",
+            moodColor = AppTheme.colors.moods.thuong,
+            size = 80.dp,
             floatOffsetY = float2.dp,
-            modifier = Modifier.align(Alignment.TopCenter).offset(x = 30.dp, y = 20.dp),
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .offset(x = 48.dp, y = 20.dp),
         )
-        // Orb N — Bình yên — nhỏ, phải
-        MiniOrb(
-            initial = "N",
-            color = AppPalette.MoodBinhYen,
-            size = 62.dp,
+
+        DiuOrbAvatar(
+            initials = "T",
+            moodColor = AppTheme.colors.moods.binhyen,
+            size = 60.dp,
             floatOffsetY = float3.dp,
-            modifier = Modifier.align(Alignment.TopEnd).offset(x = (-24).dp, y = 140.dp),
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .offset(x = -54.dp, y = 140.dp),
         )
     }
 }
@@ -164,12 +136,9 @@ private fun Slide1Illustration() {
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(14.dp),
             ) {
-                // Viên màu phát sáng
-                Box(
-                    modifier = Modifier
-                        .size(38.dp)
-                        .clip(CircleShape)
-                        .background(mood.color.copy(alpha = glow)),
+                DiuMoodDot(
+                    color = mood.color,
+                    size = 38.dp,
                 )
                 Text(
                     text = mood.name,
@@ -220,7 +189,12 @@ private fun Slide2Illustration() {
                 ),
             contentAlignment = Alignment.Center,
         ) {
-            Text(text = "✉", fontSize = 44.sp)
+            Icon(
+                painter = painterResource(R.drawable.ic_envelope),
+                contentDescription = null,
+                modifier = Modifier.size(30.dp),
+                tint = AppTheme.colors.ink,
+            )
         }
 
         // Hình tròn mặt trăng (nhỏ, góc phải)
@@ -240,7 +214,12 @@ private fun Slide2Illustration() {
                 ),
             contentAlignment = Alignment.Center,
         ) {
-            Text(text = "🌙", fontSize = 28.sp)
+            Icon(
+                painter = painterResource(R.drawable.ic_moon),
+                contentDescription = null,
+                modifier = Modifier.size(20.dp),
+                tint = AppTheme.colors.ink,
+            )
         }
     }
 }
