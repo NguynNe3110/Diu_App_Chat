@@ -3,8 +3,11 @@ package com.uzuu.diuchat.feature.media
 import com.uzuu.diuchat.feature.media.data.repository.MediaRepositoryImpl
 import com.uzuu.diuchat.feature.media.domain.repository.MediaRepository
 import com.uzuu.diuchat.feature.media.domain.usecase.ClearCacheUseCase
+import com.uzuu.diuchat.feature.media.domain.usecase.ClearConversationMediaUseCase
+import com.uzuu.diuchat.feature.media.domain.usecase.GetAutoDownloadPolicyUseCase
 import com.uzuu.diuchat.feature.media.domain.usecase.GetStorageStatsUseCase
 import com.uzuu.diuchat.feature.media.domain.usecase.GetVaultMediaUseCase
+import com.uzuu.diuchat.feature.media.domain.usecase.UpdateAutoDownloadPolicyUseCase
 import com.uzuu.diuchat.feature.media.presentation.storage.StorageViewModel
 import com.uzuu.diuchat.feature.media.presentation.vault.MediaVaultViewModel
 import org.koin.core.module.dsl.bind
@@ -18,6 +21,9 @@ val featureMediaModule = module {
     singleOf(::GetVaultMediaUseCase)
     singleOf(::GetStorageStatsUseCase)
     singleOf(::ClearCacheUseCase)
+    singleOf(::ClearConversationMediaUseCase)
+    singleOf(::GetAutoDownloadPolicyUseCase)
+    singleOf(::UpdateAutoDownloadPolicyUseCase)
 
     viewModelOf(::MediaVaultViewModel)
     viewModelOf(::StorageViewModel)

@@ -2,20 +2,28 @@ package com.uzuu.diuchat.feature.media.presentation.storage
 
 import androidx.lifecycle.viewModelScope
 import com.uzuu.diuchat.feature.base.presentation.viewmodel.BaseViewModel
+import com.uzuu.diuchat.feature.media.domain.model.AutoDownloadPolicy
 import com.uzuu.diuchat.feature.media.domain.model.ConversationStorage
 import com.uzuu.diuchat.feature.media.domain.usecase.ClearCacheUseCase
+import com.uzuu.diuchat.feature.media.domain.usecase.ClearConversationMediaUseCase
+import com.uzuu.diuchat.feature.media.domain.usecase.GetAutoDownloadPolicyUseCase
 import com.uzuu.diuchat.feature.media.domain.usecase.GetStorageStatsUseCase
+import com.uzuu.diuchat.feature.media.domain.usecase.UpdateAutoDownloadPolicyUseCase
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 
 class StorageViewModel(
     private val clearCacheUseCase: ClearCacheUseCase,
+    private val clearConversationMediaUseCase: ClearConversationMediaUseCase,
+    private val getAutoDownloadPolicyUseCase: GetAutoDownloadPolicyUseCase,
     private val getStorageStatsUseCase: GetStorageStatsUseCase,
+    private val updateAutoDownloadPolicyUseCase: UpdateAutoDownloadPolicyUseCase,
 ) : BaseViewModel<StorageUiState, StorageAction>(StorageUiState()) {
 
     init {
         loadStorageStats()
+        loadAutoDownloadPolicy()
     }
 
     fun loadStorageStats() {
@@ -27,8 +35,24 @@ class StorageViewModel(
             .launchIn(viewModelScope)
     }
 
+    fun loadAutoDownloadPolicy() {
+        getAutoDownloadPolicyUseCase()
+            .onEach { policy ->
+                sendAction(StorageAction.SetAutoDownloadPolicy(policy))
+            }
+            .launchIn(viewModelScope)
+    }
+
+    fun onSetAutoDownloadPolicy(policy: AutoDownloadPolicy) {
+        viewModelScope.launch {
+            updateAutoDownloadPolicyUseCase(policy)
+            sendAction(StorageAction.SetAutoDownloadPolicy(policy))
+        }
+    }
+
     fun onToggleAutoDownloadWifi(enabled: Boolean) {
-        sendAction(StorageAction.ToggleAutoDownloadWifi(enabled))
+        val newPolicy = if (enabled) AutoDownloadPolicy.WIFI_ONLY else AutoDownloadPolicy.MANUAL
+        onSetAutoDownloadPolicy(newPolicy)
     }
 
     fun onToggleAutoDownloadVoice(enabled: Boolean) {
@@ -43,6 +67,10 @@ class StorageViewModel(
         sendAction(StorageAction.SetShowClearDialog(show))
     }
 
+    fun onSelectConversationToClear(conversation: ConversationStorage?) {
+        sendAction(StorageAction.SetSelectedConversationToClear(conversation))
+    }
+
     fun onConfirmClearCache() {
         sendAction(StorageAction.SetClearing(true))
         viewModelScope.launch {
@@ -53,6 +81,25 @@ class StorageViewModel(
                 }
                 .onFailure {
                     sendAction(StorageAction.SetClearing(false))
+                }
+        }
+    }
+
+    fun onConfirmClearConversationMedia() {
+        val conv = uiStateFlow.value.selectedConversationToClear ?: return
+        sendAction(StorageAction.SetClearingConversation(true))
+        viewModelScope.launch {
+            clearConversationMediaUseCase(conv.conversationId)
+                .onSuccess { bytes ->
+                    val sizeFormatted = ConversationStorage.formatBytes(bytes)
+                    sendAction(
+                        StorageAction.CacheCleared(
+                            "Đã xóa $sizeFormatted tệp đệm của ${conv.contactName}",
+                        ),
+                    )
+                }
+                .onFailure {
+                    sendAction(StorageAction.SetClearingConversation(false))
                 }
         }
     }
