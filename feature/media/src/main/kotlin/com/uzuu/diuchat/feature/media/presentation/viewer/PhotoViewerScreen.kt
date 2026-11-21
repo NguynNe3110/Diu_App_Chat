@@ -6,6 +6,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -19,8 +20,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Reply
+import androidx.compose.material.icons.outlined.BookmarkBorder
+import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material3.Icon
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -32,16 +39,27 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import com.uzuu.diuchat.feature.base.common.res.AppIcons
 import com.uzuu.diuchat.feature.base.common.res.AppPalette
 import com.uzuu.diuchat.feature.base.common.res.AppTheme
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuIconButton
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuMoodDot
+
+private val viewerMoodReactions = listOf(
+    "Thương" to AppPalette.MoodThuong,
+    "Vui" to AppPalette.MoodVui,
+    "Bình yên" to AppPalette.MoodBinhYen,
+    "Nhớ" to AppPalette.MoodNho,
+    "Trầm" to AppPalette.MoodTram,
+)
 
 @Composable
 fun PhotoViewerScreen(
@@ -52,8 +70,16 @@ fun PhotoViewerScreen(
     onBackClick: () -> Unit,
     onShareClick: () -> Unit,
     modifier: Modifier = Modifier,
+    imageUrl: String = "",
+    selectedReactionMood: String? = null,
+    onReactionClick: (String) -> Unit = {},
+    onReplyClick: () -> Unit = {},
+    onSaveMemoryClick: () -> Unit = {},
+    onDeleteClick: () -> Unit = {},
 ) {
     var showControls by remember { mutableStateOf(true) }
+    var hasLoadError by remember(imageUrl) { mutableStateOf(false) }
+    var localReactionMood by remember(selectedReactionMood) { mutableStateOf(selectedReactionMood) }
     val moodColor = when (moodName) {
         "Thương" -> AppPalette.MoodThuong
         "Vui" -> AppPalette.MoodVui
@@ -90,22 +116,33 @@ fun PhotoViewerScreen(
                 ),
             contentAlignment = Alignment.Center,
         ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center,
-            ) {
-                Icon(
-                    painter = painterResource(AppIcons.Image),
-                    contentDescription = null,
-                    tint = moodColor.copy(alpha = 0.8f),
-                    modifier = Modifier.size(56.dp),
+            if (imageUrl.isNotBlank() && !hasLoadError) {
+                AsyncImage(
+                    model = imageUrl,
+                    contentDescription = caption.ifBlank { "Hình ảnh kỷ niệm" },
+                    contentScale = ContentScale.Crop,
+                    onError = { hasLoadError = true },
+                    onSuccess = { hasLoadError = false },
+                    modifier = Modifier.fillMaxSize(),
                 )
-                Spacer(modifier = Modifier.height(12.dp))
-                Text(
-                    text = caption.ifBlank { "Hình ảnh kỷ niệm" },
-                    color = Color.White.copy(alpha = 0.9f),
-                    style = AppTheme.typography.bodyMedium.copy(fontSize = 15.sp),
-                )
+            } else {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                ) {
+                    Icon(
+                        painter = painterResource(AppIcons.Image),
+                        contentDescription = null,
+                        tint = moodColor.copy(alpha = 0.8f),
+                        modifier = Modifier.size(56.dp),
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        text = caption.ifBlank { "Hình ảnh kỷ niệm" },
+                        color = Color.White.copy(alpha = 0.9f),
+                        style = AppTheme.typography.bodyMedium.copy(fontSize = 15.sp),
+                    )
+                }
             }
         }
 
@@ -208,7 +245,96 @@ fun PhotoViewerScreen(
                         style = AppTheme.typography.bodyLarge.copy(fontSize = 17.sp),
                     )
                 }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // 5 mood reaction dots
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(14.dp, Alignment.CenterHorizontally),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    viewerMoodReactions.forEach { (reactionName, reactionColor) ->
+                        val isSelected = localReactionMood == reactionName
+                        Box(
+                            modifier = Modifier
+                                .size(if (isSelected) 34.dp else 28.dp)
+                                .clip(CircleShape)
+                                .background(reactionColor.copy(alpha = if (isSelected) 0.95f else 0.75f))
+                                .then(
+                                    if (isSelected) {
+                                        Modifier.border(2.dp, Color.White, CircleShape)
+                                    } else {
+                                        Modifier
+                                    },
+                                )
+                                .clickable {
+                                    localReactionMood = if (isSelected) null else reactionName
+                                    onReactionClick(reactionName)
+                                },
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Bottom actions: Trả lời, Lưu kỷ niệm, Xoá
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                ) {
+                    PhotoViewerBottomAction(
+                        icon = Icons.AutoMirrored.Filled.Reply,
+                        label = "Trả lời",
+                        onClick = onReplyClick,
+                    )
+                    PhotoViewerBottomAction(
+                        icon = Icons.Outlined.BookmarkBorder,
+                        label = "Lưu kỷ niệm",
+                        onClick = onSaveMemoryClick,
+                    )
+                    PhotoViewerBottomAction(
+                        icon = Icons.Outlined.DeleteOutline,
+                        label = "Xoá",
+                        tint = AppPalette.MoodThuong,
+                        onClick = onDeleteClick,
+                    )
+                }
             }
+        }
+    }
+}
+
+@Composable
+private fun PhotoViewerBottomAction(
+    icon: ImageVector,
+    label: String,
+    onClick: () -> Unit,
+    tint: Color = Color.White,
+) {
+    Surface(
+        shape = RoundedCornerShape(14.dp),
+        color = Color.White.copy(alpha = 0.12f),
+        modifier = Modifier
+            .clip(RoundedCornerShape(14.dp))
+            .clickable(onClick = onClick),
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = label,
+                tint = tint,
+                modifier = Modifier.size(20.dp),
+            )
+            Text(
+                text = label,
+                color = tint,
+                style = AppTheme.typography.labelSmall,
+            )
         }
     }
 }

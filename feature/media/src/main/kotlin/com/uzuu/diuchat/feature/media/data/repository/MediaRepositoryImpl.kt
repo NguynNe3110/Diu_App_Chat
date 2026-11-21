@@ -1,21 +1,28 @@
 package com.uzuu.diuchat.feature.media.data.repository
 
+import android.content.Context
 import com.uzuu.diuchat.feature.base.common.res.AppPalette
+import com.uzuu.diuchat.feature.media.data.datasource.preferences.MediaPreferencesDataSource
 import com.uzuu.diuchat.feature.media.domain.model.AutoDownloadPolicy
 import com.uzuu.diuchat.feature.media.domain.model.ConversationStorage
 import com.uzuu.diuchat.feature.media.domain.model.MediaType
 import com.uzuu.diuchat.feature.media.domain.model.MediaVaultItem
 import com.uzuu.diuchat.feature.media.domain.model.StorageStats
 import com.uzuu.diuchat.feature.media.domain.repository.MediaRepository
+import java.io.File
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
 
-class MediaRepositoryImpl : MediaRepository {
+class MediaRepositoryImpl(
+    private val context: Context,
+    private val preferencesDataSource: MediaPreferencesDataSource,
+) : MediaRepository {
 
     private val mediaItemsFlow = MutableStateFlow(createInitialMediaItems())
-    private val autoDownloadPolicyFlow = MutableStateFlow(AutoDownloadPolicy.WIFI_ONLY)
 
     private val storageStatsFlow = MutableStateFlow(
         StorageStats(
@@ -65,20 +72,39 @@ class MediaRepositoryImpl : MediaRepository {
 
     override fun getStorageStats(): Flow<StorageStats> = storageStatsFlow.asStateFlow()
 
-    override fun getAutoDownloadPolicy(): Flow<AutoDownloadPolicy> = autoDownloadPolicyFlow.asStateFlow()
+    override fun getAutoDownloadPolicy(): Flow<AutoDownloadPolicy> = preferencesDataSource.autoDownloadPolicyFlow
 
     override suspend fun updateAutoDownloadPolicy(policy: AutoDownloadPolicy) {
-        autoDownloadPolicyFlow.value = policy
+        preferencesDataSource.updateAutoDownloadPolicy(policy)
     }
 
-    override suspend fun clearCache(): Result<Long> {
-        val current = storageStatsFlow.value
-        val clearedBytes = current.cacheBytes
-        storageStatsFlow.value = current.copy(
-            cacheBytes = 0L,
-            totalStorageBytes = current.photosBytes + current.voiceBytes,
-        )
-        return Result.success(clearedBytes)
+    override suspend fun clearCache(): Result<Long> = withContext(Dispatchers.IO) {
+        runCatching {
+            val actualDeletedBytes = clearDirectoryContents(context.cacheDir)
+            val current = storageStatsFlow.value
+            val clearedBytes = if (actualDeletedBytes > 0L) actualDeletedBytes else current.cacheBytes
+            storageStatsFlow.value = current.copy(
+                cacheBytes = 0L,
+                totalStorageBytes = current.photosBytes + current.voiceBytes,
+            )
+            clearedBytes
+        }
+    }
+
+    private fun clearDirectoryContents(directory: File?): Long {
+        if (directory == null || !directory.exists()) return 0L
+        var deletedBytes = 0L
+        directory.listFiles()?.forEach { child ->
+            deletedBytes += if (child.isDirectory) {
+                val nested = clearDirectoryContents(child)
+                child.delete()
+                nested
+            } else {
+                val size = child.length()
+                if (child.delete()) size else 0L
+            }
+        }
+        return deletedBytes
     }
 
     override suspend fun clearConversationMedia(conversationId: String): Result<Long> {

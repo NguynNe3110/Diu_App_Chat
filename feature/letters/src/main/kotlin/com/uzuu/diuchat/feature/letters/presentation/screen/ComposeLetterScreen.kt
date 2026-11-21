@@ -51,12 +51,13 @@ fun ComposeLetterScreen(
     uiState: LettersUiState,
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier,
+    onRecipientChange: (String, String) -> Unit = { _, _ -> },
     onTitleChange: (String) -> Unit = {},
     onMoodChange: (String) -> Unit = {},
     onShowScheduleSheet: (Boolean) -> Unit = {},
     onContentChange: (String) -> Unit = {},
     onSealAndSend: () -> Unit = {},
-    onSetSchedule: (LetterScheduleType, String) -> Unit = { _, _ -> },
+    onSetSchedule: (LetterScheduleType, String, Long?) -> Unit = { _, _, _ -> },
 ) {
     val colors = AppTheme.colors
     val scrollState = rememberScrollState()
@@ -72,7 +73,7 @@ fun ComposeLetterScreen(
                 .navigationBarsPadding(),
         ) {
             DiuTopBar(
-                title = "Viết thư gửi chậm",
+                title = if (uiState.draftEditingLetterId != null) "Chỉnh sửa thư" else "Viết thư gửi chậm",
                 subtitle = "Gửi đến: ${uiState.draftRecipientName}",
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
@@ -91,6 +92,28 @@ fun ComposeLetterScreen(
                     .verticalScroll(scrollState)
                     .padding(horizontal = 16.dp),
             ) {
+                // Chọn người nhận
+                Text(
+                    text = "Gửi tới",
+                    style = AppTheme.typography.labelSmall,
+                    color = colors.inkSecondary,
+                    modifier = Modifier.padding(top = 12.dp, bottom = 6.dp),
+                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    uiState.availableRecipients.forEach { (recipientId, recipientName) ->
+                        DiuFilterChip(
+                            text = recipientName,
+                            selected = uiState.draftRecipientId == recipientId,
+                            onClick = { onRecipientChange(recipientId, recipientName) },
+                        )
+                    }
+                }
+
                 // Tiêu đề thư
                 Text(
                     text = "Tiêu đề lá thư",

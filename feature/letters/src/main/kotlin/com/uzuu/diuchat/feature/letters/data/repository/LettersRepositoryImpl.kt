@@ -79,6 +79,14 @@ class LettersRepositoryImpl : LettersRepository {
         lettersFlow.update { current -> listOf(letter) + current }
     }
 
+    override suspend fun updateSealedLetter(letter: SealedLetter) {
+        lettersFlow.update { current ->
+            current.map { existing ->
+                if (existing.id == letter.id) letter else existing
+            }
+        }
+    }
+
     override suspend fun openSealedLetter(letterId: String) {
         val now = System.currentTimeMillis()
         val targetLetter = lettersFlow.value.find { it.id == letterId }

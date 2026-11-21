@@ -8,4 +8,5 @@ android {
 
 dependencies {
     implementation(projects.feature.base)
+    implementation(libs.datastore.preferences)
 }

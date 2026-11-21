@@ -69,6 +69,7 @@ fun LettersScreen(
         ComposeLetterScreen(
             uiState = uiState,
             onBackClick = { viewModel.cancelComposing() },
+            onRecipientChange = viewModel::updateDraftRecipient,
             onTitleChange = viewModel::updateDraftTitle,
             onMoodChange = viewModel::updateDraftMood,
             onShowScheduleSheet = viewModel::showScheduleSheet,
@@ -84,6 +85,7 @@ fun LettersScreen(
         onBackClick = onBackClick,
         onSelectTab = viewModel::selectTab,
         onOpenLetter = viewModel::openLetter,
+        onEditLetter = viewModel::startEditing,
         onCancelLetter = viewModel::cancelLetter,
         onSendImmediately = viewModel::sendImmediately,
         onViewOpenedLetter = viewModel::viewOpenedLetter,
@@ -99,6 +101,7 @@ fun LettersContent(
     onBackClick: () -> Unit = {},
     onSelectTab: (LetterTab) -> Unit = {},
     onOpenLetter: (String) -> Unit = {},
+    onEditLetter: (SealedLetter) -> Unit = {},
     onCancelLetter: (String) -> Unit = {},
     onSendImmediately: (String) -> Unit = {},
     onViewOpenedLetter: (SealedLetter) -> Unit = {},
@@ -177,6 +180,7 @@ fun LettersContent(
                             LetterCard(
                                 letter = letter,
                                 onOpenLetter = { onOpenLetter(letter.id) },
+                                onEditLetter = { onEditLetter(letter) },
                                 onCancelLetter = { onCancelLetter(letter.id) },
                                 onSendImmediately = { onSendImmediately(letter.id) },
                                 onViewOpenedLetter = { onViewOpenedLetter(letter) },
@@ -221,6 +225,7 @@ fun LettersContent(
 private fun LetterCard(
     letter: SealedLetter,
     onOpenLetter: () -> Unit,
+    onEditLetter: () -> Unit,
     onCancelLetter: () -> Unit,
     onSendImmediately: () -> Unit,
     onViewOpenedLetter: () -> Unit,
@@ -311,9 +316,20 @@ private fun LetterCard(
                             )
                         }
 
-                        // Thư của mình cho phép gửi ngay hoặc hủy trước giờ mở
+                        // Thư của mình cho phép sửa, gửi ngay hoặc hủy trước giờ mở
                         if (letter.isSender) {
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                DiuButton(
+                                    onClick = onEditLetter,
+                                    variant = DiuButtonVariant.Outline,
+                                    shape = RoundedCornerShape(16.dp),
+                                ) {
+                                    Text(
+                                        text = "Sửa",
+                                        style = AppTheme.typography.labelSmall,
+                                        color = colors.accent,
+                                    )
+                                }
                                 DiuButton(
                                     onClick = onSendImmediately,
                                     variant = DiuButtonVariant.Soft,

@@ -2,6 +2,7 @@ package com.uzuu.diuchat.feature.chat.presentation.screen
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,8 +19,13 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.NotificationsOff
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Shield
+import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -40,6 +46,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -67,6 +74,12 @@ fun ChatInfoScreen(
     onManageMemberRole: (String, GroupRole) -> Unit,
     @Suppress("UnusedParameter") onRemoveMember: (String) -> Unit,
     modifier: Modifier = Modifier,
+    onVoiceCallClick: () -> Unit = {},
+    onVideoCallClick: () -> Unit = {},
+    onSearchInChatClick: () -> Unit = {},
+    onNotificationSoundClick: () -> Unit = {},
+    onOpenSharedMediaClick: () -> Unit = {},
+    onOpenPendingLettersClick: () -> Unit = {},
 ) {
     var isMuted by remember(conversation.isMuted) { mutableStateOf(conversation.isMuted) }
     var showNicknameDialog by remember { mutableStateOf(false) }
@@ -149,6 +162,39 @@ fun ChatInfoScreen(
                         style = AppTheme.typography.bodySmall,
                         color = moodColor,
                     )
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // 4 quick action buttons: Gọi, Video, Tìm, Âm báo
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly,
+                    ) {
+                        ChatInfoQuickActionButton(
+                            icon = Icons.Default.Call,
+                            label = "Gọi",
+                            onClick = onVoiceCallClick,
+                        )
+                        ChatInfoQuickActionButton(
+                            icon = Icons.Default.Videocam,
+                            label = "Video",
+                            onClick = onVideoCallClick,
+                        )
+                        ChatInfoQuickActionButton(
+                            icon = Icons.Default.Search,
+                            label = "Tìm",
+                            onClick = onSearchInChatClick,
+                        )
+                        ChatInfoQuickActionButton(
+                            icon = if (isMuted) Icons.Default.NotificationsOff else Icons.Default.Notifications,
+                            label = "Âm báo",
+                            onClick = {
+                                val nextMuted = !isMuted
+                                isMuted = nextMuted
+                                onToggleMute(nextMuted)
+                                onNotificationSoundClick()
+                            },
+                        )
+                    }
                 }
             }
 
@@ -235,6 +281,24 @@ fun ChatInfoScreen(
                                     contentDescription = "Tắt thông báo",
                                 )
                             },
+                        )
+                    }
+                }
+            }
+
+            // Shared media & pending letters
+            item {
+                DiuCard(modifier = Modifier.fillMaxWidth()) {
+                    Column {
+                        DiuSettingsRow(
+                            title = "Kho chung",
+                            subtitle = "Ảnh, lời nhắn thoại & kỷ niệm",
+                            onClick = onOpenSharedMediaClick,
+                        )
+                        DiuSettingsRow(
+                            title = "Thư hẹn đang chờ",
+                            subtitle = "Xem hoặc soạn thư gửi chậm",
+                            onClick = onOpenPendingLettersClick,
                         )
                     }
                 }
@@ -461,6 +525,39 @@ fun ChatInfoScreen(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun ChatInfoQuickActionButton(
+    icon: ImageVector,
+    label: String,
+    onClick: () -> Unit,
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        IconButton(
+            onClick = onClick,
+            modifier = Modifier
+                .size(44.dp)
+                .clip(CircleShape)
+                .background(AppTheme.colors.surfaceElevated)
+                .border(1.dp, AppTheme.colors.line, CircleShape),
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = label,
+                tint = AppTheme.colors.ink,
+                modifier = Modifier.size(20.dp),
+            )
+        }
+        Text(
+            text = label,
+            style = AppTheme.typography.labelSmall,
+            color = AppTheme.colors.inkSecondary,
+        )
     }
 }
 
