@@ -21,6 +21,22 @@ sealed interface NavigationRoute {
     ) : NavigationRoute
 
     @Serializable
+    data class Media(
+        val conversationId: String = "minh",
+    ) : NavigationRoute
+
+    @Serializable
+    data class PhotoViewer(
+        val caption: String = "",
+        val moodName: String = "",
+        val senderName: String = "",
+        val timestamp: String = "",
+    ) : NavigationRoute
+
+    @Serializable
+    data object Storage : NavigationRoute
+
+    @Serializable
     data object AlbumList : NavigationRoute
 
     @Serializable
