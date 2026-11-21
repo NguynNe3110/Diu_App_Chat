@@ -188,4 +188,31 @@ class AuthViewModelTest {
         authSuccessCalled shouldBeEqualTo false
         sut.uiStateFlow.value.usernameErrorMessage shouldBeEqualTo "Tên định danh @minh_an đã được sử dụng. Vui lòng chọn tên khác."
     }
+
+    @Test
+    fun `onGoogleIdTokenReceived surfaces error when sign in fails`() = runTest {
+        coEvery { mockSignInWithGoogleUseCase(any()) } returns Result.failure(Exception("Token expired"))
+
+        var authSuccessCalled = false
+        sut.onGoogleIdTokenReceived("expired_token", onAuthSuccess = { authSuccessCalled = true })
+        advanceUntilIdle()
+
+        authSuccessCalled shouldBeEqualTo false
+        sut.uiStateFlow.value.isGoogleLoading shouldBeEqualTo false
+        sut.uiStateFlow.value.googleErrorMessage shouldBeEqualTo "Token expired"
+    }
+
+    @Test
+    fun `onGoogleIdTokenReceived surfaces error when username check fails`() = runTest {
+        coEvery { mockSignInWithGoogleUseCase(any()) } returns Result.success(Unit)
+        coEvery { mockCheckHasUsernameUseCase() } returns Result.failure(Exception("Network error"))
+
+        var authSuccessCalled = false
+        sut.onGoogleIdTokenReceived("valid_token", onAuthSuccess = { authSuccessCalled = true })
+        advanceUntilIdle()
+
+        authSuccessCalled shouldBeEqualTo false
+        sut.uiStateFlow.value.isChoosingUsername shouldBeEqualTo false
+        sut.uiStateFlow.value.googleErrorMessage shouldBeEqualTo "Network error"
+    }
 }

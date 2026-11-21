@@ -149,9 +149,13 @@ class AuthViewModel(
                 } else {
                     sendAction(AuthAction.ShowChooseUsername())
                 }
-            }.onFailure {
-                sendAction(AuthAction.SetGoogleLoading(isLoading = false))
-                sendAction(AuthAction.ShowChooseUsername())
+            }.onFailure { error ->
+                sendAction(
+                    AuthAction.SetGoogleLoading(
+                        isLoading = false,
+                        error = error.message ?: "Không thể kiểm tra thông tin tài khoản. Vui lòng thử lại.",
+                    ),
+                )
             }
     }
 

@@ -47,6 +47,7 @@ import com.uzuu.diuchat.feature.auth.presentation.composable.Keypad
 import com.uzuu.diuchat.feature.auth.presentation.composable.OtpCells
 import com.uzuu.diuchat.feature.auth.presentation.util.GoogleSignInHelper
 import com.uzuu.diuchat.feature.base.common.res.AppTheme
+import com.uzuu.diuchat.feature.base.common.res.DiuSerif
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuButton
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuTopBar
 import kotlinx.coroutines.CancellationException
@@ -163,7 +164,7 @@ private fun PhoneInputContent(
                 AppTheme.typography.headlineLarge.copy(
                     fontSize = 32.sp,
                     fontWeight = FontWeight.Bold,
-                    fontFamily = FontFamily.Serif,
+                    fontFamily = DiuSerif,
                     lineHeight = 40.sp,
                 ),
                 color = colors.ink,
@@ -400,7 +401,7 @@ private fun ChooseUsernameContent(
             AppTheme.typography.headlineLarge.copy(
                 fontSize = 32.sp,
                 fontWeight = FontWeight.Bold,
-                fontFamily = FontFamily.Serif,
+                fontFamily = DiuSerif,
                 lineHeight = 40.sp,
             ),
             color = colors.ink,
@@ -548,7 +549,7 @@ private fun OtpVerificationContent(
                 AppTheme.typography.headlineLarge.copy(
                     fontSize = 32.sp,
                     fontWeight = FontWeight.Bold,
-                    fontFamily = FontFamily.Serif,
+                    fontFamily = DiuSerif,
                     lineHeight = 40.sp,
                 ),
                 color = colors.ink,
