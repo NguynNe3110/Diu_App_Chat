@@ -86,10 +86,62 @@ class AuthActionTest {
             AuthUiState(
                 otpState = OtpState.AwaitingCode("912345678", "123", 100L),
                 resendSecondsRemaining = 30,
+                isChoosingUsername = true,
             )
         val next = AuthAction.BackToPhone("912345678").reduce(initial)
 
         next.otpState shouldBeInstanceOf OtpState.EditingPhone::class
         next.resendSecondsRemaining shouldBeEqualTo 0
+        next.isChoosingUsername shouldBeEqualTo false
+    }
+
+    @Test
+    fun `SetGoogleLoading updates loading and error state`() {
+        val initial = AuthUiState()
+        val loading = AuthAction.SetGoogleLoading(isLoading = true).reduce(initial)
+        loading.isGoogleLoading shouldBeEqualTo true
+        loading.googleErrorMessage shouldBeEqualTo null
+
+        val error = AuthAction.SetGoogleLoading(isLoading = false, error = "Google failed").reduce(loading)
+        error.isGoogleLoading shouldBeEqualTo false
+        error.googleErrorMessage shouldBeEqualTo "Google failed"
+    }
+
+    @Test
+    fun `ShowChooseUsername transitions to choosing username state`() {
+        val initial = AuthUiState(isGoogleLoading = true)
+        val next = AuthAction.ShowChooseUsername("minh_an").reduce(initial)
+
+        next.isChoosingUsername shouldBeEqualTo true
+        next.usernameInput shouldBeEqualTo "minh_an"
+        next.isGoogleLoading shouldBeEqualTo false
+    }
+
+    @Test
+    fun `UpdateUsernameInput updates username input and resets error`() {
+        val initial = AuthUiState(usernameErrorMessage = "Username duplicate")
+        val next = AuthAction.UpdateUsernameInput("new_name").reduce(initial)
+
+        next.usernameInput shouldBeEqualTo "new_name"
+        next.usernameErrorMessage shouldBeEqualTo null
+    }
+
+    @Test
+    fun `SetClaimingUsername updates claiming and error state`() {
+        val initial = AuthUiState()
+        val claiming = AuthAction.SetClaimingUsername(isClaiming = true).reduce(initial)
+        claiming.isClaimingUsername shouldBeEqualTo true
+
+        val failed = AuthAction.SetClaimingUsername(isClaiming = false, error = "Tên đã tồn tại").reduce(claiming)
+        failed.isClaimingUsername shouldBeEqualTo false
+        failed.usernameErrorMessage shouldBeEqualTo "Tên đã tồn tại"
+    }
+
+    @Test
+    fun `ClearGoogleError clears error`() {
+        val initial = AuthUiState(googleErrorMessage = "Lỗi kết nối")
+        val next = AuthAction.ClearGoogleError.reduce(initial)
+
+        next.googleErrorMessage shouldBeEqualTo null
     }
 }

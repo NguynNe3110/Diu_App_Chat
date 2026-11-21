@@ -77,6 +77,51 @@ sealed interface AuthAction : BaseAction<AuthUiState> {
         override fun reduce(state: AuthUiState): AuthUiState = state.copy(
             otpState = OtpState.EditingPhone(phoneNumber = phone),
             resendSecondsRemaining = 0,
+            isChoosingUsername = false,
         )
+    }
+
+    data class SetGoogleLoading(
+        val isLoading: Boolean,
+        val error: String? = null,
+    ) : AuthAction {
+        override fun reduce(state: AuthUiState): AuthUiState = state.copy(
+            isGoogleLoading = isLoading,
+            googleErrorMessage = error,
+        )
+    }
+
+    data class ShowChooseUsername(
+        val initialUsername: String = "",
+    ) : AuthAction {
+        override fun reduce(state: AuthUiState): AuthUiState = state.copy(
+            isChoosingUsername = true,
+            usernameInput = initialUsername,
+            usernameErrorMessage = null,
+            isGoogleLoading = false,
+        )
+    }
+
+    data class UpdateUsernameInput(
+        val input: String,
+    ) : AuthAction {
+        override fun reduce(state: AuthUiState): AuthUiState = state.copy(
+            usernameInput = input,
+            usernameErrorMessage = null,
+        )
+    }
+
+    data class SetClaimingUsername(
+        val isClaiming: Boolean,
+        val error: String? = null,
+    ) : AuthAction {
+        override fun reduce(state: AuthUiState): AuthUiState = state.copy(
+            isClaimingUsername = isClaiming,
+            usernameErrorMessage = error,
+        )
+    }
+
+    data object ClearGoogleError : AuthAction {
+        override fun reduce(state: AuthUiState): AuthUiState = state.copy(googleErrorMessage = null)
     }
 }

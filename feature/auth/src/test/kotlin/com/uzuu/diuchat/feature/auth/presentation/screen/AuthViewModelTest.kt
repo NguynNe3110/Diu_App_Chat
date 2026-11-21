@@ -1,7 +1,10 @@
 package com.uzuu.diuchat.feature.auth.presentation.screen
 
 import com.uzuu.diuchat.feature.auth.domain.model.OtpState
+import com.uzuu.diuchat.feature.auth.domain.usecase.CheckHasUsernameUseCase
+import com.uzuu.diuchat.feature.auth.domain.usecase.ClaimUsernameUseCase
 import com.uzuu.diuchat.feature.auth.domain.usecase.SendOtpUseCase
+import com.uzuu.diuchat.feature.auth.domain.usecase.SignInWithGoogleUseCase
 import com.uzuu.diuchat.feature.auth.domain.usecase.VerifyOtpUseCase
 import com.uzuu.diuchat.library.testutils.CoroutinesTestDispatcherExtension
 import com.uzuu.diuchat.library.testutils.InstantTaskExecutorExtension
@@ -20,11 +23,17 @@ import org.junit.jupiter.api.extension.ExtendWith
 class AuthViewModelTest {
     private val mockSendOtpUseCase: SendOtpUseCase = mockk()
     private val mockVerifyOtpUseCase: VerifyOtpUseCase = mockk()
+    private val mockSignInWithGoogleUseCase: SignInWithGoogleUseCase = mockk()
+    private val mockCheckHasUsernameUseCase: CheckHasUsernameUseCase = mockk()
+    private val mockClaimUsernameUseCase: ClaimUsernameUseCase = mockk()
 
     private val sut =
         AuthViewModel(
             mockSendOtpUseCase,
             mockVerifyOtpUseCase,
+            mockSignInWithGoogleUseCase,
+            mockCheckHasUsernameUseCase,
+            mockClaimUsernameUseCase,
         )
 
     @Test
@@ -33,6 +42,8 @@ class AuthViewModelTest {
         state.otpState shouldBeInstanceOf OtpState.EditingPhone::class
         state.rawPhone shouldBeEqualTo ""
         state.isPhoneValid shouldBeEqualTo false
+        state.isGoogleLoading shouldBeEqualTo false
+        state.isChoosingUsername shouldBeEqualTo false
     }
 
     @Test
@@ -83,9 +94,10 @@ class AuthViewModelTest {
     }
 
     @Test
-    fun `onKeypadOtpPress auto verifies when 6 digits are entered`() = runTest {
+    fun `onKeypadOtpPress auto verifies when 6 digits are entered and user has username`() = runTest {
         coEvery { mockSendOtpUseCase(any()) } returns Result.success(Unit)
         coEvery { mockVerifyOtpUseCase(any(), any()) } returns Result.success(Unit)
+        coEvery { mockCheckHasUsernameUseCase() } returns Result.success(true)
 
         "912345678".forEach { sut.onKeypadPhonePress(it.toString()) }
         sut.onSendOtpClicked()
@@ -115,5 +127,65 @@ class AuthViewModelTest {
         val state = sut.uiStateFlow.value
         state.otpState shouldBeInstanceOf OtpState.EditingPhone::class
         state.rawPhone shouldBeEqualTo "912345678"
+    }
+
+    @Test
+    fun `onGoogleIdTokenReceived navigates to Home when username exists`() = runTest {
+        coEvery { mockSignInWithGoogleUseCase(any()) } returns Result.success(Unit)
+        coEvery { mockCheckHasUsernameUseCase() } returns Result.success(true)
+
+        var authSuccessCalled = false
+        sut.onGoogleIdTokenReceived("valid_id_token", onAuthSuccess = { authSuccessCalled = true })
+
+        advanceUntilIdle()
+
+        authSuccessCalled shouldBeEqualTo true
+        sut.uiStateFlow.value.isGoogleLoading shouldBeEqualTo false
+        sut.uiStateFlow.value.isChoosingUsername shouldBeEqualTo false
+    }
+
+    @Test
+    fun `onGoogleIdTokenReceived prompts username onboarding when username is missing`() = runTest {
+        coEvery { mockSignInWithGoogleUseCase(any()) } returns Result.success(Unit)
+        coEvery { mockCheckHasUsernameUseCase() } returns Result.success(false)
+
+        var authSuccessCalled = false
+        sut.onGoogleIdTokenReceived("valid_id_token", onAuthSuccess = { authSuccessCalled = true })
+
+        advanceUntilIdle()
+
+        authSuccessCalled shouldBeEqualTo false
+        sut.uiStateFlow.value.isGoogleLoading shouldBeEqualTo false
+        sut.uiStateFlow.value.isChoosingUsername shouldBeEqualTo true
+    }
+
+    @Test
+    fun `onConfirmUsernameClicked claims username and navigates to Home`() = runTest {
+        coEvery { mockClaimUsernameUseCase("minh_an", any()) } returns Result.success(Unit)
+
+        sut.onUsernameInputChanged("minh_an")
+        var authSuccessCalled = false
+        sut.onConfirmUsernameClicked(onAuthSuccess = { authSuccessCalled = true })
+
+        advanceUntilIdle()
+
+        authSuccessCalled shouldBeEqualTo true
+        sut.uiStateFlow.value.isClaimingUsername shouldBeEqualTo false
+    }
+
+    @Test
+    fun `onConfirmUsernameClicked shows error when username is duplicate`() = runTest {
+        coEvery { mockClaimUsernameUseCase("minh_an", any()) } returns Result.failure(
+            Exception("duplicate key value violates unique constraint"),
+        )
+
+        sut.onUsernameInputChanged("minh_an")
+        var authSuccessCalled = false
+        sut.onConfirmUsernameClicked(onAuthSuccess = { authSuccessCalled = true })
+
+        advanceUntilIdle()
+
+        authSuccessCalled shouldBeEqualTo false
+        sut.uiStateFlow.value.usernameErrorMessage shouldBeEqualTo "Tên định danh @minh_an đã được sử dụng. Vui lòng chọn tên khác."
     }
 }

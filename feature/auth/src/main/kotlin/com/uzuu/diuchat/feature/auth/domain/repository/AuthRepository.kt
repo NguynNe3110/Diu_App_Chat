@@ -7,4 +7,13 @@ interface AuthRepository {
         phoneNumber: String,
         code: String,
     ): Result<Unit>
+
+    suspend fun signInWithGoogle(idToken: String): Result<Unit>
+
+    suspend fun checkHasUsername(): Result<Boolean>
+
+    suspend fun claimUsername(
+        username: String,
+        displayName: String? = null,
+    ): Result<Unit>
 }
