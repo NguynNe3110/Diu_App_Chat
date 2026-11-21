@@ -130,13 +130,20 @@ class SettingsViewModel(
         sendAction(SettingsAction.SetShowEditProfileSheet(show))
     }
 
-    fun updateProfile(displayName: String, bio: String, birthday: String, primaryMood: String) {
+    fun updateProfile(
+        displayName: String,
+        bio: String,
+        birthday: String,
+        primaryMood: String,
+        avatarUrl: String? = uiStateFlow.value.userProfile.avatarUrl,
+    ) {
         val current = uiStateFlow.value.userProfile
         val updated = current.copy(
             displayName = displayName,
             bio = bio,
             birthday = birthday,
             primaryMood = primaryMood,
+            avatarUrl = avatarUrl,
         )
         viewModelScope.launch {
             updateProfileUseCase(updated)

@@ -118,7 +118,7 @@ private fun SettingsOverviewContent(
     onShowDeleteAccount: (Boolean) -> Unit = {},
     onUpdateQuietTimeRange: (Int, Int) -> Unit = { _, _ -> },
     onSetNotificationPrivacy: (NotificationPrivacy) -> Unit = {},
-    onUpdateProfile: (String, String, String, String) -> Unit = { _, _, _, _ -> },
+    onUpdateProfile: (String, String, String, String, String?) -> Unit = { _, _, _, _, _ -> },
     onLogout: () -> Unit = {},
     onDeleteAccount: (String) -> Unit = {},
 ) {
@@ -294,8 +294,8 @@ private fun SettingsOverviewContent(
     if (uiState.showEditProfileSheet) {
         EditProfileSheet(
             currentProfile = uiState.userProfile,
-            onSave = { name, bio, bday, mood ->
-                onUpdateProfile(name, bio, bday, mood)
+            onSave = { name, bio, bday, mood, avatarUrl ->
+                onUpdateProfile(name, bio, bday, mood, avatarUrl)
             },
             onDismiss = { onShowEditProfileSheet(false) },
         )
@@ -382,6 +382,7 @@ private fun ProfileHeaderCard(
                     initials = profile.displayName.ifEmpty { "L" }.take(1).uppercase(),
                     moodColor = colors.moods.vui,
                     size = 54.dp,
+                    avatarUrl = profile.avatarUrl,
                 )
 
                 Column(modifier = Modifier.weight(1f)) {

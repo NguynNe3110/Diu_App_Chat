@@ -52,6 +52,7 @@ import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuFilterCh
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuIconButton
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuInviteCodeCard
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuOrbAvatar
+import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuQrCodeImage
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuPersonRow
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuSearchField
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuTextButton
@@ -323,7 +324,15 @@ fun ContactsScreenContent(
                     color = colors.inkSecondary,
                 )
 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(20.dp))
+
+                DiuQrCodeImage(
+                    content = "https://${uiState.myInviteLink}",
+                    size = 200.dp,
+                    contentDescription = "Mã QR kết nối cá nhân",
+                )
+
+                Spacer(modifier = Modifier.height(20.dp))
 
                 DiuInviteCodeCard(
                     code = uiState.myInviteLink,

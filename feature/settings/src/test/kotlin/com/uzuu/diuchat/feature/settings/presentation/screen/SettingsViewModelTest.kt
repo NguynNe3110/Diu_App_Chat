@@ -281,4 +281,26 @@ class SettingsViewModelTest {
         sut.uiStateFlow.value.accountDeletionState shouldBeEqualTo AccountDeletionState.Failed("Số điện thoại không khớp")
         sut.uiStateFlow.value.isLoggedOut shouldBeEqualTo false
     }
+
+    @Test
+    fun `updateProfile persists selected avatarUrl and closes edit sheet`() = runTest {
+        advanceUntilIdle()
+        val avatarUri = "content://media/picker/0/com.android.providers.media.photopicker/media/42"
+
+        sut.updateProfile(
+            displayName = "Minh Anh",
+            bio = "Lắng nghe nhẹ nhàng",
+            birthday = "15/08/2000",
+            primaryMood = "Bình yên",
+            avatarUrl = avatarUri,
+        )
+        advanceUntilIdle()
+
+        coVerify {
+            updateProfileUseCase(
+                testProfile.copy(avatarUrl = avatarUri),
+            )
+        }
+        sut.uiStateFlow.value.showEditProfileSheet shouldBeEqualTo false
+    }
 }
