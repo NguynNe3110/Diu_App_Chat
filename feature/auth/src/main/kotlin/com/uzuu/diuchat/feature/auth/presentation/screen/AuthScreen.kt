@@ -42,6 +42,7 @@ import com.uzuu.diuchat.feature.auth.presentation.composable.Keypad
 import com.uzuu.diuchat.feature.auth.presentation.composable.OtpCells
 import com.uzuu.diuchat.feature.base.common.res.AppTheme
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuButton
+import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuButtonVariant
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuTopBar
 import org.koin.androidx.compose.koinViewModel
 
@@ -62,8 +63,7 @@ fun AuthScreen(
 
     val isAwaitingOrVerifying =
         uiState.otpState is OtpState.AwaitingCode ||
-            uiState.otpState is OtpState.Verifying ||
-            (uiState.otpState is OtpState.Error && (uiState.otpState as OtpState.Error).phoneNumber.isNotEmpty())
+            uiState.otpState is OtpState.Verifying
 
     BackHandler(enabled = isAwaitingOrVerifying) {
         viewModel.onBackToPhone()
@@ -81,6 +81,7 @@ fun AuthScreen(
                 uiState = uiState,
                 onKeyPress = viewModel::onKeypadPhonePress,
                 onSendOtp = viewModel::onSendOtpClicked,
+                onGoogleSignIn = { viewModel.signInWithGoogle(onAuthSuccess = onAuthSuccess) },
             )
         } else {
             OtpVerificationContent(
@@ -98,6 +99,7 @@ private fun PhoneInputContent(
     uiState: AuthUiState,
     onKeyPress: (String) -> Unit,
     onSendOtp: () -> Unit,
+    onGoogleSignIn: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = AppTheme.colors
@@ -185,10 +187,18 @@ private fun PhoneInputContent(
             }
 
             if (uiState.otpState is OtpState.Error) {
-                val errorState = uiState.otpState as OtpState.Error
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = errorState.message,
+                    text = uiState.otpState.message,
+                    style = AppTheme.typography.bodySmall,
+                    color = colors.danger,
+                )
+            }
+
+            if (uiState.googleError != null) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = uiState.googleError,
                     style = AppTheme.typography.bodySmall,
                     color = colors.danger,
                 )
@@ -204,7 +214,7 @@ private fun PhoneInputContent(
         ) {
             DiuButton(
                 onClick = onSendOtp,
-                enabled = uiState.isPhoneValid && !isSending,
+                enabled = uiState.isPhoneValid && !isSending && !uiState.isGoogleSigningIn,
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 if (isSending) {
@@ -218,11 +228,30 @@ private fun PhoneInputContent(
                 }
             }
 
+            Spacer(modifier = Modifier.height(8.dp))
+
+            DiuButton(
+                onClick = onGoogleSignIn,
+                enabled = !isSending && !uiState.isGoogleSigningIn,
+                variant = DiuButtonVariant.Outline,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                if (uiState.isGoogleSigningIn) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        color = colors.ink,
+                        strokeWidth = 2.dp,
+                    )
+                } else {
+                    Text("Tiếp tục với Google")
+                }
+            }
+
             Spacer(modifier = Modifier.height(16.dp))
 
             Keypad(
                 onKeyPress = onKeyPress,
-                enabled = !isSending,
+                enabled = !isSending && !uiState.isGoogleSigningIn,
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -381,6 +410,7 @@ private fun AuthScreenPhoneInputPreview() {
                 ),
                 onKeyPress = {},
                 onSendOtp = {},
+                onGoogleSignIn = {},
             )
         }
     }

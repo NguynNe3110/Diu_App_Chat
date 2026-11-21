@@ -92,4 +92,25 @@ class AuthActionTest {
         next.otpState shouldBeInstanceOf OtpState.EditingPhone::class
         next.resendSecondsRemaining shouldBeEqualTo 0
     }
+
+    @Test
+    fun `SetGoogleSigningIn updates isGoogleSigningIn and clears googleError`() {
+        val initial = AuthUiState(googleError = "Old error")
+        val next = AuthAction.SetGoogleSigningIn(true).reduce(initial)
+
+        next.isGoogleSigningIn shouldBeEqualTo true
+        next.googleError shouldBeEqualTo null
+
+        val finished = AuthAction.SetGoogleSigningIn(false).reduce(next)
+        finished.isGoogleSigningIn shouldBeEqualTo false
+    }
+
+    @Test
+    fun `SetGoogleError updates googleError and resets isGoogleSigningIn`() {
+        val initial = AuthUiState(isGoogleSigningIn = true)
+        val next = AuthAction.SetGoogleError("Lỗi kết nối Google").reduce(initial)
+
+        next.isGoogleSigningIn shouldBeEqualTo false
+        next.googleError shouldBeEqualTo "Lỗi kết nối Google"
+    }
 }

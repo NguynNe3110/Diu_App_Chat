@@ -65,4 +65,10 @@ class AuthRepositoryImplTest {
     fun `short OTP returns a validation failure`() = runTest {
         sut.verifyOtp("912345678", "123").isFailure shouldBeEqualTo true
     }
+
+    @Test
+    fun `signInWithGoogle succeeds with default preview delay when client is absent`() = runTest {
+        val result = sut.signInWithGoogle()
+        result.isSuccess shouldBeEqualTo true
+    }
 }
