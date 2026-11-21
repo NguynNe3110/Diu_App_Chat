@@ -161,7 +161,7 @@ fun ChatComposer(
                                     .clip(RoundedCornerShape(16.dp))
                                     .background(chipBg)
                                     .border(1.dp, chipBorder, RoundedCornerShape(16.dp))
-                                    .clickable { onSelectMood(mood) }
+                                    .clickable(onClickLabel = "Chọn cảm xúc ${mood.displayName}") { onSelectMood(mood) }
                                     .padding(horizontal = 12.dp, vertical = 6.dp),
                             ) {
                                 Row(
