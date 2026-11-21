@@ -40,6 +40,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.uzuu.diuchat.feature.base.common.res.AppTheme
@@ -52,6 +53,8 @@ import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuSwitch
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuTopBar
 import com.uzuu.diuchat.feature.settings.domain.model.BlockedContact
 import com.uzuu.diuchat.feature.settings.domain.model.NotificationPrivacy
+import com.uzuu.diuchat.feature.settings.domain.model.QuietSchedule
+import com.uzuu.diuchat.feature.settings.domain.model.UserProfile
 import com.uzuu.diuchat.feature.settings.presentation.composable.DeleteAccountDialog
 import com.uzuu.diuchat.feature.settings.presentation.composable.EditProfileSheet
 import org.koin.androidx.compose.koinViewModel
@@ -74,7 +77,19 @@ fun SettingsScreen(
                 SettingsOverviewContent(
                     uiState = uiState,
                     onBackClick = onBackClick,
-                    viewModel = viewModel,
+                    onShowEditProfileSheet = viewModel::showEditProfile,
+                    onToggleQuietHours = viewModel::toggleQuietHours,
+                    onShowQuietHoursDialog = viewModel::showQuietHoursDialog,
+                    onShowPrivacyDialog = viewModel::showPrivacyDialog,
+                    onToggleReadReceipts = viewModel::toggleReadReceipts,
+                    onNavigateToBlockedContacts = viewModel::navigateToBlockedContacts,
+                    onShowLogoutConfirm = viewModel::showLogoutConfirm,
+                    onShowDeleteAccount = viewModel::showDeleteAccount,
+                    onUpdateQuietTimeRange = viewModel::updateQuietTimeRange,
+                    onSetNotificationPrivacy = viewModel::setNotificationPrivacy,
+                    onUpdateProfile = viewModel::updateProfile,
+                    onLogout = viewModel::logout,
+                    onDeleteAccount = viewModel::deleteAccount,
                 )
             }
 
@@ -89,12 +104,23 @@ fun SettingsScreen(
     }
 }
 
-@Suppress("compose:vm-forwarding-check")
 @Composable
 private fun SettingsOverviewContent(
     uiState: SettingsUiState,
     onBackClick: () -> Unit,
-    viewModel: SettingsViewModel,
+    onShowEditProfileSheet: (Boolean) -> Unit = {},
+    onToggleQuietHours: (Boolean) -> Unit = {},
+    onShowQuietHoursDialog: (Boolean) -> Unit = {},
+    onShowPrivacyDialog: (Boolean) -> Unit = {},
+    onToggleReadReceipts: (Boolean) -> Unit = {},
+    onNavigateToBlockedContacts: () -> Unit = {},
+    onShowLogoutConfirm: (Boolean) -> Unit = {},
+    onShowDeleteAccount: (Boolean) -> Unit = {},
+    onUpdateQuietTimeRange: (Int, Int) -> Unit = { _, _ -> },
+    onSetNotificationPrivacy: (NotificationPrivacy) -> Unit = {},
+    onUpdateProfile: (String, String, String, String) -> Unit = { _, _, _, _ -> },
+    onLogout: () -> Unit = {},
+    onDeleteAccount: (String) -> Unit = {},
 ) {
     val colors = AppTheme.colors
 
@@ -132,7 +158,7 @@ private fun SettingsOverviewContent(
             item {
                 ProfileHeaderCard(
                     profile = uiState.userProfile,
-                    onEditClick = { viewModel.showEditProfile(true) },
+                    onEditClick = { onShowEditProfileSheet(true) },
                 )
             }
 
@@ -148,7 +174,7 @@ private fun SettingsOverviewContent(
                     trailing = {
                         DiuSwitch(
                             checked = uiState.quietSchedule.enabled,
-                            onCheckedChange = { viewModel.toggleQuietHours(it) },
+                            onCheckedChange = onToggleQuietHours,
                             contentDescription = "Bật tắt giờ yên lặng",
                         )
                     },
@@ -158,7 +184,7 @@ private fun SettingsOverviewContent(
                 DiuSettingsRow(
                     title = "Khung giờ nghỉ ngơi",
                     subtitle = "${uiState.quietSchedule.startTimeFormatted} đến ${uiState.quietSchedule.endTimeFormatted} (Hỗ trợ qua đêm)",
-                    onClick = { viewModel.showQuietHoursDialog(true) },
+                    onClick = { onShowQuietHoursDialog(true) },
                 )
             }
             item {
@@ -186,7 +212,7 @@ private fun SettingsOverviewContent(
                 DiuSettingsRow(
                     title = "Mức hiển thị thông báo",
                     subtitle = uiState.notificationPrivacy.label,
-                    onClick = { viewModel.showPrivacyDialog(true) },
+                    onClick = { onShowPrivacyDialog(true) },
                 )
             }
             item {
@@ -209,7 +235,7 @@ private fun SettingsOverviewContent(
                 DiuSettingsRow(
                     title = "Danh sách người bị chặn",
                     subtitle = if (uiState.blockedContacts.isEmpty()) "Chưa chặn ai" else "${uiState.blockedContacts.size} người bị chặn",
-                    onClick = { viewModel.navigateToBlockedContacts() },
+                    onClick = onNavigateToBlockedContacts,
                 )
             }
             item {
@@ -219,7 +245,7 @@ private fun SettingsOverviewContent(
                     trailing = {
                         DiuSwitch(
                             checked = uiState.readReceiptsEnabled,
-                            onCheckedChange = { viewModel.toggleReadReceipts(it) },
+                            onCheckedChange = onToggleReadReceipts,
                             contentDescription = "Bật tắt xác nhận đã đọc",
                         )
                     },
@@ -235,7 +261,7 @@ private fun SettingsOverviewContent(
                 DiuSettingsRow(
                     title = "Đăng xuất tài khoản",
                     subtitle = "Xoá phiên đăng nhập hiện tại trên thiết bị",
-                    onClick = { viewModel.showLogoutConfirm(true) },
+                    onClick = { onShowLogoutConfirm(true) },
                 )
             }
             item {
@@ -243,7 +269,7 @@ private fun SettingsOverviewContent(
                     title = "Xoá tài khoản vĩnh viễn",
                     subtitle = "Xoá toàn bộ hồ sơ và dữ liệu cá nhân",
                     destructive = true,
-                    onClick = { viewModel.showDeleteAccount(true) },
+                    onClick = { onShowDeleteAccount(true) },
                 )
             }
 
@@ -269,16 +295,16 @@ private fun SettingsOverviewContent(
         EditProfileSheet(
             currentProfile = uiState.userProfile,
             onSave = { name, bio, bday, mood ->
-                viewModel.updateProfile(name, bio, bday, mood)
+                onUpdateProfile(name, bio, bday, mood)
             },
-            onDismiss = { viewModel.showEditProfile(false) },
+            onDismiss = { onShowEditProfileSheet(false) },
         )
     }
 
     // Dialog xác nhận đăng xuất
     if (uiState.showLogoutConfirmDialog) {
         AlertDialog(
-            onDismissRequest = { viewModel.showLogoutConfirm(false) },
+            onDismissRequest = { onShowLogoutConfirm(false) },
             title = {
                 Text(
                     text = "Đăng xuất?",
@@ -294,12 +320,12 @@ private fun SettingsOverviewContent(
                 )
             },
             confirmButton = {
-                TextButton(onClick = { viewModel.logout() }) {
+                TextButton(onClick = onLogout) {
                     Text("Đăng xuất", color = colors.danger, fontWeight = FontWeight.SemiBold)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { viewModel.showLogoutConfirm(false) }) {
+                TextButton(onClick = { onShowLogoutConfirm(false) }) {
                     Text("Hủy", color = colors.inkSecondary)
                 }
             },
@@ -310,10 +336,8 @@ private fun SettingsOverviewContent(
     if (uiState.showDeleteAccountDialog) {
         DeleteAccountDialog(
             userPhone = uiState.userProfile.phone,
-            onConfirmDelete = { phone ->
-                viewModel.deleteAccount(phone)
-            },
-            onDismiss = { viewModel.showDeleteAccount(false) },
+            onConfirmDelete = onDeleteAccount,
+            onDismiss = { onShowDeleteAccount(false) },
         )
     }
 
@@ -321,8 +345,10 @@ private fun SettingsOverviewContent(
     if (uiState.showPrivacyDialog) {
         NotificationPrivacyDialog(
             currentPrivacy = uiState.notificationPrivacy,
-            onSelect = { viewModel.setNotificationPrivacy(it) },
-            onDismiss = { viewModel.showPrivacyDialog(false) },
+            onSelect = {
+                onSetNotificationPrivacy(it)
+            },
+            onDismiss = { onShowPrivacyDialog(false) },
         )
     }
 
@@ -331,10 +357,9 @@ private fun SettingsOverviewContent(
         QuietHoursPresetDialog(
             currentSchedule = uiState.quietSchedule,
             onSelectRange = { start, end ->
-                viewModel.updateQuietTimeRange(start, end)
-                viewModel.showQuietHoursDialog(false)
+                onUpdateQuietTimeRange(start, end)
             },
-            onDismiss = { viewModel.showQuietHoursDialog(false) },
+            onDismiss = { onShowQuietHoursDialog(false) },
         )
     }
 }
@@ -664,4 +689,60 @@ private fun QuietHoursPresetDialog(
             }
         },
     )
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun SettingsOverviewPreview() {
+    AppTheme {
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            color = AppTheme.colors.background,
+        ) {
+            SettingsOverviewContent(
+                uiState = SettingsUiState(
+                    userProfile = UserProfile(
+                        id = "u1",
+                        displayName = "Minh Anh",
+                        username = "minhanh",
+                        bio = "Nhẹ nhàng lắng nghe từng ngày trôi qua",
+                        birthday = "15/08/2000",
+                        phone = "+84901234567",
+                        primaryMood = "Bình yên",
+                        avatarUrl = null,
+                    ),
+                    quietSchedule = QuietSchedule(
+                        enabled = true,
+                        startMinuteOfDay = 1350,
+                        endMinuteOfDay = 360,
+                    ),
+                    notificationPrivacy = NotificationPrivacy.FULL_CONTENT,
+                    readReceiptsEnabled = true,
+                ),
+                onBackClick = {},
+            )
+        }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun SettingsBlockedContactsPreview() {
+    AppTheme {
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            color = AppTheme.colors.background,
+        ) {
+            BlockedContactsContent(
+                uiState = SettingsUiState(
+                    blockedContacts = listOf(
+                        BlockedContact("b1", "Người lạ", "+84900000001", "10/11/2026"),
+                        BlockedContact("b2", "Spam cuộc gọi", "+84900000002", "12/11/2026"),
+                    ),
+                ),
+                onBackClick = {},
+                onUnblock = {},
+            )
+        }
+    }
 }

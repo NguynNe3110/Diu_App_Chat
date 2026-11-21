@@ -20,6 +20,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.uzuu.diuchat.feature.base.common.res.AppIcons
 import com.uzuu.diuchat.feature.base.common.res.AppTheme
@@ -202,5 +203,28 @@ fun LocationPickerContent(
                 }
             }
         }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun LocationPickerScreenPreview() {
+    AppTheme {
+        LocationPickerContent(
+            uiState = LocationPickerUiState(
+                currentLocation = LocationSnapshot(
+                    latitude = 21.0285,
+                    longitude = 105.8542,
+                    accuracyMeters = 10f,
+                    address = "Hoàn Kiếm, Hà Nội",
+                ),
+            ),
+            conversationId = "conv_1",
+            onBackClick = {},
+            onToggleMode = {},
+            onSelectDuration = {},
+            onStartLiveSharing = {},
+            onSendLocation = {},
+        )
     }
 }

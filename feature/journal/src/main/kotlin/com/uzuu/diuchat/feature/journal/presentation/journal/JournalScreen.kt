@@ -29,6 +29,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.uzuu.diuchat.feature.base.common.res.AppIcons
@@ -56,6 +57,35 @@ fun JournalScreen(
 ) {
     val state by viewModel.uiStateFlow.collectAsStateWithLifecycle()
 
+    JournalContent(
+        state = state,
+        onBackClick = onBackClick,
+        onOpenSearch = onOpenSearch,
+        onSelectDay = viewModel::onSelectDay,
+        onOpenCheckinSheet = viewModel::onOpenCheckinSheet,
+        onSelectCheckinMood = viewModel::onSelectCheckinMood,
+        onChangeCheckinNote = viewModel::onChangeCheckinNote,
+        onToggleCheckinContact = viewModel::onToggleCheckinContact,
+        onSaveCheckin = viewModel::onSaveCheckin,
+        onDismissCheckinSheet = viewModel::onDismissCheckinSheet,
+        modifier = modifier,
+    )
+}
+
+@Composable
+fun JournalContent(
+    state: JournalUiState,
+    onBackClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    @Suppress("UnusedParameter") onOpenSearch: () -> Unit = {},
+    onSelectDay: (Int) -> Unit = {},
+    onOpenCheckinSheet: () -> Unit = {},
+    onSelectCheckinMood: (JournalMoodType) -> Unit = {},
+    onChangeCheckinNote: (String) -> Unit = {},
+    onToggleCheckinContact: (String) -> Unit = {},
+    onSaveCheckin: () -> Unit = {},
+    onDismissCheckinSheet: () -> Unit = {},
+) {
     Scaffold(
         topBar = {
             DiuTopBar(
@@ -94,7 +124,7 @@ fun JournalScreen(
                     CalendarGrid(
                         checkins = state.checkins,
                         selectedDay = state.selectedDay,
-                        onSelectDay = viewModel::onSelectDay,
+                        onSelectDay = onSelectDay,
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                 }
@@ -106,7 +136,7 @@ fun JournalScreen(
                         dayNumber = state.selectedDay,
                         month = state.month,
                         checkin = selectedCheckin,
-                        onCheckinClick = viewModel::onOpenCheckinSheet,
+                        onCheckinClick = onOpenCheckinSheet,
                     )
                     Spacer(modifier = Modifier.height(24.dp))
                 }
@@ -148,7 +178,7 @@ fun JournalScreen(
                     .padding(horizontal = 20.dp, vertical = 16.dp),
             ) {
                 DiuButton(
-                    onClick = viewModel::onOpenCheckinSheet,
+                    onClick = onOpenCheckinSheet,
                     variant = DiuButtonVariant.Primary,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
@@ -168,11 +198,11 @@ fun JournalScreen(
                 allowlist = state.checkinAllowlist,
                 availableContacts = state.availableContacts,
                 isSaving = state.isSavingCheckin,
-                onSelectMood = viewModel::onSelectCheckinMood,
-                onChangeNote = viewModel::onChangeCheckinNote,
-                onToggleContact = viewModel::onToggleCheckinContact,
-                onSaveClick = viewModel::onSaveCheckin,
-                onDismissRequest = viewModel::onDismissCheckinSheet,
+                onSelectMood = onSelectCheckinMood,
+                onChangeNote = onChangeCheckinNote,
+                onToggleContact = onToggleCheckinContact,
+                onSaveClick = onSaveCheckin,
+                onDismissRequest = onDismissCheckinSheet,
             )
         }
     }
@@ -460,5 +490,61 @@ private fun MoodComparisonCard(
                 color = AppTheme.colors.ink,
             )
         }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun JournalScreenPreview() {
+    val sampleCheckins = listOf(
+        DailyMoodCheckin(
+            dateIso = "2026-11-20",
+            dayNumber = 20,
+            mood = JournalMoodType.BINH_YEN,
+            privateNote = "Một buổi chiều trà ấm và nhẹ tênh.",
+            displayDate = "20 tháng 11",
+        ),
+        DailyMoodCheckin(
+            dateIso = "2026-11-22",
+            dayNumber = 22,
+            mood = JournalMoodType.THUONG,
+            privateNote = "Gửi lời thương đến những người bên cạnh.",
+            displayDate = "22 tháng 11",
+        ),
+        DailyMoodCheckin(
+            dateIso = "2026-11-24",
+            dayNumber = 24,
+            mood = JournalMoodType.VUI,
+            privateNote = "Ngày nắng đẹp và lòng thong thả.",
+            displayDate = "24 tháng 11",
+        ),
+    )
+    val breakdown = calculateBreakdown(
+        monthName = "11",
+        checkins = sampleCheckins,
+        totalDays = 30,
+    )
+    val comparison = MoodComparison(
+        partnerId = "minh",
+        partnerName = "Minh",
+        matchingDaysCount = 18,
+        primaryMood = JournalMoodType.BINH_YEN,
+        myMoods = listOf(JournalMoodType.BINH_YEN, JournalMoodType.THUONG, JournalMoodType.VUI),
+        partnerMoods = listOf(JournalMoodType.BINH_YEN, JournalMoodType.BINH_YEN, JournalMoodType.THUONG),
+        summaryMessage = "Bạn và Minh cùng chia sẻ sự bình yên trong phần lớn tháng này.",
+    )
+
+    AppTheme {
+        JournalContent(
+            state = JournalUiState(
+                month = 11,
+                year = 2026,
+                checkins = sampleCheckins,
+                selectedDay = 24,
+                breakdown = breakdown,
+                comparison = comparison,
+            ),
+            onBackClick = {},
+        )
     }
 }

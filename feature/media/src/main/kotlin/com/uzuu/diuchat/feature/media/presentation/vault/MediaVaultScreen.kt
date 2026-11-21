@@ -36,6 +36,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.uzuu.diuchat.feature.base.common.res.AppIcons
@@ -366,5 +367,53 @@ private fun LetterVaultCard(
                 )
             }
         }
+    }
+}
+
+@Preview(name = "Media Vault Screen — Light", showBackground = true)
+@Composable
+private fun MediaVaultScreenPreview() {
+    AppTheme {
+        val sampleItems = listOf(
+            MediaVaultItem(
+                id = "item_1",
+                conversationId = "conv_1",
+                type = MediaType.PHOTO,
+                caption = "Chiều hoàng hôn bên hồ",
+                timestamp = "17:30 20/11",
+                senderName = "Linh",
+                monthGroup = "Tháng 11, 2026",
+            ),
+            MediaVaultItem(
+                id = "item_2",
+                conversationId = "conv_1",
+                type = MediaType.VOICE,
+                caption = "Lời chúc ngủ ngon",
+                durationSeconds = 42,
+                timestamp = "22:15 19/11",
+                senderName = "Tôi",
+                monthGroup = "Tháng 11, 2026",
+            ),
+            MediaVaultItem(
+                id = "item_3",
+                conversationId = "conv_1",
+                type = MediaType.LETTER,
+                caption = "Bức thư đầu tiên đã mở",
+                timestamp = "08:00 15/11",
+                senderName = "Linh",
+                monthGroup = "Tháng 11, 2026",
+            ),
+        )
+        MediaVaultContent(
+            state = MediaVaultUiState(
+                allItems = sampleItems,
+                filteredItems = sampleItems,
+            ),
+            onBackClick = {},
+            onOpenPhoto = {},
+            onOpenStorage = {},
+            onSelectType = {},
+            onTogglePlayVoice = {},
+        )
     }
 }

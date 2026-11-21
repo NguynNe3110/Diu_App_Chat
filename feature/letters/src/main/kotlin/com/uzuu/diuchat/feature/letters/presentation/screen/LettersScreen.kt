@@ -43,6 +43,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.uzuu.diuchat.feature.base.common.res.AppTheme
@@ -63,7 +64,6 @@ fun LettersScreen(
     viewModel: LettersViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.uiStateFlow.collectAsState()
-    val colors = AppTheme.colors
 
     if (uiState.isComposing) {
         ComposeLetterScreen(
@@ -78,6 +78,35 @@ fun LettersScreen(
         )
         return
     }
+
+    LettersContent(
+        uiState = uiState,
+        onBackClick = onBackClick,
+        onSelectTab = viewModel::selectTab,
+        onOpenLetter = viewModel::openLetter,
+        onCancelLetter = viewModel::cancelLetter,
+        onSendImmediately = viewModel::sendImmediately,
+        onViewOpenedLetter = viewModel::viewOpenedLetter,
+        onStartComposing = viewModel::startComposing,
+        onDismissOpenedLetter = viewModel::dismissOpenedLetter,
+        modifier = modifier,
+    )
+}
+
+@Composable
+fun LettersContent(
+    uiState: LettersUiState,
+    onBackClick: () -> Unit = {},
+    onSelectTab: (LetterTab) -> Unit = {},
+    onOpenLetter: (String) -> Unit = {},
+    onCancelLetter: (String) -> Unit = {},
+    onSendImmediately: (String) -> Unit = {},
+    onViewOpenedLetter: (SealedLetter) -> Unit = {},
+    onStartComposing: () -> Unit = {},
+    onDismissOpenedLetter: () -> Unit = {},
+    modifier: Modifier = Modifier,
+) {
+    val colors = AppTheme.colors
 
     Surface(
         modifier = modifier.fillMaxSize(),
@@ -120,7 +149,7 @@ fun LettersScreen(
                         DiuFilterChip(
                             text = tab.label,
                             selected = uiState.selectedTab == tab,
-                            onClick = { viewModel.selectTab(tab) },
+                            onClick = { onSelectTab(tab) },
                         )
                     }
                 }
@@ -147,10 +176,10 @@ fun LettersScreen(
                         items(uiState.filteredLetters, key = { it.id }) { letter ->
                             LetterCard(
                                 letter = letter,
-                                onOpenLetter = { viewModel.openLetter(letter.id) },
-                                onCancelLetter = { viewModel.cancelLetter(letter.id) },
-                                onSendImmediately = { viewModel.sendImmediately(letter.id) },
-                                onViewOpenedLetter = { viewModel.viewOpenedLetter(letter) },
+                                onOpenLetter = { onOpenLetter(letter.id) },
+                                onCancelLetter = { onCancelLetter(letter.id) },
+                                onSendImmediately = { onSendImmediately(letter.id) },
+                                onViewOpenedLetter = { onViewOpenedLetter(letter) },
                             )
                         }
                         item {
@@ -162,7 +191,7 @@ fun LettersScreen(
 
             // Nút viết thư mới (Floating Action Button)
             FloatingActionButton(
-                onClick = { viewModel.startComposing() },
+                onClick = onStartComposing,
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
                     .padding(24.dp)
@@ -183,7 +212,7 @@ fun LettersScreen(
     uiState.selectedOpenedLetter?.let { openedLetter ->
         OpenedLetterDialog(
             letter = openedLetter,
-            onDismiss = { viewModel.dismissOpenedLetter() },
+            onDismiss = onDismissOpenedLetter,
         )
     }
 }
@@ -449,4 +478,45 @@ private fun OpenedLetterDialog(
             }
         },
     )
+}
+
+@Preview(name = "Letters Screen — Light", showBackground = true)
+@Composable
+private fun LettersScreenPreview() {
+    AppTheme {
+        LettersContent(
+            uiState = LettersUiState(
+                letters = listOf(
+                    SealedLetter(
+                        id = "l1",
+                        senderId = "me",
+                        senderName = "Tôi",
+                        recipientId = "linh",
+                        recipientName = "Linh",
+                        title = "Hẹn ước mùa hoa",
+                        scheduledUnlockEpochMs = 1_770_000_000_000L,
+                        scheduledUnlockFormatted = "08:00 Sáng mai",
+                        status = LetterStatus.SEALED_PENDING,
+                        isSender = true,
+                        contentPayload = "Dịu dàng gửi em",
+                        moodName = "Bình yên",
+                    ),
+                    SealedLetter(
+                        id = "l2",
+                        senderId = "linh",
+                        senderName = "Linh",
+                        recipientId = "me",
+                        recipientName = "Tôi",
+                        title = "Mở ra khi nhớ anh",
+                        scheduledUnlockEpochMs = 1_760_000_000_000L,
+                        scheduledUnlockFormatted = "Hôm nay",
+                        status = LetterStatus.READY_TO_OPEN,
+                        isSender = false,
+                        contentPayload = "Em nhớ anh rất nhiều!",
+                        moodName = "Thương",
+                    ),
+                ),
+            ),
+        )
+    }
 }

@@ -35,6 +35,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.uzuu.diuchat.feature.base.common.res.AppTheme
@@ -100,7 +101,12 @@ fun ComposeLetterScreen(
                 OutlinedTextField(
                     value = uiState.draftTitle,
                     onValueChange = onTitleChange,
-                    placeholder = { Text("Ví dụ: Gửi em buổi sáng mai...", color = colors.inkSecondary.copy(alpha = 0.6f)) },
+                    placeholder = {
+                        Text(
+                            text = "Ví dụ: Gửi em buổi sáng mai...",
+                            color = colors.inkSecondary.copy(alpha = 0.6f),
+                        )
+                    },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
@@ -279,6 +285,22 @@ fun ComposeLetterScreen(
             selectedType = uiState.draftScheduleType,
             onSelectSchedule = onSetSchedule,
             onDismiss = { onShowScheduleSheet(false) },
+        )
+    }
+}
+
+@Preview(name = "Compose Letter Screen — Light", showBackground = true)
+@Composable
+private fun ComposeLetterScreenPreview() {
+    AppTheme {
+        ComposeLetterScreen(
+            uiState = LettersUiState(
+                draftTitle = "Gửi ngày mai dịu êm",
+                draftContent = "Mong ngày mai của em sẽ thật nhẹ nhàng và bình an...",
+                draftMood = "Bình yên",
+                draftScheduledUnlockFormatted = "08:00 Sáng mai",
+            ),
+            onBackClick = {},
         )
     }
 }

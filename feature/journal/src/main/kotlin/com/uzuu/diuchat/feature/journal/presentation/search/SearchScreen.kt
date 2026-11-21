@@ -28,6 +28,7 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.uzuu.diuchat.feature.base.common.res.AppIcons
@@ -59,6 +60,25 @@ fun SearchScreen(
         viewModel.initScope(conversationId, conversationName)
     }
 
+    SearchContent(
+        state = state,
+        onBackClick = onBackClick,
+        onQueryChange = viewModel::onQueryChange,
+        onSelectMood = viewModel::onSelectMood,
+        onResultClick = onResultClick,
+        modifier = modifier,
+    )
+}
+
+@Composable
+fun SearchContent(
+    state: SearchUiState,
+    onBackClick: () -> Unit,
+    onQueryChange: (String) -> Unit,
+    onSelectMood: (JournalMoodType?) -> Unit,
+    onResultClick: (SearchResultItem) -> Unit,
+    modifier: Modifier = Modifier,
+) {
     Scaffold(
         topBar = {
             DiuTopBar(
@@ -94,14 +114,14 @@ fun SearchScreen(
             // Search Input Field
             DiuSearchField(
                 value = state.query,
-                onValueChange = viewModel::onQueryChange,
+                onValueChange = onQueryChange,
                 label = "Tìm kiếm",
                 placeholder = if (state.conversationName != null) {
                     "Tìm trong trò chuyện với ${state.conversationName}…"
                 } else {
                     "Tìm kiếm tin nhắn, bạn bè, ảnh…"
                 },
-                onClear = { viewModel.onQueryChange("") },
+                onClear = { onQueryChange("") },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 20.dp, vertical = 8.dp),
@@ -118,7 +138,7 @@ fun SearchScreen(
                     DiuFilterChip(
                         text = "Mọi màu",
                         selected = state.selectedMood == null,
-                        onClick = { viewModel.onSelectMood(null) },
+                        onClick = { onSelectMood(null) },
                     )
                 }
 
@@ -126,7 +146,7 @@ fun SearchScreen(
                     DiuFilterChip(
                         text = mood.displayName,
                         selected = state.selectedMood == mood,
-                        onClick = { viewModel.onSelectMood(mood) },
+                        onClick = { onSelectMood(mood) },
                     )
                 }
             }
@@ -265,5 +285,42 @@ private fun buildHighlightedSnippet(
         append(text.substring(index, end))
         pop()
         append(text.substring(end))
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun SearchScreenPreview() {
+    AppTheme {
+        SearchContent(
+            state = SearchUiState(
+                query = "bình yên",
+                selectedMood = JournalMoodType.BINH_YEN,
+                results = listOf(
+                    SearchResultItem(
+                        id = "res_1",
+                        conversationId = "conv_1",
+                        conversationName = "Linh Dịu",
+                        senderName = "Linh",
+                        snippet = "Cảm ơn vì những phút giây thật bình yên hôm nay.",
+                        timestamp = "14:20",
+                        mood = JournalMoodType.BINH_YEN,
+                    ),
+                    SearchResultItem(
+                        id = "res_2",
+                        conversationId = "conv_2",
+                        conversationName = "Nhật ký màu",
+                        senderName = "Mình",
+                        snippet = "Ghi chép một ngày bình yên bên tách trà.",
+                        timestamp = "20/11",
+                        mood = JournalMoodType.BINH_YEN,
+                    ),
+                ),
+            ),
+            onBackClick = {},
+            onQueryChange = {},
+            onSelectMood = {},
+            onResultClick = {},
+        )
     }
 }

@@ -31,6 +31,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.uzuu.diuchat.feature.base.common.res.AppTheme
@@ -49,7 +50,6 @@ import com.uzuu.diuchat.feature.contacts.domain.model.Contact
 import com.uzuu.diuchat.feature.contacts.domain.model.ContactCircle
 import org.koin.androidx.compose.koinViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ContactsScreen(
     modifier: Modifier = Modifier,
@@ -57,6 +57,41 @@ fun ContactsScreen(
     viewModel: ContactsViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.uiStateFlow.collectAsState()
+
+    ContactsScreenContent(
+        uiState = uiState,
+        onNavigateToChat = onNavigateToChat,
+        onShowQrSheet = viewModel::onShowQrSheet,
+        onDismissQrSheet = viewModel::onDismissQrSheet,
+        onSearchQueryChange = viewModel::onSearchQueryChange,
+        onClearSearch = viewModel::onClearSearch,
+        onSelectCircle = viewModel::onSelectCircle,
+        onAcceptRequest = { id ->
+            val req = uiState.pendingRequests.find { it.id == id }
+            val circle = req?.proposedCircle ?: ContactCircle.FRIENDS
+            viewModel.onAcceptRequest(id, circle)
+        },
+        onDeclineRequest = viewModel::onDeclineRequest,
+        onCopyInviteLink = viewModel::onCopyInviteLink,
+        modifier = modifier,
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ContactsScreenContent(
+    uiState: ContactsUiState,
+    onNavigateToChat: (String) -> Unit = {},
+    onShowQrSheet: () -> Unit = {},
+    onDismissQrSheet: () -> Unit = {},
+    onSearchQueryChange: (String) -> Unit = {},
+    onClearSearch: () -> Unit = {},
+    onSelectCircle: (ContactCircle) -> Unit = {},
+    onAcceptRequest: (String) -> Unit = {},
+    onDeclineRequest: (String) -> Unit = {},
+    onCopyInviteLink: () -> Unit = {},
+    modifier: Modifier = Modifier,
+) {
     val colors = AppTheme.colors
 
     Column(
@@ -70,7 +105,7 @@ fun ContactsScreen(
             title = "Danh bạ",
             actions = {
                 DiuIconButton(
-                    onClick = viewModel::onShowQrSheet,
+                    onClick = onShowQrSheet,
                     contentDescription = "Mã kết nối của bạn",
                 ) {
                     Icon(
@@ -86,10 +121,10 @@ fun ContactsScreen(
         Box(modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp)) {
             DiuSearchField(
                 value = uiState.searchQuery,
-                onValueChange = viewModel::onSearchQueryChange,
+                onValueChange = onSearchQueryChange,
                 label = "Tìm người thân, lời nhắn…",
                 placeholder = "Tìm người thân, số điện thoại…",
-                onClear = viewModel::onClearSearch,
+                onClear = onClearSearch,
                 modifier = Modifier.fillMaxWidth(),
             )
         }
@@ -107,7 +142,7 @@ fun ContactsScreen(
                 DiuFilterChip(
                     text = circle.label,
                     selected = uiState.selectedCircle == circle,
-                    onClick = { viewModel.onSelectCircle(circle) },
+                    onClick = { onSelectCircle(circle) },
                 )
             }
         }
@@ -147,8 +182,8 @@ fun ContactsScreen(
                     items(uiState.pendingRequests, key = { it.id }) { request ->
                         ConnectionRequestItem(
                             request = request,
-                            onAccept = { viewModel.onAcceptRequest(request.id, request.proposedCircle) },
-                            onDecline = { viewModel.onDeclineRequest(request.id) },
+                            onAccept = { onAcceptRequest(request.id) },
+                            onDecline = { onDeclineRequest(request.id) },
                         )
                     }
 
@@ -159,8 +194,13 @@ fun ContactsScreen(
 
                 // Section header for contacts
                 item {
+                    val circleLabel = if (uiState.selectedCircle == ContactCircle.ALL) {
+                        "Vòng thân"
+                    } else {
+                        uiState.selectedCircle.label
+                    }
                     Text(
-                        text = if (uiState.selectedCircle == ContactCircle.ALL) "Vòng thân" else uiState.selectedCircle.label,
+                        text = circleLabel,
                         style =
                         AppTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.SemiBold,
@@ -182,7 +222,8 @@ fun ContactsScreen(
                         ) {
                             DiuEmptyState(
                                 title = "Chưa có người thân trong vòng này",
-                                description = "Chia sẻ mã kết nối hoặc tìm kiếm bằng số điện thoại để kết nối người thân.",
+                                description = "Chia sẻ mã kết nối hoặc tìm kiếm bằng số điện thoại " +
+                                    "để kết nối người thân.",
                             )
                         }
                     }
@@ -203,7 +244,7 @@ fun ContactsScreen(
         val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
         ModalBottomSheet(
-            onDismissRequest = viewModel::onDismissQrSheet,
+            onDismissRequest = onDismissQrSheet,
             sheetState = sheetState,
             containerColor = colors.background,
         ) {
@@ -238,14 +279,14 @@ fun ContactsScreen(
                     code = uiState.myInviteLink,
                     label = "Đường dẫn kết nối riêng",
                     copyLabel = if (uiState.copiedLink) "Đã sao chép!" else "Sao chép",
-                    onCopy = viewModel::onCopyInviteLink,
+                    onCopy = onCopyInviteLink,
                     modifier = Modifier.fillMaxWidth(),
                 )
 
                 Spacer(modifier = Modifier.height(24.dp))
 
                 DiuButton(
-                    onClick = viewModel::onDismissQrSheet,
+                    onClick = onDismissQrSheet,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Text("Đóng")
@@ -344,4 +385,59 @@ private fun parseColorSafely(
     Color(android.graphics.Color.parseColor(hex))
 } catch (_: Exception) {
     fallback
+}
+
+@Preview(name = "Contacts Screen — Light", showBackground = true)
+@Composable
+private fun ContactsScreenPreview() {
+    AppTheme {
+        ContactsScreenContent(
+            uiState = ContactsUiState(
+                contacts = listOf(
+                    Contact(
+                        id = "c1",
+                        name = "Minh",
+                        phone = "0901234567",
+                        initials = "M",
+                        circle = ContactCircle.LOVE,
+                        moodColorHex = "#E57373",
+                        nickname = "Em",
+                    ),
+                    Contact(
+                        id = "c2",
+                        name = "Nhà mình",
+                        phone = "0909876543",
+                        initials = "N",
+                        circle = ContactCircle.FAMILY,
+                        moodColorHex = "#81C784",
+                    ),
+                ),
+                pendingRequests = listOf(
+                    ConnectionRequest(
+                        id = "r1",
+                        senderId = "u_thao",
+                        senderName = "Thảo",
+                        senderPhone = "0912345678",
+                        senderInitials = "T",
+                        senderMoodColorHex = "#64B5F6",
+                        proposedCircle = ContactCircle.FRIENDS,
+                        createdAt = "Hôm nay",
+                    ),
+                ),
+            ),
+        )
+    }
+}
+
+@Preview(name = "Contacts Screen — QR Sheet", showBackground = true)
+@Composable
+private fun ContactsScreenQrPreview() {
+    AppTheme {
+        ContactsScreenContent(
+            uiState = ContactsUiState(
+                isQrSheetVisible = true,
+                myInviteLink = "https://diu.app/invite/c129-61b9",
+            ),
+        )
+    }
 }

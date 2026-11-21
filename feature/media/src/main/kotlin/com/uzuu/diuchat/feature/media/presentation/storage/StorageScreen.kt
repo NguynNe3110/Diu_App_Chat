@@ -30,6 +30,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -444,5 +445,48 @@ private fun ConversationStorageCard(
                 }
             }
         }
+    }
+}
+
+@Preview(name = "Storage Screen — Light", showBackground = true)
+@Composable
+private fun StorageScreenPreview() {
+    AppTheme {
+        StorageContent(
+            state = StorageUiState(
+                stats = StorageStats(
+                    totalStorageBytes = 710 * 1024 * 1024L,
+                    photosBytes = 540 * 1024 * 1024L,
+                    voiceBytes = 120 * 1024 * 1024L,
+                    cacheBytes = 38 * 1024 * 1024L,
+                    conversations = listOf(
+                        ConversationStorage(
+                            conversationId = "c1",
+                            contactName = "Linh",
+                            initials = "L",
+                            totalBytes = 350 * 1024 * 1024L,
+                            photoCount = 84,
+                            voiceCount = 23,
+                        ),
+                        ConversationStorage(
+                            conversationId = "c2",
+                            contactName = "Nhóm Gia Đình",
+                            initials = "GĐ",
+                            totalBytes = 180 * 1024 * 1024L,
+                            photoCount = 42,
+                            voiceCount = 10,
+                        ),
+                    ),
+                ),
+            ),
+            onBackClick = {},
+            onSetAutoDownloadPolicy = {},
+            onToggleAutoDownloadVoice = {},
+            onToggleKeepOriginalQuality = {},
+            onShowClearCacheDialog = {},
+            onConfirmClearCache = {},
+            onSelectConversationToClear = {},
+            onConfirmClearConversationMedia = {},
+        )
     }
 }

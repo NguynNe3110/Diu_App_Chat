@@ -24,6 +24,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.uzuu.diuchat.feature.album.R
 import com.uzuu.diuchat.feature.album.domain.model.Album
 import com.uzuu.diuchat.feature.album.presentation.composable.SearchBar
+import com.uzuu.diuchat.feature.base.common.res.AppTheme
 import com.uzuu.diuchat.feature.base.common.res.Dimen
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.ErrorAnim
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.LoadingIndicator
@@ -139,4 +140,30 @@ private fun AlbumGridPreview() {
         albums = sampleAlbums,
         onAlbumClick = { },
     )
+}
+
+@Preview(name = "Album List Content", showBackground = true)
+@Composable
+private fun AlbumListContentPreview() {
+    AppTheme {
+        AlbumListContent(
+            uiState = AlbumListUiState.Content(
+                albums = listOf(
+                    Album(
+                        name = "Abbey Road",
+                        artist = "The Beatles",
+                        mbId = null,
+                        images = emptyList(),
+                    ),
+                    Album(
+                        name = "Rumours",
+                        artist = "Fleetwood Mac",
+                        mbId = null,
+                        images = emptyList(),
+                    ),
+                ),
+            ),
+            onNavigateToAlbumDetail = null,
+        )
+    }
 }

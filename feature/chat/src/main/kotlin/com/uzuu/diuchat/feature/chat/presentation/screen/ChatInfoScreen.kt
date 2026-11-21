@@ -41,6 +41,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.uzuu.diuchat.feature.base.common.res.AppTheme
@@ -51,7 +52,9 @@ import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuConfirma
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuSettingsRow
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuSwitch
 import com.uzuu.diuchat.feature.chat.domain.model.Conversation
+import com.uzuu.diuchat.feature.chat.domain.model.GroupMember
 import com.uzuu.diuchat.feature.chat.domain.model.GroupRole
+import com.uzuu.diuchat.feature.chat.domain.model.MoodType
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -458,5 +461,52 @@ fun ChatInfoScreen(
                 }
             }
         }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun ChatInfoScreenPreview() {
+    AppTheme {
+        ChatInfoScreen(
+            conversation = Conversation(
+                id = "conv_group_1",
+                title = "Gia đình Dịu êm",
+                mood = MoodType.BINHYEN,
+                lastMessage = "Hẹn gặp tối nay nha cả nhà!",
+                lastMessageTimeEpochMs = 1_700_000_000_000L,
+                isGroup = true,
+                isMuted = false,
+                daysTogether = 120,
+                anniversaryDate = "2024-01-01",
+                members = listOf(
+                    GroupMember(
+                        userId = "me",
+                        displayName = "Tôi",
+                        role = GroupRole.ADMIN,
+                        mood = MoodType.BINHYEN,
+                        isFromMe = true,
+                    ),
+                    GroupMember(
+                        userId = "u2",
+                        displayName = "Mẹ Linh",
+                        role = GroupRole.ADMIN,
+                        mood = MoodType.THUONG,
+                    ),
+                    GroupMember(
+                        userId = "u3",
+                        displayName = "Bé An",
+                        role = GroupRole.MEMBER,
+                        mood = MoodType.VUI,
+                    ),
+                ),
+            ),
+            onBackClick = {},
+            onLeaveGroup = {},
+            onUpdateNickname = {},
+            onToggleMute = {},
+            onManageMemberRole = { _, _ -> },
+            onRemoveMember = {},
+        )
     }
 }
