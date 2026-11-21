@@ -4,11 +4,13 @@ import android.app.Application
 import com.uzuu.diuchat.app.di.appModule
 import com.uzuu.diuchat.feature.album.featureAlbumModules
 import com.uzuu.diuchat.feature.auth.featureAuthModules
+import com.uzuu.diuchat.feature.calls.featureCallsModules
 import com.uzuu.diuchat.feature.chat.featureChatModules
 import com.uzuu.diuchat.feature.contacts.featureContactsModules
 import com.uzuu.diuchat.feature.home.di.featureHomeModule
 import com.uzuu.diuchat.feature.journal.featureJournalModules
 import com.uzuu.diuchat.feature.letters.featureLettersModules
+import com.uzuu.diuchat.feature.location.featureLocationModule
 import com.uzuu.diuchat.feature.media.featureMediaModule
 import com.uzuu.diuchat.feature.onboarding.featureOnboardingModules
 import com.uzuu.diuchat.feature.settings.featureSettingsModules
@@ -41,6 +43,8 @@ class ShowcaseApplication : Application() {
             modules(featureSettingsModules)
             modules(featureLettersModules)
             modules(featureJournalModules)
+            modules(featureCallsModules)
+            modules(featureLocationModule)
         }
     }
 
