@@ -7,11 +7,15 @@ import org.koin.dsl.module
 val presentationModule = module {
     viewModel {
         SettingsViewModel(
+            deleteAccountUseCase = get(),
             getBlockedContactsUseCase = get(),
             getNotificationPrivacyUseCase = get(),
+            getProfileUseCase = get(),
             getQuietScheduleUseCase = get(),
+            logoutUseCase = get(),
             unblockContactUseCase = get(),
             updateNotificationPrivacyUseCase = get(),
+            updateProfileUseCase = get(),
             updateQuietScheduleUseCase = get(),
         )
     }

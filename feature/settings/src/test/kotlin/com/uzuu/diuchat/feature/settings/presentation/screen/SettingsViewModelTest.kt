@@ -1,15 +1,22 @@
 package com.uzuu.diuchat.feature.settings.presentation.screen
 
-import com.uzuu.diuchat.library.testutils.CoroutinesTestDispatcherExtension
+import com.uzuu.diuchat.feature.settings.domain.model.AccountDeletionState
 import com.uzuu.diuchat.feature.settings.domain.model.BlockedContact
 import com.uzuu.diuchat.feature.settings.domain.model.NotificationPrivacy
 import com.uzuu.diuchat.feature.settings.domain.model.QuietSchedule
+import com.uzuu.diuchat.feature.settings.domain.model.UserProfile
+import com.uzuu.diuchat.feature.settings.domain.usecase.DeleteAccountUseCase
 import com.uzuu.diuchat.feature.settings.domain.usecase.GetBlockedContactsUseCase
 import com.uzuu.diuchat.feature.settings.domain.usecase.GetNotificationPrivacyUseCase
+import com.uzuu.diuchat.feature.settings.domain.usecase.GetProfileUseCase
 import com.uzuu.diuchat.feature.settings.domain.usecase.GetQuietScheduleUseCase
+import com.uzuu.diuchat.feature.settings.domain.usecase.LogoutUseCase
 import com.uzuu.diuchat.feature.settings.domain.usecase.UnblockContactUseCase
 import com.uzuu.diuchat.feature.settings.domain.usecase.UpdateNotificationPrivacyUseCase
+import com.uzuu.diuchat.feature.settings.domain.usecase.UpdateProfileUseCase
 import com.uzuu.diuchat.feature.settings.domain.usecase.UpdateQuietScheduleUseCase
+import com.uzuu.diuchat.library.testutils.CoroutinesTestDispatcherExtension
+import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
@@ -28,13 +35,27 @@ class SettingsViewModelTest {
     @RegisterExtension
     val coroutinesTestDispatcherExtension = CoroutinesTestDispatcherExtension()
 
+    private val deleteAccountUseCase: DeleteAccountUseCase = mockk(relaxed = true)
     private val getBlockedContactsUseCase: GetBlockedContactsUseCase = mockk()
     private val getNotificationPrivacyUseCase: GetNotificationPrivacyUseCase = mockk()
+    private val getProfileUseCase: GetProfileUseCase = mockk()
     private val getQuietScheduleUseCase: GetQuietScheduleUseCase = mockk()
+    private val logoutUseCase: LogoutUseCase = mockk(relaxed = true)
     private val unblockContactUseCase: UnblockContactUseCase = mockk(relaxed = true)
     private val updateNotificationPrivacyUseCase: UpdateNotificationPrivacyUseCase = mockk(relaxed = true)
+    private val updateProfileUseCase: UpdateProfileUseCase = mockk(relaxed = true)
     private val updateQuietScheduleUseCase: UpdateQuietScheduleUseCase = mockk(relaxed = true)
 
+    private val testProfile = UserProfile(
+        id = "u1",
+        displayName = "Minh Anh",
+        username = "minhanh",
+        bio = "Lắng nghe nhẹ nhàng",
+        birthday = "15/08/2000",
+        phone = "+84901234567",
+        primaryMood = "Bình yên",
+        avatarUrl = null,
+    )
     private val testQuietSchedule = QuietSchedule(
         enabled = true,
         startMinuteOfDay = 1350,
@@ -49,16 +70,21 @@ class SettingsViewModelTest {
 
     @BeforeEach
     fun setUp() {
+        every { getProfileUseCase() } returns flowOf(testProfile)
         every { getQuietScheduleUseCase() } returns flowOf(testQuietSchedule)
         every { getNotificationPrivacyUseCase() } returns flowOf(testNotificationPrivacy)
         every { getBlockedContactsUseCase() } returns flowOf(testBlockedContacts)
 
         sut = SettingsViewModel(
+            deleteAccountUseCase = deleteAccountUseCase,
             getBlockedContactsUseCase = getBlockedContactsUseCase,
             getNotificationPrivacyUseCase = getNotificationPrivacyUseCase,
+            getProfileUseCase = getProfileUseCase,
             getQuietScheduleUseCase = getQuietScheduleUseCase,
+            logoutUseCase = logoutUseCase,
             unblockContactUseCase = unblockContactUseCase,
             updateNotificationPrivacyUseCase = updateNotificationPrivacyUseCase,
+            updateProfileUseCase = updateProfileUseCase,
             updateQuietScheduleUseCase = updateQuietScheduleUseCase,
         )
     }
@@ -67,6 +93,7 @@ class SettingsViewModelTest {
     fun `initial state collects repository flows`() = runTest {
         advanceUntilIdle()
 
+        sut.uiStateFlow.value.userProfile shouldBeEqualTo testProfile
         sut.uiStateFlow.value.quietSchedule shouldBeEqualTo testQuietSchedule
         sut.uiStateFlow.value.notificationPrivacy shouldBeEqualTo testNotificationPrivacy
         sut.uiStateFlow.value.blockedContacts shouldBeEqualTo testBlockedContacts
@@ -136,5 +163,92 @@ class SettingsViewModelTest {
     fun `toggleReadReceipts updates state`() = runTest {
         sut.toggleReadReceipts(false)
         sut.uiStateFlow.value.readReceiptsEnabled shouldBeEqualTo false
+    }
+
+    @Test
+    fun `showEditProfile updates sheet visibility`() = runTest {
+        sut.showEditProfile(true)
+        sut.uiStateFlow.value.showEditProfileSheet shouldBeEqualTo true
+
+        sut.showEditProfile(false)
+        sut.uiStateFlow.value.showEditProfileSheet shouldBeEqualTo false
+    }
+
+    @Test
+    fun `updateProfile invokes usecase and closes sheet`() = runTest {
+        advanceUntilIdle()
+
+        sut.updateProfile(
+            displayName = "Minh Anh Mới",
+            bio = "Dịu dàng với ngày qua",
+            birthday = "15/08/2000",
+            primaryMood = "Dịu êm",
+        )
+        advanceUntilIdle()
+
+        coVerify {
+            updateProfileUseCase(
+                testProfile.copy(
+                    displayName = "Minh Anh Mới",
+                    bio = "Dịu dàng với ngày qua",
+                    birthday = "15/08/2000",
+                    primaryMood = "Dịu êm",
+                ),
+            )
+        }
+        sut.uiStateFlow.value.showEditProfileSheet shouldBeEqualTo false
+    }
+
+    @Test
+    fun `showLogoutConfirm updates dialog visibility`() = runTest {
+        sut.showLogoutConfirm(true)
+        sut.uiStateFlow.value.showLogoutConfirmDialog shouldBeEqualTo true
+
+        sut.showLogoutConfirm(false)
+        sut.uiStateFlow.value.showLogoutConfirmDialog shouldBeEqualTo false
+    }
+
+    @Test
+    fun `logout invokes logoutUseCase, dismisses dialog and sets isLoggedOut`() = runTest {
+        sut.logout()
+        advanceUntilIdle()
+
+        coVerify { logoutUseCase() }
+        sut.uiStateFlow.value.showLogoutConfirmDialog shouldBeEqualTo false
+        sut.uiStateFlow.value.isLoggedOut shouldBeEqualTo true
+    }
+
+    @Test
+    fun `showDeleteAccount updates dialog visibility`() = runTest {
+        sut.showDeleteAccount(true)
+        sut.uiStateFlow.value.showDeleteAccountDialog shouldBeEqualTo true
+
+        sut.showDeleteAccount(false)
+        sut.uiStateFlow.value.showDeleteAccountDialog shouldBeEqualTo false
+    }
+
+    @Test
+    fun `deleteAccount success marks completed, closes dialog and sets isLoggedOut`() = runTest {
+        advanceUntilIdle()
+
+        sut.deleteAccount("+84901234567")
+        advanceUntilIdle()
+
+        coVerify { deleteAccountUseCase("+84901234567") }
+        sut.uiStateFlow.value.accountDeletionState shouldBeEqualTo AccountDeletionState.Completed
+        sut.uiStateFlow.value.showDeleteAccountDialog shouldBeEqualTo false
+        sut.uiStateFlow.value.isLoggedOut shouldBeEqualTo true
+    }
+
+    @Test
+    fun `deleteAccount failure sets deletion state to Failed`() = runTest {
+        advanceUntilIdle()
+        coEvery { deleteAccountUseCase(any()) } throws RuntimeException("Số điện thoại không khớp")
+
+        sut.deleteAccount("0900000000")
+        advanceUntilIdle()
+
+        sut.uiStateFlow.value.accountDeletionState shouldBeEqualTo AccountDeletionState.Failed("Số điện thoại không khớp")
+        sut.uiStateFlow.value.isLoggedOut shouldBeEqualTo false
     }
 }
