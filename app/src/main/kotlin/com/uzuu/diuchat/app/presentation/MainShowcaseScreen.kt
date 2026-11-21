@@ -43,6 +43,7 @@ import com.uzuu.diuchat.feature.chat.presentation.screen.ChatScreen
 import com.uzuu.diuchat.feature.chat.presentation.screen.NewGroupScreen
 import com.uzuu.diuchat.feature.contacts.presentation.screen.ContactsScreen
 import com.uzuu.diuchat.feature.home.presentation.HomeScreen
+import com.uzuu.diuchat.feature.journal.presentation.favourites.FavouritesScreen
 import com.uzuu.diuchat.feature.journal.presentation.journal.JournalScreen
 import com.uzuu.diuchat.feature.journal.presentation.search.SearchScreen
 import com.uzuu.diuchat.feature.letters.presentation.screen.LettersScreen
@@ -150,6 +151,9 @@ fun MainShowcaseScreen(modifier: Modifier = Modifier) {
                             onInvite = {
                                 navController.navigate(NavigationRoute.Contacts)
                             },
+                            onSearchClick = {
+                                navController.navigate(NavigationRoute.Search())
+                            },
                         )
                     }
                     composable<NavigationRoute.Contacts> {
@@ -168,6 +172,27 @@ fun MainShowcaseScreen(modifier: Modifier = Modifier) {
                             conversationId = args.conversationId,
                             onBackClick = {
                                 navController.popBackStack()
+                            },
+                            onStartVoiceCall = {
+                                navController.navigate(NavigationRoute.Call)
+                            },
+                            onStartVideoCall = {
+                                navController.navigate(NavigationRoute.Call)
+                            },
+                            onAttachLocationClick = {
+                                navController.navigate(NavigationRoute.LocationPicker(args.conversationId))
+                            },
+                            onSendDelayedLetterClick = {
+                                navController.navigate(NavigationRoute.Letters)
+                            },
+                            onSearchInChatClick = {
+                                navController.navigate(NavigationRoute.Search(conversationId = args.conversationId))
+                            },
+                            onOpenSharedMediaClick = {
+                                navController.navigate(NavigationRoute.Media(args.conversationId))
+                            },
+                            onOpenPendingLettersClick = {
+                                navController.navigate(NavigationRoute.Letters)
                             },
                         )
                     }
@@ -215,6 +240,9 @@ fun MainShowcaseScreen(modifier: Modifier = Modifier) {
                         SettingsScreen(
                             onBackClick = {
                                 navController.popBackStack()
+                            },
+                            onNavigateToStorage = {
+                                navController.navigate(NavigationRoute.Storage)
                             },
                         )
                     }
@@ -304,16 +332,13 @@ fun MainShowcaseScreen(modifier: Modifier = Modifier) {
                             },
                         )
                     }
-//            composable<NavigationRoute.Favourites> {
-//                FavouriteScreen()
-//            }
-//            composable<NavigationRoute.Settings> {
-//                SettingsScreen(
-//                    onNavigateToAboutLibraries = {
-//                        navController.navigate(NavigationRoute.AboutLibraries)
-//                    },
-//                )
-//            }
+                    composable<NavigationRoute.Favourites> {
+                        FavouritesScreen(
+                            onBackClick = {
+                                navController.popBackStack()
+                            },
+                        )
+                    }
 //            composable<NavigationRoute.AboutLibraries> {
 //                AboutLibrariesScreen(
 //                    onBackClick = {

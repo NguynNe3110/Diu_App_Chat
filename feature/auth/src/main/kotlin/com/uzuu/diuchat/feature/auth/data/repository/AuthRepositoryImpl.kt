@@ -99,8 +99,7 @@ class AuthRepositoryImpl(
                 resolvedAvatar?.let { put("p_avatar_url", it) }
             },
         )
-        Unit
-    }.onFailure(::rethrowCancellation)
+    }.map {}.onFailure(::rethrowCancellation)
 
     private fun normalizePhone(phoneNumber: String): String {
         val trimmed = phoneNumber.trim()

@@ -2,7 +2,6 @@ package com.uzuu.diuchat.feature.chat.presentation.screen
 
 import android.net.Uri
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -369,10 +368,13 @@ fun ChatContent(
                         moodColor = partnerMoodColor,
                         onBarClick = {
                             val pinnedId = state.currentConversation?.pinnedMessageId
-                            val targetIndex = when {
-                                pinnedId != null -> state.messages.indexOfFirst { it.id == pinnedId }
-                                else -> -1
-                            }.takeIf { it >= 0 }
+                            val targetIndex = (
+                                if (pinnedId != null) {
+                                    state.messages.indexOfFirst { it.id == pinnedId }
+                                } else {
+                                    -1
+                                }
+                                ).takeIf { it >= 0 }
                                 ?: state.messages.indexOfFirst { it.isPinned }.takeIf { it >= 0 }
                                 ?: state.messages.indexOfFirst { it.content == snippet }
                             if (targetIndex >= 0) {
