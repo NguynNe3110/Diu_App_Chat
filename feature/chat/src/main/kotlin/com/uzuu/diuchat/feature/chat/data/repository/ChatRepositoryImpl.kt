@@ -8,7 +8,11 @@ import com.uzuu.diuchat.feature.chat.data.datasource.database.entity.MessageEnti
 import com.uzuu.diuchat.feature.chat.data.datasource.database.entity.OutboxOperationEntity
 import com.uzuu.diuchat.feature.chat.domain.model.ChatMessage
 import com.uzuu.diuchat.feature.chat.domain.model.Conversation
+import com.uzuu.diuchat.feature.chat.domain.model.GroupError
+import com.uzuu.diuchat.feature.chat.domain.model.GroupMember
+import com.uzuu.diuchat.feature.chat.domain.model.GroupRole
 import com.uzuu.diuchat.feature.chat.domain.model.MessageMediaType
+import com.uzuu.diuchat.feature.chat.domain.model.MessageReaction
 import com.uzuu.diuchat.feature.chat.domain.model.MessageStatus
 import com.uzuu.diuchat.feature.chat.domain.model.MoodType
 import com.uzuu.diuchat.feature.chat.domain.repository.ChatRepository
@@ -31,6 +35,9 @@ class ChatRepositoryImpl(
         entities.map { it.toDomain() }
     }
 
+    override fun observeConversation(conversationId: String): Flow<Conversation?> =
+        conversationDao.observeConversation(conversationId).map { it?.toDomain() }
+
     override suspend fun sendMessage(
         conversationId: String,
         content: String,
@@ -42,7 +49,6 @@ class ChatRepositoryImpl(
         val operationId = UUID.randomUUID().toString()
         val now = System.currentTimeMillis()
 
-        // 1. Transactional Outbox: Write Pending message and outbox operation atomically
         val messageEntity =
             MessageEntity(
                 id = messageId,
@@ -74,7 +80,6 @@ class ChatRepositoryImpl(
 
         updateConversationSummary(conversationId, content, mood, now)
 
-        // 2. Optimistic drain / sync: Transition status to SENT
         messageDao.updateStatus(messageId, MessageStatus.SENT.value)
         outboxDao.updateStatus(operationId, MessageStatus.SENT.value)
 
@@ -189,6 +194,190 @@ class ChatRepositoryImpl(
         return messageEntity.copy(status = MessageStatus.SENT.value).toDomain()
     }
 
+    override suspend fun createGroup(
+        title: String,
+        mood: MoodType,
+        memberIds: List<String>,
+    ): Conversation {
+        val groupId = "group_${UUID.randomUUID()}"
+        val now = System.currentTimeMillis()
+
+        val membersList = mutableListOf(
+            GroupMember(userId = "me", displayName = "Tôi", role = GroupRole.ADMIN, mood = mood, isFromMe = true),
+        )
+        memberIds.forEach { id ->
+            membersList.add(
+                GroupMember(userId = id, displayName = "Thành viên $id", role = GroupRole.MEMBER, mood = MoodType.BINHYEN),
+            )
+        }
+
+        val entity = ConversationEntity(
+            id = groupId,
+            title = title,
+            mood = mood.id,
+            lastMessage = "Nhóm vừa được tạo",
+            lastMessageTimeEpochMs = now,
+            unreadCount = 0,
+            isGroup = true,
+            daysTogether = 1,
+            membersCsv = membersList.toCsv(),
+        )
+
+        conversationDao.upsert(entity)
+        return entity.toDomain()
+    }
+
+    override suspend fun updateGroupInfo(
+        conversationId: String,
+        title: String?,
+        mood: MoodType?,
+        nickname: String?,
+        isMuted: Boolean?,
+    ) {
+        val existing = conversationDao.getConversation(conversationId) ?: return
+        val updated = existing.copy(
+            title = title ?: existing.title,
+            mood = mood?.id ?: existing.mood,
+            customNickname = nickname ?: existing.customNickname,
+            isMuted = isMuted ?: existing.isMuted,
+        )
+        conversationDao.upsert(updated)
+    }
+
+    override suspend fun manageGroupMember(
+        conversationId: String,
+        targetUserId: String,
+        newRole: GroupRole?,
+        isRemove: Boolean,
+    ) {
+        val existing = conversationDao.getConversation(conversationId) ?: return
+        val members = existing.membersCsv.toMemberList().toMutableList()
+
+        if (isRemove) {
+            members.removeAll { it.userId == targetUserId }
+        } else if (newRole != null) {
+            val idx = members.indexOfFirst { it.userId == targetUserId }
+            if (idx >= 0) {
+                members[idx] = members[idx].copy(role = newRole)
+            }
+        }
+
+        conversationDao.upsert(existing.copy(membersCsv = members.toCsv()))
+    }
+
+    override suspend fun leaveGroup(conversationId: String) {
+        val existing = conversationDao.getConversation(conversationId) ?: return
+        val members = existing.membersCsv.toMemberList()
+
+        // DEC-07 Check: If caller is the last remaining admin in a group with other members, block leaving
+        val callerMember = members.find { it.isFromMe || it.userId == "me" }
+        val otherAdmins = members.filter { (it.isFromMe || it.userId == "me").not() && it.role == GroupRole.ADMIN }
+
+        if (callerMember?.role == GroupRole.ADMIN && otherAdmins.isEmpty() && members.size > 1) {
+            throw GroupError.LastAdminCannotLeave
+        }
+
+        val remainingMembers = members.filterNot { it.isFromMe || it.userId == "me" }
+        conversationDao.upsert(existing.copy(membersCsv = remainingMembers.toCsv()))
+    }
+
+    override suspend fun toggleReaction(messageId: String, mood: MoodType) {
+        val message = messageDao.getMessage(messageId) ?: return
+        val reactions = message.reactionsCsv.toReactionList(messageId).toMutableList()
+
+        val myExistingIndex = reactions.indexOfFirst { it.userId == "me" }
+        if (myExistingIndex >= 0) {
+            val existingReaction = reactions[myExistingIndex]
+            if (existingReaction.mood == mood) {
+                // Remove reaction if clicking the same mood again
+                reactions.removeAt(myExistingIndex)
+            } else {
+                // Change to new mood
+                reactions[myExistingIndex] = existingReaction.copy(mood = mood)
+            }
+        } else {
+            // Add new reaction
+            reactions.add(
+                MessageReaction(
+                    messageId = messageId,
+                    userId = "me",
+                    userName = "Tôi",
+                    mood = mood,
+                    isFromMe = true,
+                ),
+            )
+        }
+
+        val newCsv = reactions.joinToString(";") { "${it.userId}|${it.userName}|${it.mood.id}" }
+        messageDao.insert(message.copy(reactionsCsv = newCsv))
+    }
+
+    override suspend fun togglePinMessage(conversationId: String, messageId: String) {
+        val convo = conversationDao.getConversation(conversationId) ?: return
+        val message = messageDao.getMessage(messageId) ?: return
+
+        if (convo.pinnedMessageId == messageId) {
+            // Unpin
+            conversationDao.upsert(convo.copy(pinnedMessageId = null, pinnedMessageSnippet = null))
+            messageDao.insert(message.copy(isPinned = false))
+        } else {
+            // Pin
+            conversationDao.upsert(
+                convo.copy(
+                    pinnedMessageId = messageId,
+                    pinnedMessageSnippet = message.content.take(60),
+                ),
+            )
+            messageDao.insert(message.copy(isPinned = true))
+        }
+    }
+
+    override suspend fun forwardMessage(
+        message: ChatMessage,
+        recipientConversationIds: List<String>,
+    ): List<ChatMessage> {
+        val forwardedList = mutableListOf<ChatMessage>()
+        val now = System.currentTimeMillis()
+
+        recipientConversationIds.forEach { targetConvoId ->
+            val newMsgId = UUID.randomUUID().toString()
+            val opId = UUID.randomUUID().toString()
+
+            val entity = MessageEntity(
+                id = newMsgId,
+                conversationId = targetConvoId,
+                senderId = "me",
+                senderName = "Tôi",
+                content = message.content,
+                mood = message.mood.id,
+                status = MessageStatus.SENT.value,
+                mediaType = message.mediaType.name,
+                mediaUri = message.mediaUri,
+                audioDurationMs = message.audioDurationMs,
+                audioWaveformCsv = message.audioWaveform.joinToString(","),
+                caption = message.caption,
+                createdAtEpochMs = now,
+                isFromMe = true,
+            )
+
+            val outbox = OutboxOperationEntity(
+                id = opId,
+                conversationId = targetConvoId,
+                messageId = newMsgId,
+                status = MessageStatus.SENT.value,
+                attemptCount = 1,
+                createdAtEpochMs = now,
+            )
+
+            messageDao.insert(entity)
+            outboxDao.insert(outbox)
+            updateConversationSummary(targetConvoId, message.content, message.mood, now)
+            forwardedList.add(entity.toDomain())
+        }
+
+        return forwardedList
+    }
+
     override suspend fun retryFailedMessage(messageId: String) {
         val message = messageDao.getMessage(messageId) ?: return
         messageDao.updateStatus(messageId, MessageStatus.PENDING.value)
@@ -201,7 +390,6 @@ class ChatRepositoryImpl(
                 status = MessageStatus.PENDING.value,
             ),
         )
-        // Transition to SENT
         messageDao.updateStatus(messageId, MessageStatus.SENT.value)
         outboxDao.updateStatus(opId, MessageStatus.SENT.value)
     }
@@ -253,14 +441,60 @@ class ChatRepositoryImpl(
         audioDurationMs = audioDurationMs,
         audioWaveform = audioWaveformCsv?.split(",")?.mapNotNull { it.toFloatOrNull() } ?: emptyList(),
         caption = caption,
+        isPinned = isPinned,
+        reactions = reactionsCsv.toReactionList(id),
     )
 
     private fun ConversationEntity.toDomain(): Conversation = Conversation(
         id = id,
         title = title,
         mood = MoodType.fromId(mood),
-        lastMessage = lastMessage,
-        lastMessageTimeEpochMs = lastMessageTimeEpochMs,
+        lastMessage = lastMessage ?: "",
+        lastMessageTimeEpochMs = lastMessageTimeEpochMs ?: 0L,
         unreadCount = unreadCount,
+        isGroup = isGroup,
+        avatarUrl = avatarUrl,
+        pinnedMessageId = pinnedMessageId,
+        pinnedMessageSnippet = pinnedMessageSnippet,
+        daysTogether = daysTogether ?: 100,
+        anniversaryDate = anniversaryDate ?: "14/02/2024",
+        customNickname = customNickname,
+        isMuted = isMuted,
+        members = membersCsv.toMemberList(),
     )
+
+    private fun List<GroupMember>.toCsv(): String =
+        joinToString(";") { "${it.userId}|${it.displayName}|${it.role.name}|${it.mood.id}" }
+
+    private fun String?.toMemberList(): List<GroupMember> {
+        if (this.isNullOrBlank()) return emptyList()
+        return split(";").mapNotNull { part ->
+            val tokens = part.split("|")
+            if (tokens.size >= 4) {
+                GroupMember(
+                    userId = tokens[0],
+                    displayName = tokens[1],
+                    role = runCatching { GroupRole.valueOf(tokens[2]) }.getOrDefault(GroupRole.MEMBER),
+                    mood = MoodType.fromId(tokens[3]),
+                    isFromMe = tokens[0] == "me",
+                )
+            } else null
+        }
+    }
+
+    private fun String?.toReactionList(msgId: String): List<MessageReaction> {
+        if (this.isNullOrBlank()) return emptyList()
+        return split(";").mapNotNull { part ->
+            val tokens = part.split("|")
+            if (tokens.size >= 3) {
+                MessageReaction(
+                    messageId = msgId,
+                    userId = tokens[0],
+                    userName = tokens[1],
+                    mood = MoodType.fromId(tokens[2]),
+                    isFromMe = tokens[0] == "me",
+                )
+            } else null
+        }
+    }
 }

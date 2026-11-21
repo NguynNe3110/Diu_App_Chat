@@ -1,6 +1,7 @@
 package com.uzuu.diuchat.feature.chat.presentation.screen
 
 import com.uzuu.diuchat.feature.chat.domain.model.ChatMessage
+import com.uzuu.diuchat.feature.chat.domain.model.Conversation
 import com.uzuu.diuchat.feature.chat.domain.model.MessageStatus
 import com.uzuu.diuchat.feature.chat.domain.model.MoodType
 import com.uzuu.diuchat.feature.chat.domain.model.VoiceRecordingState
@@ -29,6 +30,37 @@ class ChatActionTest {
         val newState = action.reduce(initialState)
 
         newState.messages shouldBeEqualTo messages
+    }
+
+    @Test
+    fun `SetConversation updates currentConversation and derived fields`() {
+        val convo = Conversation(
+            id = "conv_1",
+            title = "Linh Dịu",
+            mood = MoodType.THUONG,
+            lastMessage = "Hey",
+            lastMessageTimeEpochMs = 1000L,
+            customNickname = "Bé Linh",
+            pinnedMessageSnippet = "Tin nhắn quan trọng",
+        )
+        val action = ChatAction.SetConversation(convo)
+        val newState = action.reduce(initialState)
+
+        newState.currentConversation shouldBeEqualTo convo
+        newState.conversationTitle shouldBeEqualTo "Bé Linh"
+        newState.partnerMood shouldBeEqualTo MoodType.THUONG
+        newState.pinnedSnippet shouldBeEqualTo "Tin nhắn quan trọng"
+    }
+
+    @Test
+    fun `SetAvailableConversations updates availableConversations`() {
+        val list = listOf(
+            Conversation(id = "c1", title = "T1", mood = MoodType.VUI, lastMessage = "", lastMessageTimeEpochMs = 0L),
+        )
+        val action = ChatAction.SetAvailableConversations(list)
+        val newState = action.reduce(initialState)
+
+        newState.availableConversations shouldBeEqualTo list
     }
 
     @Test
@@ -109,6 +141,33 @@ class ChatActionTest {
 
         newState.playingAudioMessageId shouldBeEqualTo "msg_audio_1"
         newState.audioPlaybackProgress shouldBeEqualTo 0.75f
+    }
+
+    @Test
+    fun `SetActiveReactionDetail and SetActiveForwardMessage update state`() {
+        val msg = ChatMessage(
+            id = "m1",
+            conversationId = "c1",
+            senderId = "s1",
+            senderName = "N",
+            content = "C",
+            mood = MoodType.BINHYEN,
+            status = MessageStatus.SENT,
+        )
+        val s1 = ChatAction.SetActiveReactionDetail(msg).reduce(initialState)
+        s1.activeReactionDetailMessage shouldBeEqualTo msg
+
+        val s2 = ChatAction.SetActiveForwardMessage(msg).reduce(initialState)
+        s2.activeForwardMessage shouldBeEqualTo msg
+    }
+
+    @Test
+    fun `SetChatInfoOpen and SetNewGroupOpen update visibility flags`() {
+        val s1 = ChatAction.SetChatInfoOpen(true).reduce(initialState)
+        s1.isChatInfoOpen shouldBeEqualTo true
+
+        val s2 = ChatAction.SetNewGroupOpen(true).reduce(initialState)
+        s2.isNewGroupOpen shouldBeEqualTo true
     }
 
     @Test
