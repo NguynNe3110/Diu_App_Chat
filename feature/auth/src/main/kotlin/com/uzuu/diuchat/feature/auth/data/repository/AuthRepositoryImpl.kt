@@ -16,6 +16,7 @@ private const val OTP_DIGITS = 6
 class AuthRepositoryImpl(
     private val supabaseClient: SupabaseClient? = null,
 ) : AuthRepository {
+    @Suppress("TooGenericExceptionCaught")
     override suspend fun sendOtp(phoneNumber: String): Result<Unit> = runCatching {
         val normalizedPhone = normalizePhone(phoneNumber)
         val client = supabaseClient
@@ -43,6 +44,7 @@ class AuthRepositoryImpl(
         }
     }.onFailure(::rethrowCancellation)
 
+    @Suppress("TooGenericExceptionCaught")
     override suspend fun verifyOtp(
         phoneNumber: String,
         code: String,
