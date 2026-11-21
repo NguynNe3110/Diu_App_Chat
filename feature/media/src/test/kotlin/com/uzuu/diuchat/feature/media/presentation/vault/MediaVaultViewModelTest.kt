@@ -3,17 +3,30 @@ package com.uzuu.diuchat.feature.media.presentation.vault
 import com.uzuu.diuchat.feature.media.domain.model.MediaType
 import com.uzuu.diuchat.feature.media.domain.model.MediaVaultItem
 import com.uzuu.diuchat.feature.media.domain.usecase.GetVaultMediaUseCase
+import com.uzuu.diuchat.library.testutils.InstantTaskExecutorExtension
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.test.setMain
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.extension.ExtendWith
 
+@OptIn(ExperimentalCoroutinesApi::class)
+@ExtendWith(InstantTaskExecutorExtension::class)
 class MediaVaultViewModelTest {
+
+    private val testDispatcher = UnconfinedTestDispatcher()
 
     private val mockGetVaultMediaUseCase: GetVaultMediaUseCase = mockk {
         every { this@mockk(any()) } returns flowOf(
@@ -25,7 +38,18 @@ class MediaVaultViewModelTest {
         )
     }
 
-    private val sut = MediaVaultViewModel(mockGetVaultMediaUseCase)
+    private lateinit var sut: MediaVaultViewModel
+
+    @BeforeEach
+    fun setUp() {
+        Dispatchers.setMain(testDispatcher)
+        sut = MediaVaultViewModel(mockGetVaultMediaUseCase)
+    }
+
+    @AfterEach
+    fun tearDown() {
+        Dispatchers.resetMain()
+    }
 
     @Test
     fun `initial state loads all items`() = runTest {

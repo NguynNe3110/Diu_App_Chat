@@ -34,6 +34,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.uzuu.diuchat.feature.base.common.res.AppIcons
@@ -209,5 +210,20 @@ fun PhotoViewerScreen(
                 }
             }
         }
+    }
+}
+
+@Preview(name = "Photo Viewer — Light", showBackground = true)
+@Composable
+private fun PhotoViewerScreenPreview() {
+    AppTheme {
+        PhotoViewerScreen(
+            caption = "Chiều hoàng hôn bên bờ sông, bình yên lạ kỳ.",
+            moodName = "Bình yên",
+            senderName = "Minh",
+            timestamp = "17:45",
+            onBackClick = {},
+            onShareClick = {},
+        )
     }
 }
