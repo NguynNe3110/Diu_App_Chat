@@ -2,23 +2,32 @@ package com.uzuu.diuchat.feature.settings.presentation.screen
 
 import androidx.lifecycle.viewModelScope
 import com.uzuu.diuchat.feature.base.presentation.viewmodel.BaseViewModel
+import com.uzuu.diuchat.feature.settings.domain.model.AccountDeletionState
 import com.uzuu.diuchat.feature.settings.domain.model.NotificationPrivacy
+import com.uzuu.diuchat.feature.settings.domain.usecase.DeleteAccountUseCase
 import com.uzuu.diuchat.feature.settings.domain.usecase.GetBlockedContactsUseCase
 import com.uzuu.diuchat.feature.settings.domain.usecase.GetNotificationPrivacyUseCase
+import com.uzuu.diuchat.feature.settings.domain.usecase.GetProfileUseCase
 import com.uzuu.diuchat.feature.settings.domain.usecase.GetQuietScheduleUseCase
+import com.uzuu.diuchat.feature.settings.domain.usecase.LogoutUseCase
 import com.uzuu.diuchat.feature.settings.domain.usecase.UnblockContactUseCase
 import com.uzuu.diuchat.feature.settings.domain.usecase.UpdateNotificationPrivacyUseCase
+import com.uzuu.diuchat.feature.settings.domain.usecase.UpdateProfileUseCase
 import com.uzuu.diuchat.feature.settings.domain.usecase.UpdateQuietScheduleUseCase
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 
 class SettingsViewModel(
+    private val deleteAccountUseCase: DeleteAccountUseCase,
     private val getBlockedContactsUseCase: GetBlockedContactsUseCase,
     private val getNotificationPrivacyUseCase: GetNotificationPrivacyUseCase,
+    private val getProfileUseCase: GetProfileUseCase,
     private val getQuietScheduleUseCase: GetQuietScheduleUseCase,
+    private val logoutUseCase: LogoutUseCase,
     private val unblockContactUseCase: UnblockContactUseCase,
     private val updateNotificationPrivacyUseCase: UpdateNotificationPrivacyUseCase,
+    private val updateProfileUseCase: UpdateProfileUseCase,
     private val updateQuietScheduleUseCase: UpdateQuietScheduleUseCase,
 ) : BaseViewModel<SettingsUiState, SettingsAction>(SettingsUiState()) {
 
@@ -27,6 +36,10 @@ class SettingsViewModel(
     }
 
     private fun observeSettings() {
+        getProfileUseCase()
+            .onEach { sendAction(SettingsAction.SetUserProfile(it)) }
+            .launchIn(viewModelScope)
+
         getQuietScheduleUseCase()
             .onEach { sendAction(SettingsAction.SetQuietSchedule(it)) }
             .launchIn(viewModelScope)
@@ -87,5 +100,54 @@ class SettingsViewModel(
 
     fun showQuietHoursDialog(show: Boolean) {
         sendAction(SettingsAction.SetShowQuietHoursDialog(show))
+    }
+
+    fun showEditProfile(show: Boolean) {
+        sendAction(SettingsAction.SetShowEditProfileSheet(show))
+    }
+
+    fun updateProfile(displayName: String, bio: String, birthday: String, primaryMood: String) {
+        val current = uiStateFlow.value.userProfile
+        val updated = current.copy(
+            displayName = displayName,
+            bio = bio,
+            birthday = birthday,
+            primaryMood = primaryMood,
+        )
+        viewModelScope.launch {
+            updateProfileUseCase(updated)
+            sendAction(SettingsAction.SetShowEditProfileSheet(false))
+        }
+    }
+
+    fun showLogoutConfirm(show: Boolean) {
+        sendAction(SettingsAction.SetShowLogoutConfirmDialog(show))
+    }
+
+    fun logout() {
+        viewModelScope.launch {
+            logoutUseCase()
+            sendAction(SettingsAction.SetShowLogoutConfirmDialog(false))
+            sendAction(SettingsAction.SetLoggedOut(true))
+        }
+    }
+
+    fun showDeleteAccount(show: Boolean) {
+        sendAction(SettingsAction.SetShowDeleteAccountDialog(show))
+    }
+
+    @Suppress("TooGenericExceptionCaught")
+    fun deleteAccount(confirmPhone: String) {
+        viewModelScope.launch {
+            try {
+                sendAction(SettingsAction.SetAccountDeletionState(AccountDeletionState.Processing))
+                deleteAccountUseCase(confirmPhone)
+                sendAction(SettingsAction.SetAccountDeletionState(AccountDeletionState.Completed))
+                sendAction(SettingsAction.SetShowDeleteAccountDialog(false))
+                sendAction(SettingsAction.SetLoggedOut(true))
+            } catch (e: Exception) {
+                sendAction(SettingsAction.SetAccountDeletionState(AccountDeletionState.Failed(e.message ?: "Lỗi")))
+            }
+        }
     }
 }

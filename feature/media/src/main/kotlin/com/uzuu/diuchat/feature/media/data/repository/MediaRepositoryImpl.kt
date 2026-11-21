@@ -1,6 +1,7 @@
 package com.uzuu.diuchat.feature.media.data.repository
 
 import com.uzuu.diuchat.feature.base.common.res.AppPalette
+import com.uzuu.diuchat.feature.media.domain.model.AutoDownloadPolicy
 import com.uzuu.diuchat.feature.media.domain.model.ConversationStorage
 import com.uzuu.diuchat.feature.media.domain.model.MediaType
 import com.uzuu.diuchat.feature.media.domain.model.MediaVaultItem
@@ -14,6 +15,7 @@ import kotlinx.coroutines.flow.map
 class MediaRepositoryImpl : MediaRepository {
 
     private val mediaItemsFlow = MutableStateFlow(createInitialMediaItems())
+    private val autoDownloadPolicyFlow = MutableStateFlow(AutoDownloadPolicy.WIFI_ONLY)
 
     private val storageStatsFlow = MutableStateFlow(
         StorageStats(
@@ -63,6 +65,12 @@ class MediaRepositoryImpl : MediaRepository {
 
     override fun getStorageStats(): Flow<StorageStats> = storageStatsFlow.asStateFlow()
 
+    override fun getAutoDownloadPolicy(): Flow<AutoDownloadPolicy> = autoDownloadPolicyFlow.asStateFlow()
+
+    override suspend fun updateAutoDownloadPolicy(policy: AutoDownloadPolicy) {
+        autoDownloadPolicyFlow.value = policy
+    }
+
     override suspend fun clearCache(): Result<Long> {
         val current = storageStatsFlow.value
         val clearedBytes = current.cacheBytes
@@ -70,6 +78,32 @@ class MediaRepositoryImpl : MediaRepository {
             cacheBytes = 0L,
             totalStorageBytes = current.photosBytes + current.voiceBytes,
         )
+        return Result.success(clearedBytes)
+    }
+
+    override suspend fun clearConversationMedia(conversationId: String): Result<Long> {
+        val currentStats = storageStatsFlow.value
+        val conv = currentStats.conversations.find { it.conversationId == conversationId }
+            ?: return Result.success(0L)
+
+        val clearedBytes = conv.totalBytes
+        val updatedConversations = currentStats.conversations.map {
+            if (it.conversationId == conversationId) {
+                it.copy(totalBytes = 0L, photoCount = 0, voiceCount = 0)
+            } else {
+                it
+            }
+        }
+
+        val newTotal = (currentStats.totalStorageBytes - clearedBytes).coerceAtLeast(0L)
+        storageStatsFlow.value = currentStats.copy(
+            totalStorageBytes = newTotal,
+            conversations = updatedConversations,
+        )
+
+        // Clear local cached files for this conversation without deleting outbox or remote items
+        mediaItemsFlow.value = mediaItemsFlow.value.filterNot { it.conversationId == conversationId }
+
         return Result.success(clearedBytes)
     }
 

@@ -21,6 +21,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -40,12 +41,14 @@ import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuButton
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuButtonVariant
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuCard
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuConfirmationDialog
+import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuFilterChip
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuIconButton
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuInlineNotice
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuSectionHeader
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuSettingsRow
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuSwitch
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuTopBar
+import com.uzuu.diuchat.feature.media.domain.model.AutoDownloadPolicy
 import com.uzuu.diuchat.feature.media.domain.model.ConversationStorage
 import com.uzuu.diuchat.feature.media.domain.model.StorageStats
 import org.koin.androidx.compose.koinViewModel
@@ -61,11 +64,13 @@ fun StorageScreen(
     StorageContent(
         state = state,
         onBackClick = onBackClick,
-        onToggleAutoDownloadWifi = viewModel::onToggleAutoDownloadWifi,
+        onSetAutoDownloadPolicy = viewModel::onSetAutoDownloadPolicy,
         onToggleAutoDownloadVoice = viewModel::onToggleAutoDownloadVoice,
         onToggleKeepOriginalQuality = viewModel::onToggleKeepOriginalQuality,
         onShowClearCacheDialog = viewModel::onShowClearCacheDialog,
         onConfirmClearCache = viewModel::onConfirmClearCache,
+        onSelectConversationToClear = viewModel::onSelectConversationToClear,
+        onConfirmClearConversationMedia = viewModel::onConfirmClearConversationMedia,
         modifier = modifier,
     )
 }
@@ -74,11 +79,13 @@ fun StorageScreen(
 fun StorageContent(
     state: StorageUiState,
     onBackClick: () -> Unit,
-    onToggleAutoDownloadWifi: (Boolean) -> Unit,
+    onSetAutoDownloadPolicy: (AutoDownloadPolicy) -> Unit,
     onToggleAutoDownloadVoice: (Boolean) -> Unit,
     onToggleKeepOriginalQuality: (Boolean) -> Unit,
     onShowClearCacheDialog: (Boolean) -> Unit,
     onConfirmClearCache: () -> Unit,
+    onSelectConversationToClear: (ConversationStorage?) -> Unit,
+    onConfirmClearConversationMedia: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     DiuAmbientBackground(modifier = modifier) {
@@ -165,16 +172,24 @@ fun StorageContent(
                     DiuCard(modifier = Modifier.fillMaxWidth()) {
                         Column(modifier = Modifier.fillMaxWidth()) {
                             DiuSettingsRow(
-                                title = "Tự động tải qua Wi-Fi",
-                                subtitle = "Tải sẵn ảnh và tin nhắn thoại khi có mạng Wi-Fi",
-                                trailing = {
-                                    DiuSwitch(
-                                        checked = state.autoDownloadWifi,
-                                        onCheckedChange = onToggleAutoDownloadWifi,
-                                        contentDescription = "Tự động tải qua Wi-Fi",
-                                    )
-                                },
+                                title = "Chính sách tự động tải",
+                                subtitle = state.autoDownloadPolicy.description,
                             )
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 6.dp),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                AutoDownloadPolicy.entries.forEach { policy ->
+                                    val isSelected = state.autoDownloadPolicy == policy
+                                    DiuFilterChip(
+                                        text = policy.label,
+                                        selected = isSelected,
+                                        onClick = { onSetAutoDownloadPolicy(policy) },
+                                    )
+                                }
+                            }
                             DiuSettingsRow(
                                 title = "Tự động tải lời nhắn thoại",
                                 subtitle = "Luôn tải trước lời nhắn thoại để phát tức thì",
@@ -208,13 +223,16 @@ fun StorageContent(
                     }
 
                     items(state.stats.conversations, key = { it.conversationId }) { conv ->
-                        ConversationStorageCard(item = conv)
+                        ConversationStorageCard(
+                            item = conv,
+                            onClearClick = { onSelectConversationToClear(conv) },
+                        )
                     }
                 }
             }
         }
 
-        // Confirmation Dialog
+        // Confirmation Dialog - All Cache
         if (state.showClearDialog) {
             DiuConfirmationDialog(
                 title = "Dọn dẹp bộ nhớ đệm?",
@@ -224,6 +242,21 @@ fun StorageContent(
                 dismissLabel = "Hủy",
                 onConfirm = onConfirmClearCache,
                 onDismiss = { onShowClearCacheDialog(false) },
+            )
+        }
+
+        // Confirmation Dialog - Per Conversation Media
+        if (state.showConversationClearDialog && state.selectedConversationToClear != null) {
+            val conv = state.selectedConversationToClear
+            DiuConfirmationDialog(
+                title = "Xóa tệp đệm của ${conv.contactName}?",
+                message = "Thao tác này sẽ dọn dẹp ${conv.formattedSize} tệp ảnh và ghi âm tạm thời " +
+                    "của ${conv.contactName}. Dữ liệu trên máy chủ hoặc tin nhắn chưa gửi không bị ảnh hưởng.",
+                confirmLabel = "Xóa ngay",
+                dismissLabel = "Hủy",
+                destructive = true,
+                onConfirm = onConfirmClearConversationMedia,
+                onDismiss = { onSelectConversationToClear(null) },
             )
         }
     }
@@ -352,6 +385,7 @@ private fun LegendItem(
 @Composable
 private fun ConversationStorageCard(
     item: ConversationStorage,
+    onClearClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     DiuCard(modifier = modifier.fillMaxWidth()) {
@@ -390,11 +424,25 @@ private fun ConversationStorageCard(
                 )
             }
 
-            Text(
-                text = item.formattedSize,
-                style = AppTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
-                color = AppTheme.colors.ink,
-            )
+            Column(horizontalAlignment = Alignment.End) {
+                Text(
+                    text = item.formattedSize,
+                    style = AppTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                    color = AppTheme.colors.ink,
+                )
+                if (item.totalBytes > 0L) {
+                    TextButton(
+                        onClick = onClearClick,
+                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp),
+                    ) {
+                        Text(
+                            text = "Dọn đệm",
+                            style = AppTheme.typography.labelSmall,
+                            color = AppTheme.colors.accent,
+                        )
+                    }
+                }
+            }
         }
     }
 }

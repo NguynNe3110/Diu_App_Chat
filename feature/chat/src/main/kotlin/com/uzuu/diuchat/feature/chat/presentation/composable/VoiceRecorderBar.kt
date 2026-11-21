@@ -215,7 +215,7 @@ fun VoiceRecorderBar(
                         ) {
                             Icon(
                                 imageVector = if (recordingState.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                                contentDescription = "Nghe thử",
+                                contentDescription = if (recordingState.isPlaying) "Tạm dừng nghe thử" else "Nghe thử",
                                 tint = moodColor,
                             )
                         }

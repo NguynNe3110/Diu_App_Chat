@@ -1,11 +1,17 @@
 package com.uzuu.diuchat.feature.settings.presentation.screen
 
 import com.uzuu.diuchat.feature.base.presentation.viewmodel.BaseAction
+import com.uzuu.diuchat.feature.settings.domain.model.AccountDeletionState
 import com.uzuu.diuchat.feature.settings.domain.model.BlockedContact
 import com.uzuu.diuchat.feature.settings.domain.model.NotificationPrivacy
 import com.uzuu.diuchat.feature.settings.domain.model.QuietSchedule
+import com.uzuu.diuchat.feature.settings.domain.model.UserProfile
 
 sealed class SettingsAction : BaseAction<SettingsUiState> {
+    data class SetUserProfile(val userProfile: UserProfile) : SettingsAction() {
+        override fun reduce(state: SettingsUiState): SettingsUiState = state.copy(userProfile = userProfile)
+    }
+
     data class SetQuietSchedule(val quietSchedule: QuietSchedule) : SettingsAction() {
         override fun reduce(state: SettingsUiState): SettingsUiState = state.copy(quietSchedule = quietSchedule)
     }
@@ -32,5 +38,25 @@ sealed class SettingsAction : BaseAction<SettingsUiState> {
 
     data class SetShowQuietHoursDialog(val show: Boolean) : SettingsAction() {
         override fun reduce(state: SettingsUiState): SettingsUiState = state.copy(showQuietHoursDialog = show)
+    }
+
+    data class SetShowEditProfileSheet(val show: Boolean) : SettingsAction() {
+        override fun reduce(state: SettingsUiState): SettingsUiState = state.copy(showEditProfileSheet = show)
+    }
+
+    data class SetShowDeleteAccountDialog(val show: Boolean) : SettingsAction() {
+        override fun reduce(state: SettingsUiState): SettingsUiState = state.copy(showDeleteAccountDialog = show)
+    }
+
+    data class SetShowLogoutConfirmDialog(val show: Boolean) : SettingsAction() {
+        override fun reduce(state: SettingsUiState): SettingsUiState = state.copy(showLogoutConfirmDialog = show)
+    }
+
+    data class SetAccountDeletionState(val deletionState: AccountDeletionState) : SettingsAction() {
+        override fun reduce(state: SettingsUiState): SettingsUiState = state.copy(accountDeletionState = deletionState)
+    }
+
+    data class SetLoggedOut(val loggedOut: Boolean) : SettingsAction() {
+        override fun reduce(state: SettingsUiState): SettingsUiState = state.copy(isLoggedOut = loggedOut)
     }
 }
