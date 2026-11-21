@@ -25,6 +25,7 @@ import kotlinx.coroutines.flow.map
 class ChatRepositoryImpl(
     private val conversationDao: ConversationDao,
     private val messageDao: MessageDao,
+    @Suppress("UnusedPrivateProperty")
     private val outboxDao: OutboxDao,
     private val database: DiuChatDatabase? = null,
 ) : ChatRepository {

@@ -55,6 +55,7 @@ interface MessageDao {
         insertOutbox(outbox)
     }
 
+    @Suppress("LongParameterList")
     @Transaction
     suspend fun insertMessageWithOutboxAndSummary(
         message: MessageEntity,

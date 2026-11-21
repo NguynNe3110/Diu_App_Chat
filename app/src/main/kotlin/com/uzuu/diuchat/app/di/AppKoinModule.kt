@@ -1,6 +1,5 @@
 package com.uzuu.diuchat.app.di
 
-import com.uzuu.diuchat.app.data.retrofit.retrofitModule
 import com.uzuu.diuchat.app.data.supabase.supabaseModule
 import org.koin.dsl.module
 
