@@ -34,6 +34,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.uzuu.diuchat.feature.auth.domain.model.OtpState
@@ -364,3 +365,50 @@ private fun OtpVerificationContent(
         }
     }
 }
+
+@Preview(showBackground = true)
+@Composable
+private fun AuthScreenPhoneInputPreview() {
+    AppTheme {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(AppTheme.colors.background),
+        ) {
+            PhoneInputContent(
+                uiState = AuthUiState(
+                    otpState = OtpState.EditingPhone(phoneNumber = "901234567"),
+                ),
+                onKeyPress = {},
+                onSendOtp = {},
+            )
+        }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun AuthScreenOtpVerificationPreview() {
+    AppTheme {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(AppTheme.colors.background),
+        ) {
+            OtpVerificationContent(
+                uiState = AuthUiState(
+                    otpState = OtpState.AwaitingCode(
+                        phoneNumber = "901234567",
+                        code = "123",
+                        resendDeadlineEpochMs = 0L,
+                    ),
+                    resendSecondsRemaining = 45,
+                ),
+                onKeyPress = {},
+                onBack = {},
+                onResend = {},
+            )
+        }
+    }
+}
+

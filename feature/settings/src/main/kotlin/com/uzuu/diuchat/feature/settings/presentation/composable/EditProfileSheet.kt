@@ -25,6 +25,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.uzuu.diuchat.feature.base.common.res.AppTheme
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuButton
@@ -175,3 +176,25 @@ fun EditProfileSheet(
         }
     }
 }
+
+@Preview(showBackground = true)
+@Composable
+private fun EditProfileSheetPreview() {
+    AppTheme {
+        EditProfileSheet(
+            currentProfile = UserProfile(
+                id = "u1",
+                displayName = "Minh Anh",
+                username = "minhanh",
+                bio = "Nhẹ nhàng lắng nghe từng ngày trôi qua",
+                birthday = "15/08/2000",
+                phone = "+84901234567",
+                primaryMood = "Bình yên",
+                avatarUrl = null,
+            ),
+            onSave = { _, _, _, _ -> },
+            onDismiss = {},
+        )
+    }
+}
+
