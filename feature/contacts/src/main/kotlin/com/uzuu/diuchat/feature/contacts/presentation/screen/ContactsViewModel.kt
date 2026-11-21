@@ -11,6 +11,8 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 
+private const val COPIED_NOTICE_DURATION_MS = 2_000L
+
 class ContactsViewModel(
     private val getContactsUseCase: GetContactsUseCase,
     private val getPendingRequestsUseCase: GetPendingRequestsUseCase,
@@ -60,7 +62,7 @@ class ContactsViewModel(
     fun onCopyInviteLink() {
         sendAction(ContactsAction.SetCopiedLink(true))
         viewModelScope.launch {
-            delay(2000)
+            delay(COPIED_NOTICE_DURATION_MS)
             sendAction(ContactsAction.SetCopiedLink(false))
         }
     }

@@ -96,6 +96,8 @@ complexity:
   CognitiveComplexMethod:
     active: true
     threshold: 15
+    # Nested declarative UI is checked by Compose rules; retain this limit for business logic.
+    ignoreAnnotated: ['Composable']
   ComplexCondition:
     active: true
     threshold: 4
@@ -130,11 +132,14 @@ complexity:
   LongMethod:
     active: true
     threshold: 60
+    ignoreAnnotated: ['Composable']
   LongParameterList:
     active: true
     functionThreshold: 6
     constructorThreshold: 7
-    ignoreDefaultParameters: false
+    # Compose APIs expose optional styling and slot parameters.
+    ignoreDefaultParameters: true
+    ignoreAnnotated: ['Composable']
     ignoreDataClasses: true
     ignoreAnnotatedParameter: []
     excludes: ['**/[Tt]est/**', '**/*Test.kt']
@@ -624,6 +629,8 @@ style:
     maxJumpCount: 1
   MagicNumber:
     active: true
+    # Animation/layout literals stay local to composables; business rules still require names.
+    ignoreAnnotated: ['Composable']
     excludes: ['**/[Tt]est/**', '**/*Test.kt']
     ignoreNumbers:
       - '-1'
@@ -635,7 +642,8 @@ style:
       - '1000'  # Common for milliseconds
       - '3600'  # Seconds in hour
     ignoreHashCodeFunction: true
-    ignorePropertyDeclaration: false
+    # Named color/dimension declarations are already design tokens.
+    ignorePropertyDeclaration: true
     ignoreLocalVariableDeclaration: false
     ignoreConstantDeclaration: true
     ignoreCompanionObjectPropertyDeclaration: true

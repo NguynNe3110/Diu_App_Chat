@@ -26,10 +26,7 @@ fun DiuIconButton(
     content: @Composable () -> Unit,
 ) {
     val colors = AppTheme.colors
-    val contentColor = when {
-        danger -> colors.danger
-        else -> colors.inkSecondary
-    }
+    val contentColor = if (danger) colors.danger else colors.inkSecondary
 
     IconButton(
         onClick = onClick,

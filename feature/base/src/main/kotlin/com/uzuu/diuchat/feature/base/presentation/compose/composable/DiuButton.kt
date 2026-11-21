@@ -24,13 +24,6 @@ import androidx.compose.ui.unit.sp
 import com.uzuu.diuchat.feature.base.common.res.AppTheme
 import com.uzuu.diuchat.feature.base.common.res.DiuTypography
 
-enum class DiuButtonVariant {
-    Primary,
-    Outline,
-    Soft,
-    Danger,
-}
-
 @Composable
 fun DiuButton(
     onClick: () -> Unit,

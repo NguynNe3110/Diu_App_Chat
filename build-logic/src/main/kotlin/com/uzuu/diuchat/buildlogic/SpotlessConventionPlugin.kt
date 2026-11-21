@@ -1,6 +1,7 @@
 package com.uzuu.diuchat.buildlogic
 
 import com.diffplug.gradle.spotless.SpotlessExtension
+import com.diffplug.spotless.LineEnding
 import com.uzuu.diuchat.buildlogic.ext.libs
 import org.gradle.api.Plugin
 import org.gradle.api.Project
@@ -12,6 +13,8 @@ class SpotlessConventionPlugin : Plugin<Project> {
             pluginManager.apply("com.diffplug.spotless")
 
             extensions.configure<SpotlessExtension> {
+                // Keep formatting identical on Windows worktrees and Linux CI runners.
+                lineEndings = LineEnding.UNIX
                 kotlin {
                     target("**/*.kt", "**/*.kts")
 

@@ -18,16 +18,17 @@ class AuthViewModel(
 
     fun onKeypadPhonePress(key: String) {
         val currentPhone = uiStateFlow.value.rawPhone
-        val newPhone = when (key) {
-            "del" -> if (currentPhone.isNotEmpty()) currentPhone.dropLast(1) else ""
-            else -> if (key.all { it.isDigit() } && currentPhone.length < 9) currentPhone + key else currentPhone
+        val newPhone = if (key == "del") {
+            currentPhone.dropLast(1)
+        } else {
+            if (key.all { it.isDigit() } && currentPhone.length < PHONE_DIGITS) currentPhone + key else currentPhone
         }
         sendAction(AuthAction.UpdatePhone(newPhone))
     }
 
     fun onSendOtpClicked() {
         val phone = uiStateFlow.value.rawPhone
-        if (phone.length != 9) return
+        if (phone.length != PHONE_DIGITS) return
 
         sendAction(AuthAction.SetSending(phone))
         viewModelScope.launch {
@@ -58,14 +59,15 @@ class AuthViewModel(
         val currentState = uiStateFlow.value.otpState as? OtpState.AwaitingCode ?: return
         val currentCode = currentState.code
 
-        val newCode = when (key) {
-            "del" -> if (currentCode.isNotEmpty()) currentCode.dropLast(1) else ""
-            else -> if (key.all { it.isDigit() } && currentCode.length < 6) currentCode + key else currentCode
+        val newCode = if (key == "del") {
+            currentCode.dropLast(1)
+        } else {
+            if (key.all { it.isDigit() } && currentCode.length < OTP_DIGITS) currentCode + key else currentCode
         }
 
         sendAction(AuthAction.UpdateCode(newCode))
 
-        if (newCode.length == 6) {
+        if (newCode.length == OTP_DIGITS) {
             verifyOtp(currentState.phoneNumber, newCode, onAuthSuccess)
         }
     }
@@ -149,5 +151,7 @@ class AuthViewModel(
 
     companion object {
         private const val RESEND_COOLDOWN_MS = 60_000L
+        private const val PHONE_DIGITS = 9
+        private const val OTP_DIGITS = 6
     }
 }

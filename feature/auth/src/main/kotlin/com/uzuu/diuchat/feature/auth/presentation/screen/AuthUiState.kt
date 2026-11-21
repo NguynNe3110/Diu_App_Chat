@@ -4,6 +4,9 @@ import androidx.compose.runtime.Immutable
 import com.uzuu.diuchat.feature.auth.domain.model.OtpState
 import com.uzuu.diuchat.feature.base.presentation.viewmodel.BaseState
 
+private const val PHONE_DIGITS = 9
+private const val PHONE_GROUP_SIZE = 3
+
 @Immutable
 data class AuthUiState(
     val otpState: OtpState = OtpState.EditingPhone(),
@@ -23,15 +26,11 @@ data class AuthUiState(
     val formattedPhone: String
         get() {
             val digits = rawPhone
-            return when {
-                digits.length <= 3 -> digits
-                digits.length <= 6 -> "${digits.substring(0, 3)} ${digits.substring(3)}"
-                else -> "${digits.substring(0, 3)} ${digits.substring(3, 6)} ${digits.substring(6)}"
-            }
+            return digits.chunked(PHONE_GROUP_SIZE).joinToString(" ")
         }
 
     val isPhoneValid: Boolean
-        get() = rawPhone.length == 9
+        get() = rawPhone.length == PHONE_DIGITS
 
     val canResend: Boolean
         get() = resendSecondsRemaining <= 0

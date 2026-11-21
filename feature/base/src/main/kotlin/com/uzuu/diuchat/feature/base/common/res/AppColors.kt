@@ -20,109 +20,109 @@ data class AppColors(
 
     // ── Nền & Bề mặt ──────────────────────────
 
-    /** Nền chính của toàn màn hình */
+    /** Nền chính của toàn màn hình. */
     val background: Color,
 
-    /** Surface kính mờ (card, overlay, bottom nav) */
+    /** Surface kính mờ (card, overlay, bottom nav). */
     val surface: Color,
 
-    /** Surface nổi rõ hơn (composer, tray, notification bubble) */
+    /** Surface nổi rõ hơn (composer, tray, notification bubble). */
     val surfaceElevated: Color,
 
     // ── Mực & Chữ ──────────────────────────────
 
-    /** Chữ/icon chính — Tiêu đề, nội dung quan trọng */
+    /** Chữ/icon chính — Tiêu đề, nội dung quan trọng. */
     val ink: Color,
 
-    /** Chữ/icon phụ — Phụ đề, nội dung tin nhắn, icon bình thường */
+    /** Chữ/icon phụ — Phụ đề, nội dung tin nhắn, icon bình thường. */
     val inkSecondary: Color,
 
-    /** Chữ/icon mờ — Placeholder, hint, icon vô hiệu */
+    /** Chữ/icon mờ — Placeholder, hint, icon vô hiệu. */
     val inkTertiary: Color,
 
     // ── Đường kẻ & Viền ────────────────────────
 
-    /** Đường kẻ phân cách, border, divider */
+    /** Đường kẻ phân cách, border, divider. */
     val line: Color,
 
     // ── Điểm nhấn ──────────────────────────────
 
-    /** Peach — Sắc đào đặc trưng của Dịu (glow, badge, indicator) */
+    /** Peach — Sắc đào đặc trưng của Dịu (glow, badge, indicator). */
     val peach: Color,
 
-    /** Accent — Điểm nhấn hành động (CTA, toggle on, active) */
+    /** Accent — Điểm nhấn hành động (CTA, toggle on, active). */
     val accent: Color,
 
-    /** Chữ/icon nằm trên nền accent */
+    /** Chữ/icon nằm trên nền accent. */
     val onAccent: Color,
 
     // ── Mood — 5 cảm xúc ──────────────────────
 
-    /** Bộ 5 màu cảm xúc */
+    /** Bộ 5 màu cảm xúc. */
     val moods: MoodColors,
 
     // ── Chat / Tin nhắn ────────────────────────
 
-    /** Chữ bong bóng "mình" trên nền mood gradient */
+    /** Chữ bong bóng "mình" trên nền mood gradient. */
     val bubbleTextOnMood: Color,
 
-    /** Nền trích dẫn / reply quote */
+    /** Nền trích dẫn / reply quote. */
     val quoteBg: Color,
 
     // ── Cuộc gọi ───────────────────────────────
 
-    /** Nút kết thúc cuộc gọi */
+    /** Nút kết thúc cuộc gọi. */
     val callEnd: Color,
 
-    /** Nút chấp nhận cuộc gọi */
+    /** Nút chấp nhận cuộc gọi. */
     val callAccept: Color,
 
     // ── Cảnh báo / Nguy hiểm ───────────────────
 
-    /** Chữ/icon nguy hiểm (xoá, chặn, cuộc gọi nhỡ) */
+    /** Chữ/icon nguy hiểm (xoá, chặn, cuộc gọi nhỡ). */
     val danger: Color,
 
-    /** Chấm ghi âm nhấp nháy */
+    /** Chấm ghi âm nhấp nháy. */
     val recDot: Color,
 
     // ── Viewer ─────────────────────────────────
 
-    /** Nền xem ảnh toàn màn hình */
+    /** Nền xem ảnh toàn màn hình. */
     val viewerBg: Color,
 
-    /** Chữ trên viewer */
+    /** Chữ trên viewer. */
     val viewerText: Color,
 
     // ── Quiet Mode ─────────────────────────────
 
-    /** Tím yên tĩnh (banner, glow, card) */
+    /** Tím yên tĩnh (banner, glow, card). */
     val quietPurple: Color,
 
-    /** Vòng dial yên tĩnh */
+    /** Vòng dial yên tĩnh. */
     val quietRing: Color,
 
     // ── Overlay / Sheet ────────────────────────
 
-    /** Backdrop mờ khi mở Bottom Sheet */
+    /** Backdrop mờ khi mở Bottom Sheet. */
     val sheetBackdrop: Color,
 
     // ── Photo placeholder ──────────────────────
 
-    /** Nền label trên ảnh placeholder */
+    /** Nền label trên ảnh placeholder. */
     val photoLabelBg: Color,
 
-    /** Chữ label trên ảnh placeholder */
+    /** Chữ label trên ảnh placeholder. */
     val photoLabelText: Color,
 
     // ── Ambient ────────────────────────────────
 
-    /** Chữ avatar Orb (trắng ấm) */
+    /** Chữ avatar Orb (trắng ấm). */
     val orbText: Color,
 
-    /** Ánh sáng ấm (OTP glow, check-in glow) */
+    /** Ánh sáng ấm (OTP glow, check-in glow). */
     val warmGlow: Color,
 
-    /** Bóng đổ */
+    /** Bóng đổ. */
     val shadow: Color,
 )
 
@@ -134,15 +134,15 @@ data class AppColors(
  */
 @Immutable
 data class MoodColors(
-    /** Thương — Hồng phấn ấm */
+    /** Thương — Hồng phấn ấm. */
     val thuong: Color = AppPalette.MoodThuong,
-    /** Vui — Vàng nắng hổ phách */
+    /** Vui — Vàng nắng hổ phách. */
     val vui: Color = AppPalette.MoodVui,
-    /** Bình yên — Xanh xô thơm */
+    /** Bình yên — Xanh xô thơm. */
     val binhyen: Color = AppPalette.MoodBinhYen,
-    /** Nhớ — Tím oải hương */
+    /** Nhớ — Tím oải hương. */
     val nho: Color = AppPalette.MoodNho,
-    /** Trầm — Xanh thanh bình */
+    /** Trầm — Xanh thanh bình. */
     val tram: Color = AppPalette.MoodTram,
 )
 

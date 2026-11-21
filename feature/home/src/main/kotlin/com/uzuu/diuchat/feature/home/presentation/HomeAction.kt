@@ -5,6 +5,11 @@ import com.uzuu.diuchat.feature.home.domain.model.RecentChat
 import com.uzuu.diuchat.feature.home.domain.model.StarPerson
 import java.util.Calendar
 
+private const val MORNING_START_HOUR = 5
+private const val MORNING_END_HOUR = 11
+private const val AFTERNOON_START_HOUR = 12
+private const val AFTERNOON_END_HOUR = 17
+
 sealed interface HomeAction : BaseAction<HomeUiState> {
 
     data class SetLoading(val isLoading: Boolean) : HomeAction {
@@ -27,8 +32,8 @@ sealed interface HomeAction : BaseAction<HomeUiState> {
         private fun computeGreeting(): String {
             val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
             return when (hour) {
-                in 5..11 -> "Chào buổi sáng"
-                in 12..17 -> "Chào buổi chiều"
+                in MORNING_START_HOUR..MORNING_END_HOUR -> "Chào buổi sáng"
+                in AFTERNOON_START_HOUR..AFTERNOON_END_HOUR -> "Chào buổi chiều"
                 else -> "Chào buổi tối"
             }
         }

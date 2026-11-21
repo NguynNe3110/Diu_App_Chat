@@ -1,6 +1,5 @@
 package com.uzuu.diuchat.feature.base.presentation.compose.composable
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults

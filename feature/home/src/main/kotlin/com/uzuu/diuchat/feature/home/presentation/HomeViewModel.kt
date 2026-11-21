@@ -7,6 +7,9 @@ import com.uzuu.diuchat.feature.home.domain.model.RecentChat
 import com.uzuu.diuchat.feature.home.domain.model.StarPerson
 import java.util.Calendar
 
+private const val QUIET_START_HOUR = 22
+private const val QUIET_END_HOUR = 6
+
 class HomeViewModel : BaseViewModel<HomeUiState, HomeAction>(HomeUiState()) {
 
     init {
@@ -14,11 +17,12 @@ class HomeViewModel : BaseViewModel<HomeUiState, HomeAction>(HomeUiState()) {
     }
 
     fun loadHomeData() {
-        val calendar = Calendar.getInstance()
-        val hour = calendar.get(Calendar.HOUR_OF_DAY)
-        val isQuiet = hour >= 22 || hour < 6
+        val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+        val isQuiet = hour >= QUIET_START_HOUR || hour < QUIET_END_HOUR
+        sendAction(HomeAction.SetData(sampleStars(isQuiet), sampleRecentChats(), isQuiet))
+    }
 
-        val defaultStars = listOf(
+    private fun sampleStars(isQuiet: Boolean) = listOf(
             StarPerson(
                 id = "minh",
                 name = "Minh",
@@ -67,7 +71,7 @@ class HomeViewModel : BaseViewModel<HomeUiState, HomeAction>(HomeUiState()) {
             ),
         )
 
-        val defaultRecentChats = listOf(
+    private fun sampleRecentChats() = listOf(
             RecentChat(
                 id = "minh",
                 contactName = "Minh",
@@ -97,9 +101,6 @@ class HomeViewModel : BaseViewModel<HomeUiState, HomeAction>(HomeUiState()) {
                 unreadCount = 0,
             ),
         )
-
-        sendAction(HomeAction.SetData(defaultStars, defaultRecentChats, isQuiet))
-    }
 
     fun onClearData() {
         sendAction(HomeAction.ClearData)

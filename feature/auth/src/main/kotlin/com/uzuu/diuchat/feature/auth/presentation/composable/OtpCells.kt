@@ -52,10 +52,7 @@ fun OtpCells(
             val digit = if (isFilled) code[i].toString() else ""
             val moodColor = moodList[i % moodList.size]
 
-            val targetBg = when {
-                isFilled -> moodColor.copy(alpha = 0.40f)
-                else -> colors.surface
-            }
+            val targetBg = if (isFilled) moodColor.copy(alpha = 0.40f) else colors.surface
             val bgColor by animateColorAsState(
                 targetValue = targetBg,
                 animationSpec = tween(durationMillis = 250),
