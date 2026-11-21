@@ -21,13 +21,20 @@ import com.uzuu.diuchat.app.presentation.util.NavigationDestinationLogger
 import com.uzuu.diuchat.feature.album.presentation.screen.albumdetail.AlbumDetailScreen
 import com.uzuu.diuchat.feature.album.presentation.screen.albumlist.AlbumListScreen
 import com.uzuu.diuchat.feature.auth.presentation.screen.AuthScreen
+import com.uzuu.diuchat.feature.calls.presentation.screen.CallHistoryScreen
+import com.uzuu.diuchat.feature.calls.presentation.screen.CallHistoryViewModel
+import com.uzuu.diuchat.feature.calls.presentation.screen.CallScreen
+import com.uzuu.diuchat.feature.calls.presentation.screen.CallViewModel
 import com.uzuu.diuchat.feature.chat.presentation.screen.ChatScreen
 import com.uzuu.diuchat.feature.contacts.presentation.screen.ContactsScreen
 import com.uzuu.diuchat.feature.home.presentation.HomeScreen
 import com.uzuu.diuchat.feature.journal.presentation.journal.JournalScreen
 import com.uzuu.diuchat.feature.journal.presentation.search.SearchScreen
 import com.uzuu.diuchat.feature.letters.presentation.screen.LettersScreen
+import com.uzuu.diuchat.feature.location.presentation.LiveLocationScreen
+import com.uzuu.diuchat.feature.location.presentation.LocationPickerScreen
 import com.uzuu.diuchat.feature.media.presentation.storage.StorageScreen
+import org.koin.androidx.compose.koinViewModel
 import com.uzuu.diuchat.feature.media.presentation.vault.MediaVaultScreen
 import com.uzuu.diuchat.feature.media.presentation.viewer.PhotoViewerScreen
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuAmbientBackground
@@ -185,6 +192,50 @@ fun MainShowcaseScreen(modifier: Modifier = Modifier) {
                     SearchScreen(
                         conversationId = args.conversationId,
                         conversationName = args.conversationName,
+                        onBackClick = {
+                            navController.popBackStack()
+                        },
+                    )
+                }
+                composable<NavigationRoute.Call> {
+                    val viewModel: CallViewModel = koinViewModel()
+                    CallScreen(
+                        viewModel = viewModel,
+                        onNavigateBack = {
+                            navController.popBackStack()
+                        },
+                    )
+                }
+                composable<NavigationRoute.CallHistory> {
+                    val viewModel: CallHistoryViewModel = koinViewModel()
+                    CallHistoryScreen(
+                        viewModel = viewModel,
+                        onNavigateBack = {
+                            navController.popBackStack()
+                        },
+                    )
+                }
+                composable<NavigationRoute.LocationPicker> { backStackEntry ->
+                    val args = backStackEntry.toRoute<NavigationRoute.LocationPicker>()
+                    LocationPickerScreen(
+                        conversationId = args.conversationId,
+                        onBackClick = {
+                            navController.popBackStack()
+                        },
+                        onSendLocation = {
+                            navController.popBackStack()
+                        },
+                        onStartLiveSession = { session ->
+                            navController.navigate(NavigationRoute.LiveLocation(session.sessionId)) {
+                                popUpTo<NavigationRoute.LocationPicker> { inclusive = true }
+                            }
+                        },
+                    )
+                }
+                composable<NavigationRoute.LiveLocation> { backStackEntry ->
+                    val args = backStackEntry.toRoute<NavigationRoute.LiveLocation>()
+                    LiveLocationScreen(
+                        sessionId = args.sessionId,
                         onBackClick = {
                             navController.popBackStack()
                         },

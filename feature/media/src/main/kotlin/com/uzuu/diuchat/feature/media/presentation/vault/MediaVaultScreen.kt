@@ -185,16 +185,14 @@ fun MediaVaultContent(
                             if (nonPhotos.isNotEmpty()) {
                                 items(nonPhotos, key = { it.id }) { nonPhoto ->
                                     when (nonPhoto.type) {
-                                        MediaType.VOICE -> {
-                                            VoiceVaultCard(
-                                                item = nonPhoto,
-                                                isPlaying = state.currentlyPlayingVoiceId == nonPhoto.id,
-                                                onTogglePlay = { onTogglePlayVoice(nonPhoto.id) },
-                                            )
-                                        }
-                                        MediaType.LETTER -> {
-                                            LetterVaultCard(item = nonPhoto)
-                                        }
+                                        MediaType.VOICE -> VoiceVaultCard(
+                                            item = nonPhoto,
+                                            isPlaying = state.currentlyPlayingVoiceId == nonPhoto.id,
+                                            onTogglePlay = { onTogglePlayVoice(nonPhoto.id) },
+                                        )
+
+                                        MediaType.LETTER -> LetterVaultCard(item = nonPhoto)
+
                                         else -> Unit
                                     }
                                 }

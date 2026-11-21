@@ -3,7 +3,6 @@ package com.uzuu.diuchat.feature.settings.presentation.screen
 import androidx.lifecycle.viewModelScope
 import com.uzuu.diuchat.feature.base.presentation.viewmodel.BaseViewModel
 import com.uzuu.diuchat.feature.settings.domain.model.NotificationPrivacy
-import com.uzuu.diuchat.feature.settings.domain.model.QuietSchedule
 import com.uzuu.diuchat.feature.settings.domain.usecase.GetBlockedContactsUseCase
 import com.uzuu.diuchat.feature.settings.domain.usecase.GetNotificationPrivacyUseCase
 import com.uzuu.diuchat.feature.settings.domain.usecase.GetQuietScheduleUseCase

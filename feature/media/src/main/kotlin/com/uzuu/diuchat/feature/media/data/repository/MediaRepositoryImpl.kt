@@ -53,17 +53,15 @@ class MediaRepositoryImpl : MediaRepository {
         ),
     )
 
-    override fun getVaultMedia(conversationId: String): Flow<List<MediaVaultItem>> =
-        mediaItemsFlow.asStateFlow().map { items ->
-            if (conversationId.isBlank() || conversationId == "all") {
-                items
-            } else {
-                items.filter { it.conversationId == conversationId }
-            }
+    override fun getVaultMedia(conversationId: String): Flow<List<MediaVaultItem>> = mediaItemsFlow.asStateFlow().map { items ->
+        if (conversationId.isBlank() || conversationId == "all") {
+            items
+        } else {
+            items.filter { it.conversationId == conversationId }
         }
+    }
 
-    override fun getStorageStats(): Flow<StorageStats> =
-        storageStatsFlow.asStateFlow()
+    override fun getStorageStats(): Flow<StorageStats> = storageStatsFlow.asStateFlow()
 
     override suspend fun clearCache(): Result<Long> {
         val current = storageStatsFlow.value
@@ -85,7 +83,7 @@ class MediaRepositoryImpl : MediaRepository {
             moodName = "Bình yên",
             moodColor = AppPalette.MoodBinhYen,
             timestamp = "19:42 · 21/11/2026",
-            monthGroup = "Tháng 11, 2026",
+            monthGroup = MONTH_NOV_2026,
             senderName = "Ba",
         ),
         MediaVaultItem(
@@ -97,7 +95,7 @@ class MediaRepositoryImpl : MediaRepository {
             moodName = "Thương",
             moodColor = AppPalette.MoodThuong,
             timestamp = "17:15 · 18/11/2026",
-            monthGroup = "Tháng 11, 2026",
+            monthGroup = MONTH_NOV_2026,
             senderName = "Minh",
         ),
         MediaVaultItem(
@@ -109,7 +107,7 @@ class MediaRepositoryImpl : MediaRepository {
             moodName = "Vui",
             moodColor = AppPalette.MoodVui,
             timestamp = "12:30 · 15/11/2026",
-            monthGroup = "Tháng 11, 2026",
+            monthGroup = MONTH_NOV_2026,
             senderName = "Bạn",
         ),
         MediaVaultItem(
@@ -121,7 +119,7 @@ class MediaRepositoryImpl : MediaRepository {
             moodName = "Bình yên",
             moodColor = AppPalette.MoodBinhYen,
             timestamp = "09:00 · 10/11/2026",
-            monthGroup = "Tháng 11, 2026",
+            monthGroup = MONTH_NOV_2026,
             senderName = "Minh",
         ),
         MediaVaultItem(
@@ -133,7 +131,7 @@ class MediaRepositoryImpl : MediaRepository {
             moodColor = AppPalette.MoodThuong,
             durationSeconds = 42,
             timestamp = "21:14 · 20/11/2026",
-            monthGroup = "Tháng 11, 2026",
+            monthGroup = MONTH_NOV_2026,
             senderName = "Minh",
         ),
         MediaVaultItem(
@@ -145,7 +143,7 @@ class MediaRepositoryImpl : MediaRepository {
             moodColor = AppPalette.MoodVui,
             durationSeconds = 18,
             timestamp = "19:30 · 18/11/2026",
-            monthGroup = "Tháng 11, 2026",
+            monthGroup = MONTH_NOV_2026,
             senderName = "Nhà mình",
         ),
         MediaVaultItem(
@@ -156,7 +154,7 @@ class MediaRepositoryImpl : MediaRepository {
             moodName = "Thương",
             moodColor = AppPalette.MoodThuong,
             timestamp = "19/11/2026",
-            monthGroup = "Tháng 11, 2026",
+            monthGroup = MONTH_NOV_2026,
             senderName = "Minh",
         ),
         MediaVaultItem(
@@ -207,4 +205,8 @@ class MediaRepositoryImpl : MediaRepository {
             senderName = "Minh",
         ),
     )
+
+    private companion object {
+        private const val MONTH_NOV_2026 = "Tháng 11, 2026"
+    }
 }

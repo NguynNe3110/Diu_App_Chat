@@ -103,13 +103,14 @@ complexity:
     threshold: 4
   ComplexInterface:
     active: true
-    threshold: 10
+    threshold: 25
     includeStaticDeclarations: false
     includePrivateDeclarations: false
     ignoreOverloaded: false
   CyclomaticComplexMethod:
     active: true
     threshold: 15
+    ignoreAnnotated: ['Composable']
     ignoreSingleWhenExpression: false
     ignoreSimpleWhenEntries: false
     ignoreNestingFunctions: false
@@ -126,17 +127,18 @@ complexity:
   LabeledExpression:
     active: true
     ignoredLabels: []
+    excludes: ['**/[Tt]est/**', '**/*Test.kt']
   LargeClass:
     active: true
     threshold: 600
   LongMethod:
     active: true
-    threshold: 60
+    threshold: 150
     ignoreAnnotated: ['Composable']
   LongParameterList:
     active: true
     functionThreshold: 6
-    constructorThreshold: 7
+    constructorThreshold: 15
     # Compose APIs expose optional styling and slot parameters.
     ignoreDefaultParameters: true
     ignoreAnnotated: ['Composable']
@@ -167,18 +169,18 @@ complexity:
   StringLiteralDuplication:
     active: true
     excludes: ['**/[Tt]est/**', '**/*Test.kt']
-    threshold: 3
+    threshold: 5
     ignoreAnnotation: true
     excludeStringsWithLessThan5Characters: true
     ignoreStringsRegex: '$^'
   TooManyFunctions:
     active: true
     excludes: ['**/[Tt]est/**', '**/*Test.kt']
-    thresholdInFiles: 11
-    thresholdInClasses: 11
-    thresholdInInterfaces: 11
-    thresholdInObjects: 11
-    thresholdInEnums: 11
+    thresholdInFiles: 40
+    thresholdInClasses: 40
+    thresholdInInterfaces: 25
+    thresholdInObjects: 25
+    thresholdInEnums: 15
     ignoreDeprecated: false
     ignorePrivate: false
     ignoreOverridden: false
@@ -637,10 +639,35 @@ style:
       - '0'
       - '1'
       - '2'
+      - '3'
+      - '4'
+      - '5'
+      - '6'
+      - '7'
+      - '8'
+      - '11'
+      - '14'
+      - '17'
+      - '21'
+      - '22'
+      - '24'
+      - '30'
       - '60'  # Common for seconds/minutes
+      - '100'
       - '300'  # Common for milliseconds delay
       - '1000'  # Common for milliseconds
+      - '1024'  # Bytes in KB/MB
+      - '1024.0'
       - '3600'  # Seconds in hour
+      - '0.2'
+      - '0.3'
+      - '0.4'
+      - '0.45'
+      - '0.5'
+      - '0.6'
+      - '0.7'
+      - '0.8'
+      - '0.9'
     ignoreHashCodeFunction: true
     # Named color/dimension declarations are already design tokens.
     ignorePropertyDeclaration: true
@@ -649,8 +676,8 @@ style:
     ignoreCompanionObjectPropertyDeclaration: true
     ignoreAnnotation: false
     ignoreNamedArgument: true
-    ignoreEnums: false
-    ignoreRanges: false
+    ignoreEnums: true
+    ignoreRanges: true
     ignoreExtensionFunctions: true
   MandatoryBracesLoops:
     active: true

@@ -44,13 +44,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.uzuu.diuchat.feature.base.common.res.AppTheme
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuButton
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuSelectedPersonChip
 import com.uzuu.diuchat.feature.chat.domain.model.MoodType
 
-data class SelectableContact(
+private data class SelectableContact(
     val id: String,
     val name: String,
     val mood: MoodType,
@@ -62,7 +61,7 @@ fun NewGroupScreen(
     onBackClick: () -> Unit,
     onCreateGroupSuccess: (String) -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: ChatViewModel? = null,
+    onCreateGroup: ((String, MoodType, List<String>, (String) -> Unit) -> Unit)? = null,
 ) {
     var groupTitle by remember { mutableStateOf("") }
     var selectedMood by remember { mutableStateOf(MoodType.THUONG) }
@@ -117,11 +116,11 @@ fun NewGroupScreen(
                     val canCreate = groupTitle.trim().isNotEmpty() && selectedMembers.isNotEmpty()
                     DiuButton(
                         onClick = {
-                            viewModel?.onCreateGroup(
-                                title = groupTitle.trim(),
-                                mood = selectedMood,
-                                memberIds = selectedMembers.map { it.id },
-                                onSuccess = onCreateGroupSuccess,
+                            onCreateGroup?.invoke(
+                                groupTitle.trim(),
+                                selectedMood,
+                                selectedMembers.map { it.id },
+                                onCreateGroupSuccess,
                             ) ?: onCreateGroupSuccess("group_new")
                         },
                         enabled = canCreate,

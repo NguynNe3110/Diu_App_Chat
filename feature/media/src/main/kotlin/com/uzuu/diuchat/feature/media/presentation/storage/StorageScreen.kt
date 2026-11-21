@@ -140,7 +140,8 @@ fun StorageContent(
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = "Chỉ xóa các hình ảnh và tệp âm thanh xem trước. Không xóa tin nhắn chưa gửi hoặc dữ liệu gốc trên máy chủ.",
+                                text = "Chỉ xóa các hình ảnh và tệp âm thanh xem trước. " +
+                                    "Không xóa tin nhắn chưa gửi hoặc dữ liệu gốc trên máy chủ.",
                                 style = AppTheme.typography.bodySmall,
                                 color = AppTheme.colors.inkSecondary,
                             )
@@ -217,7 +218,8 @@ fun StorageContent(
         if (state.showClearDialog) {
             DiuConfirmationDialog(
                 title = "Dọn dẹp bộ nhớ đệm?",
-                message = "Thao tác này sẽ xóa ${state.stats.formattedCache} dữ liệu tạm thời trên thiết bị. Bạn vẫn có thể tải lại ảnh và tin nhắn bất cứ lúc nào.",
+                message = "Thao tác này sẽ xóa ${state.stats.formattedCache} dữ liệu tạm thời trên thiết bị. " +
+                    "Bạn vẫn có thể tải lại ảnh và tin nhắn bất cứ lúc nào.",
                 confirmLabel = "Dọn dẹp ngay",
                 dismissLabel = "Hủy",
                 onConfirm = onConfirmClearCache,

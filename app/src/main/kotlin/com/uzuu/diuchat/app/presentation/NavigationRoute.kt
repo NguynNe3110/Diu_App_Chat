@@ -65,5 +65,21 @@ sealed interface NavigationRoute {
     ) : NavigationRoute
 
     @Serializable
+    data object Call : NavigationRoute
+
+    @Serializable
+    data object CallHistory : NavigationRoute
+
+    @Serializable
+    data class LocationPicker(
+        val conversationId: String = "",
+    ) : NavigationRoute
+
+    @Serializable
+    data class LiveLocation(
+        val sessionId: String = "",
+    ) : NavigationRoute
+
+    @Serializable
     data object AboutLibraries : NavigationRoute
 }

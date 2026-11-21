@@ -6,7 +6,8 @@ enum class NotificationPrivacy(
 ) {
     MOOD_COLOR_ONLY(
         label = "Màu cảm xúc",
-        description = "Chỉ hiển thị màu cảm xúc và chỉ báo tin nhắn mới, không hiển thị tên người gửi hoặc nội dung trên màn hình khoá và push notification.",
+        description = "Chỉ hiển thị màu cảm xúc và chỉ báo tin nhắn mới, " +
+            "không hiển thị tên người gửi hoặc nội dung trên màn hình khoá và push notification.",
     ),
     SENDER_NAME(
         label = "Tên người gửi",

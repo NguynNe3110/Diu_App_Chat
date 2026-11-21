@@ -131,12 +131,18 @@ class ChatViewModel(
         val currentState = uiStateFlow.value
         val recordingState = currentState.voiceRecordingState
         val (audioUri, durationMs, waveform) = when (recordingState) {
-            is VoiceRecordingState.Preview -> {
-                Triple(recordingState.audioUri, recordingState.durationMs, recordingState.waveform)
-            }
-            is VoiceRecordingState.Recording -> {
-                Triple("file:///data/user/0/com.uzuu.diuchat/cache/audio_recorded.m4a", recordingState.elapsedMs, recordingState.amplitudes)
-            }
+            is VoiceRecordingState.Preview -> Triple(
+                recordingState.audioUri,
+                recordingState.durationMs,
+                recordingState.waveform,
+            )
+
+            is VoiceRecordingState.Recording -> Triple(
+                "file:///data/user/0/com.uzuu.diuchat/cache/audio_recorded.m4a",
+                recordingState.elapsedMs,
+                recordingState.amplitudes,
+            )
+
             else -> return
         }
 
@@ -219,7 +225,7 @@ class ChatViewModel(
             sendAction(
                 ChatAction.SetConversation(
                     uiStateFlow.value.currentConversation?.copy(
-                        pinnedMessageId = if (updatedSnippet != null) message.id else null,
+                        pinnedMessageId = updatedSnippet?.let { message.id },
                         pinnedMessageSnippet = updatedSnippet,
                     ),
                 ),

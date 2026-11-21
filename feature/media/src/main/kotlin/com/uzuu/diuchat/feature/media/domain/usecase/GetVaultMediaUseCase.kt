@@ -7,6 +7,5 @@ import kotlinx.coroutines.flow.Flow
 class GetVaultMediaUseCase(
     private val mediaRepository: MediaRepository,
 ) {
-    operator fun invoke(conversationId: String): Flow<List<MediaVaultItem>> =
-        mediaRepository.getVaultMedia(conversationId)
+    operator fun invoke(conversationId: String): Flow<List<MediaVaultItem>> = mediaRepository.getVaultMedia(conversationId)
 }

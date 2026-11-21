@@ -50,4 +50,6 @@ dependencies {
     implementation(projects.feature.media)
     implementation(projects.feature.letters)
     implementation(projects.feature.journal)
+    implementation(projects.feature.calls)
+    implementation(projects.feature.location)
 }

@@ -35,7 +35,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -51,6 +50,7 @@ import com.uzuu.diuchat.feature.settings.domain.model.BlockedContact
 import com.uzuu.diuchat.feature.settings.domain.model.NotificationPrivacy
 import org.koin.androidx.compose.koinViewModel
 
+@Suppress("compose:vm-forwarding-check")
 @Composable
 fun SettingsScreen(
     modifier: Modifier = Modifier,
@@ -68,9 +68,16 @@ fun SettingsScreen(
                 SettingsOverviewContent(
                     uiState = uiState,
                     onBackClick = onBackClick,
-                    viewModel = viewModel,
+                    onToggleQuietHours = viewModel::toggleQuietHours,
+                    onShowQuietHoursDialog = viewModel::showQuietHoursDialog,
+                    onShowPrivacyDialog = viewModel::showPrivacyDialog,
+                    onNavigateToBlockedContacts = viewModel::navigateToBlockedContacts,
+                    onToggleReadReceipts = viewModel::toggleReadReceipts,
+                    onSetNotificationPrivacy = viewModel::setNotificationPrivacy,
+                    onUpdateQuietTimeRange = viewModel::updateQuietTimeRange,
                 )
             }
+
             SettingsSubScreen.BLOCKED_CONTACTS -> {
                 BlockedContactsContent(
                     uiState = uiState,
@@ -86,12 +93,19 @@ fun SettingsScreen(
 private fun SettingsOverviewContent(
     uiState: SettingsUiState,
     onBackClick: () -> Unit,
-    viewModel: SettingsViewModel,
+    onToggleQuietHours: (Boolean) -> Unit,
+    onShowQuietHoursDialog: (Boolean) -> Unit,
+    onShowPrivacyDialog: (Boolean) -> Unit,
+    onNavigateToBlockedContacts: () -> Unit,
+    onToggleReadReceipts: (Boolean) -> Unit,
+    onSetNotificationPrivacy: (NotificationPrivacy) -> Unit,
+    onUpdateQuietTimeRange: (startMinute: Int, endMinute: Int) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val colors = AppTheme.colors
 
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
             .statusBarsPadding()
             .navigationBarsPadding(),
@@ -109,7 +123,9 @@ private fun SettingsOverviewContent(
                         )
                     }
                 }
-            } else null,
+            } else {
+                null
+            },
         )
 
         LazyColumn(
@@ -126,7 +142,7 @@ private fun SettingsOverviewContent(
                     trailing = {
                         DiuSwitch(
                             checked = uiState.quietSchedule.enabled,
-                            onCheckedChange = { viewModel.toggleQuietHours(it) },
+                            onCheckedChange = onToggleQuietHours,
                             contentDescription = "Bật tắt giờ yên lặng",
                         )
                     },
@@ -136,7 +152,7 @@ private fun SettingsOverviewContent(
                 DiuSettingsRow(
                     title = "Khung giờ nghỉ ngơi",
                     subtitle = "${uiState.quietSchedule.startTimeFormatted} đến ${uiState.quietSchedule.endTimeFormatted} (Hỗ trợ qua đêm)",
-                    onClick = { viewModel.showQuietHoursDialog(true) },
+                    onClick = { onShowQuietHoursDialog(true) },
                 )
             }
             item {
@@ -145,7 +161,8 @@ private fun SettingsOverviewContent(
                         modifier = Modifier.fillMaxWidth(),
                     ) {
                         Text(
-                            text = "🌙 Trong giờ yên lặng, các tin nhắn gửi đến sẽ không phát chuông hoặc rung mạnh. Người thân trong chòm sao sẽ nhìn thấy biểu tượng trăng khuyết bên cạnh tên bạn.",
+                            text = "🌙 Trong giờ yên lặng, các tin nhắn gửi đến sẽ không phát chuông hoặc rung mạnh. " +
+                                "Người thân trong chòm sao sẽ nhìn thấy biểu tượng trăng khuyết bên cạnh tên bạn.",
                             color = colors.inkSecondary,
                             style = AppTheme.typography.bodySmall,
                             lineHeight = 20.sp,
@@ -163,7 +180,7 @@ private fun SettingsOverviewContent(
                 DiuSettingsRow(
                     title = "Mức hiển thị thông báo",
                     subtitle = uiState.notificationPrivacy.label,
-                    onClick = { viewModel.showPrivacyDialog(true) },
+                    onClick = { onShowPrivacyDialog(true) },
                 )
             }
             item {
@@ -186,7 +203,7 @@ private fun SettingsOverviewContent(
                 DiuSettingsRow(
                     title = "Danh sách người bị chặn",
                     subtitle = if (uiState.blockedContacts.isEmpty()) "Chưa chặn ai" else "${uiState.blockedContacts.size} người bị chặn",
-                    onClick = { viewModel.navigateToBlockedContacts() },
+                    onClick = onNavigateToBlockedContacts,
                 )
             }
             item {
@@ -196,7 +213,7 @@ private fun SettingsOverviewContent(
                     trailing = {
                         DiuSwitch(
                             checked = uiState.readReceiptsEnabled,
-                            onCheckedChange = { viewModel.toggleReadReceipts(it) },
+                            onCheckedChange = onToggleReadReceipts,
                             contentDescription = "Bật tắt xác nhận đã đọc",
                         )
                     },
@@ -224,8 +241,8 @@ private fun SettingsOverviewContent(
     if (uiState.showPrivacyDialog) {
         NotificationPrivacyDialog(
             currentPrivacy = uiState.notificationPrivacy,
-            onSelect = { viewModel.setNotificationPrivacy(it) },
-            onDismiss = { viewModel.showPrivacyDialog(false) },
+            onSelect = onSetNotificationPrivacy,
+            onDismiss = { onShowPrivacyDialog(false) },
         )
     }
 
@@ -234,10 +251,10 @@ private fun SettingsOverviewContent(
         QuietHoursPresetDialog(
             currentSchedule = uiState.quietSchedule,
             onSelectRange = { start, end ->
-                viewModel.updateQuietTimeRange(start, end)
-                viewModel.showQuietHoursDialog(false)
+                onUpdateQuietTimeRange(start, end)
+                onShowQuietHoursDialog(false)
             },
-            onDismiss = { viewModel.showQuietHoursDialog(false) },
+            onDismiss = { onShowQuietHoursDialog(false) },
         )
     }
 }
@@ -247,11 +264,12 @@ private fun BlockedContactsContent(
     uiState: SettingsUiState,
     onBackClick: () -> Unit,
     onUnblock: (String) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val colors = AppTheme.colors
 
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
             .statusBarsPadding()
             .navigationBarsPadding(),
@@ -289,7 +307,8 @@ private fun BlockedContactsContent(
             ) {
                 item {
                     Text(
-                        text = "Những người trong danh sách này sẽ không thể gửi tin nhắn, gọi điện hay nhìn thấy trạng thái cảm xúc của bạn.",
+                        text = "Những người trong danh sách này sẽ không thể gửi tin nhắn, gọi điện hay nhìn thấy trạng thái " +
+                            "cảm xúc của bạn.",
                         color = colors.inkSecondary,
                         style = AppTheme.typography.bodySmall,
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
