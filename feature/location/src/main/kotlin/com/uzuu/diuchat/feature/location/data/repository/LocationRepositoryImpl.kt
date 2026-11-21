@@ -1,6 +1,8 @@
 package com.uzuu.diuchat.feature.location.data.repository
 
 import com.uzuu.diuchat.feature.location.data.adapter.LocationProviderAdapter
+import com.uzuu.diuchat.feature.location.data.datasource.api.service.LocationSupabaseService
+import com.uzuu.diuchat.feature.location.data.mapper.LocationMapper
 import com.uzuu.diuchat.feature.location.domain.model.LiveLocationSession
 import com.uzuu.diuchat.feature.location.domain.model.LocationSnapshot
 import com.uzuu.diuchat.feature.location.domain.repository.LocationRepository
@@ -10,9 +12,12 @@ import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.onStart
 
 class LocationRepositoryImpl(
     private val locationProviderAdapter: LocationProviderAdapter,
+    private val supabaseService: LocationSupabaseService,
+    private val mapper: LocationMapper,
 ) : LocationRepository {
 
     private val sessions = ConcurrentHashMap<String, LiveLocationSession>()
@@ -24,7 +29,15 @@ class LocationRepositoryImpl(
         val flow = sessionFlows.computeIfAbsent(sessionId) {
             MutableStateFlow(sessions[sessionId])
         }
-        return flow.asStateFlow()
+        return flow.asStateFlow().onStart {
+            supabaseService.fetchLiveSession(sessionId).onSuccess { response ->
+                response.session?.let { dto ->
+                    val domain = mapper.toDomain(dto)
+                    sessions[sessionId] = domain
+                    flow.value = domain
+                }
+            }
+        }
     }
 
     override suspend fun startLiveSharing(
@@ -52,6 +65,8 @@ class LocationRepositoryImpl(
         val flow = sessionFlows.computeIfAbsent(sessionId) { MutableStateFlow(null) }
         flow.value = session
 
+        supabaseService.upsertLiveSession(mapper.toDto(session))
+
         return Result.success(session)
     }
 
@@ -62,6 +77,8 @@ class LocationRepositoryImpl(
         val stopped = existing.copy(isActive = false)
         sessions[sessionId] = stopped
         sessionFlows[sessionId]?.value = stopped
+
+        supabaseService.stopLiveSession(sessionId)
 
         return Result.success(Unit)
     }
@@ -83,6 +100,8 @@ class LocationRepositoryImpl(
         val updated = existing.copy(lastKnownLocation = location)
         sessions[sessionId] = updated
         sessionFlows[sessionId]?.value = updated
+
+        supabaseService.updateLiveCoordinates(mapper.toDto(updated))
 
         return Result.success(Unit)
     }

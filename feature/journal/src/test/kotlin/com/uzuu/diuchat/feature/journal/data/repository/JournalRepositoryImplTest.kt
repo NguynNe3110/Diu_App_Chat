@@ -1,12 +1,27 @@
 package com.uzuu.diuchat.feature.journal.data.repository
 
+import com.uzuu.diuchat.feature.journal.data.datasource.api.service.JournalSupabaseService
+import com.uzuu.diuchat.feature.journal.data.mapper.JournalMapper
+import io.mockk.coEvery
+import io.mockk.mockk
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.amshove.kluent.shouldBeEqualTo
 import org.junit.jupiter.api.Test
 
 class JournalRepositoryImplTest {
-    private val sut = JournalRepositoryImpl()
+    private val mockSupabaseService: JournalSupabaseService = mockk {
+        coEvery { fetchMonthlyCheckins(any(), any()) } returns Result.failure(IllegalStateException("offline"))
+        coEvery { fetchFavourites() } returns Result.failure(IllegalStateException("offline"))
+        coEvery { upsertMoodCheckin(any()) } returns Result.success(Unit)
+        coEvery { insertFavourite(any()) } returns Result.success(Unit)
+        coEvery { deleteFavourite(any()) } returns Result.success(Unit)
+    }
+    private val mapper = JournalMapper()
+    private val sut = JournalRepositoryImpl(
+        supabaseService = mockSupabaseService,
+        mapper = mapper,
+    )
 
     @Test
     fun `getMonthlyMoodCheckins filters by month and year`() = runTest {
