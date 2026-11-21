@@ -4,7 +4,6 @@ import androidx.lifecycle.viewModelScope
 import com.uzuu.diuchat.feature.base.presentation.viewmodel.BaseViewModel
 import com.uzuu.diuchat.feature.settings.domain.model.AccountDeletionState
 import com.uzuu.diuchat.feature.settings.domain.model.NotificationPrivacy
-import com.uzuu.diuchat.feature.settings.domain.model.QuietSchedule
 import com.uzuu.diuchat.feature.settings.domain.usecase.DeleteAccountUseCase
 import com.uzuu.diuchat.feature.settings.domain.usecase.GetBlockedContactsUseCase
 import com.uzuu.diuchat.feature.settings.domain.usecase.GetNotificationPrivacyUseCase
@@ -137,6 +136,7 @@ class SettingsViewModel(
         sendAction(SettingsAction.SetShowDeleteAccountDialog(show))
     }
 
+    @Suppress("TooGenericExceptionCaught")
     fun deleteAccount(confirmPhone: String) {
         viewModelScope.launch {
             try {

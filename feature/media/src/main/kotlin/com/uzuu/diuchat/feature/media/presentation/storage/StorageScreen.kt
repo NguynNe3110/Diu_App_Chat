@@ -65,7 +65,6 @@ fun StorageScreen(
         state = state,
         onBackClick = onBackClick,
         onSetAutoDownloadPolicy = viewModel::onSetAutoDownloadPolicy,
-        onToggleAutoDownloadWifi = viewModel::onToggleAutoDownloadWifi,
         onToggleAutoDownloadVoice = viewModel::onToggleAutoDownloadVoice,
         onToggleKeepOriginalQuality = viewModel::onToggleKeepOriginalQuality,
         onShowClearCacheDialog = viewModel::onShowClearCacheDialog,
@@ -81,7 +80,6 @@ fun StorageContent(
     state: StorageUiState,
     onBackClick: () -> Unit,
     onSetAutoDownloadPolicy: (AutoDownloadPolicy) -> Unit,
-    onToggleAutoDownloadWifi: (Boolean) -> Unit,
     onToggleAutoDownloadVoice: (Boolean) -> Unit,
     onToggleKeepOriginalQuality: (Boolean) -> Unit,
     onShowClearCacheDialog: (Boolean) -> Unit,
@@ -252,7 +250,8 @@ fun StorageContent(
             val conv = state.selectedConversationToClear
             DiuConfirmationDialog(
                 title = "Xóa tệp đệm của ${conv.contactName}?",
-                message = "Thao tác này sẽ dọn dẹp ${conv.formattedSize} tệp ảnh và ghi âm tạm thời của ${conv.contactName}. Dữ liệu trên máy chủ hoặc tin nhắn chưa gửi không bị ảnh hưởng.",
+                message = "Thao tác này sẽ dọn dẹp ${conv.formattedSize} tệp ảnh và ghi âm tạm thời " +
+                    "của ${conv.contactName}. Dữ liệu trên máy chủ hoặc tin nhắn chưa gửi không bị ảnh hưởng.",
                 confirmLabel = "Xóa ngay",
                 dismissLabel = "Hủy",
                 destructive = true,

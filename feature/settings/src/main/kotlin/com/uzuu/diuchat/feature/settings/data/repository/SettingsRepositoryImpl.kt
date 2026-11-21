@@ -96,20 +96,19 @@ class SettingsRepositoryImpl : SettingsRepository {
 
     override suspend fun deleteAccount(confirmPhone: String) {
         val current = userProfileFlow.value
-        if (current.phone == confirmPhone || confirmPhone.isNotBlank()) {
-            // Anonymize user profile and mark tombstone
-            userProfileFlow.value = UserProfile(
-                id = current.id,
-                displayName = "Người dùng Dịu",
-                username = "deleted_user",
-                bio = "Tài khoản đã được xoá an toàn.",
-                birthday = "",
-                phone = "",
-                primaryMood = "Bình yên",
-                avatarUrl = null,
-            )
-        } else {
-            throw IllegalArgumentException("Số điện thoại xác nhận không khớp.")
+        require(current.phone == confirmPhone || confirmPhone.isNotBlank()) {
+            "Số điện thoại xác nhận không khớp."
         }
+        // Anonymize user profile and mark tombstone
+        userProfileFlow.value = UserProfile(
+            id = current.id,
+            displayName = "Người dùng Dịu",
+            username = "deleted_user",
+            bio = "Tài khoản đã được xoá an toàn.",
+            birthday = "",
+            phone = "",
+            primaryMood = "Bình yên",
+            avatarUrl = null,
+        )
     }
 }

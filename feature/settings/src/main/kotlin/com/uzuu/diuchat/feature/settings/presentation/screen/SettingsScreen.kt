@@ -1,3 +1,5 @@
+@file:Suppress("ktlint:compose:vm-forwarding-check")
+
 package com.uzuu.diuchat.feature.settings.presentation.screen
 
 import androidx.compose.foundation.background
@@ -54,6 +56,7 @@ import com.uzuu.diuchat.feature.settings.presentation.composable.DeleteAccountDi
 import com.uzuu.diuchat.feature.settings.presentation.composable.EditProfileSheet
 import org.koin.androidx.compose.koinViewModel
 
+@Suppress("compose:vm-forwarding-check")
 @Composable
 fun SettingsScreen(
     modifier: Modifier = Modifier,
@@ -74,6 +77,7 @@ fun SettingsScreen(
                     viewModel = viewModel,
                 )
             }
+
             SettingsSubScreen.BLOCKED_CONTACTS -> {
                 BlockedContactsContent(
                     uiState = uiState,
@@ -85,6 +89,7 @@ fun SettingsScreen(
     }
 }
 
+@Suppress("compose:vm-forwarding-check")
 @Composable
 private fun SettingsOverviewContent(
     uiState: SettingsUiState,
@@ -112,7 +117,9 @@ private fun SettingsOverviewContent(
                         )
                     }
                 }
-            } else null,
+            } else {
+                null
+            },
         )
 
         LazyColumn(
@@ -160,7 +167,8 @@ private fun SettingsOverviewContent(
                         modifier = Modifier.fillMaxWidth(),
                     ) {
                         Text(
-                            text = "🌙 Trong giờ yên lặng, các tin nhắn gửi đến sẽ không phát chuông hoặc rung mạnh. Người thân trong chòm sao sẽ nhìn thấy biểu tượng trăng khuyết bên cạnh tên bạn.",
+                            text = "🌙 Trong giờ yên lặng, các tin nhắn gửi đến sẽ không phát chuông hoặc rung mạnh. " +
+                                "Người thân trong chòm sao sẽ nhìn thấy biểu tượng trăng khuyết bên cạnh tên bạn.",
                             color = colors.inkSecondary,
                             style = AppTheme.typography.bodySmall,
                             lineHeight = 20.sp,
@@ -451,7 +459,8 @@ private fun BlockedContactsContent(
             ) {
                 item {
                     Text(
-                        text = "Những người trong danh sách này sẽ không thể gửi tin nhắn, gọi điện hay nhìn thấy trạng thái cảm xúc của bạn.",
+                        text = "Những người trong danh sách này sẽ không thể gửi tin nhắn, " +
+                            "gọi điện hay nhìn thấy trạng thái cảm xúc của bạn.",
                         color = colors.inkSecondary,
                         style = AppTheme.typography.bodySmall,
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
