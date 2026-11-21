@@ -15,6 +15,7 @@ class ModuleKonsistTest {
                 val modulePackageName =
                     it.moduleName
                         .lowercase()
+                        .replace("\\", "/")
                         .replace("/", ".")
                         .replace("-", "")
 

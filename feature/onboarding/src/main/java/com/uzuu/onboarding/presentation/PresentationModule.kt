@@ -1,6 +1,6 @@
-package com.uzuu.onboarding.presentation
+package com.uzuu.diuchat.feature.onboarding.presentation
 
-import com.uzuu.onboarding.presentation.screen.OnBoardingViewModel
+import com.uzuu.diuchat.feature.onboarding.presentation.screen.OnBoardingViewModel
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 

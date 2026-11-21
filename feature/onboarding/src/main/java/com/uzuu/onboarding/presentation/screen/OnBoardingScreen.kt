@@ -1,4 +1,4 @@
-package com.uzuu.onboarding.presentation.screen
+package com.uzuu.diuchat.feature.onboarding.presentation.screen
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.tween
@@ -41,8 +41,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.uzuu.diuchat.feature.base.common.res.AppTheme
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuAmbientBackground
-import com.uzuu.onboarding.presentation.composable.OnBoardingIllustration
-import com.uzuu.onboarding.presentation.composable.OnBoardingIndicator
+import com.uzuu.diuchat.feature.onboarding.presentation.composable.OnBoardingIllustration
+import com.uzuu.diuchat.feature.onboarding.presentation.composable.OnBoardingIndicator
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 

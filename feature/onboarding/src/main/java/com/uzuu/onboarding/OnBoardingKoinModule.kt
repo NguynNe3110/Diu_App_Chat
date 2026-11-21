@@ -1,6 +1,6 @@
-package com.uzuu.onboarding
+package com.uzuu.diuchat.feature.onboarding
 
-import com.uzuu.onboarding.presentation.presentationModule
+import com.uzuu.diuchat.feature.onboarding.presentation.presentationModule
 
 /** Danh sách các Koin module của feature :onboarding */
 val featureOnboardingModules = listOf(

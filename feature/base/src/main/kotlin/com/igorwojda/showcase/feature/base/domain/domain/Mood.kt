@@ -1,4 +1,4 @@
-package com.igorwojda.showcase.feature.base.domain.domain
+package com.uzuu.diuchat.feature.base.domain.domain
 
 import androidx.compose.ui.graphics.Color
 

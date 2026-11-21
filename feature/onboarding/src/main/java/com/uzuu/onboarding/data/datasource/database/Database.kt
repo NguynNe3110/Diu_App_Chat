@@ -1,1 +1,1 @@
-package com.uzuu.onboarding.data.datasource.database
+package com.uzuu.diuchat.feature.onboarding.data.datasource.database

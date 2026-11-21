@@ -1,4 +1,4 @@
-package com.uzuu.onboarding.presentation.composable
+package com.uzuu.diuchat.feature.onboarding.presentation.composable
 
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode

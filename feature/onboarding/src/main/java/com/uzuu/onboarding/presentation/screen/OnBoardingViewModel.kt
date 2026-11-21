@@ -1,4 +1,4 @@
-package com.uzuu.onboarding.presentation.screen
+package com.uzuu.diuchat.feature.onboarding.presentation.screen
 
 import com.uzuu.diuchat.feature.base.presentation.viewmodel.BaseViewModel
 

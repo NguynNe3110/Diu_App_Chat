@@ -8,9 +8,10 @@ import org.junit.jupiter.api.Test
 // Check test coding rules.
 class TestKonsistTest {
     @Test
-    fun `don't use JUnit4 Test annotation`() {
+    fun `local tests use JUnit Jupiter while instrumented tests may use AndroidJUnit4`() {
         Konsist
             .scopeFromProject()
+            .slice { !it.resideInPath("..androidTest..") }
             .classes()
             .functions()
             .assertFalse { it.hasAnnotationsWithAllNames("org.junit.Test") } // should be only org.junit.jupiter.api.Test

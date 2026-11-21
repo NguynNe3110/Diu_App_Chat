@@ -25,7 +25,7 @@ import com.uzuu.diuchat.feature.chat.presentation.screen.ChatScreen
 import com.uzuu.diuchat.feature.contacts.presentation.screen.ContactsScreen
 import com.uzuu.diuchat.feature.home.presentation.HomeScreen
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuAmbientBackground
-import com.uzuu.onboarding.presentation.screen.OnBoardingScreen
+import com.uzuu.diuchat.feature.onboarding.presentation.screen.OnBoardingScreen
 
 @Composable
 fun MainShowcaseScreen(modifier: Modifier = Modifier) {
