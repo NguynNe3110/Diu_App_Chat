@@ -24,6 +24,9 @@ import com.uzuu.diuchat.feature.auth.presentation.screen.AuthScreen
 import com.uzuu.diuchat.feature.chat.presentation.screen.ChatScreen
 import com.uzuu.diuchat.feature.contacts.presentation.screen.ContactsScreen
 import com.uzuu.diuchat.feature.home.presentation.HomeScreen
+import com.uzuu.diuchat.feature.media.presentation.storage.StorageScreen
+import com.uzuu.diuchat.feature.media.presentation.vault.MediaVaultScreen
+import com.uzuu.diuchat.feature.media.presentation.viewer.PhotoViewerScreen
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuAmbientBackground
 import com.uzuu.diuchat.feature.onboarding.presentation.screen.OnBoardingScreen
 
@@ -89,6 +92,46 @@ fun MainShowcaseScreen(modifier: Modifier = Modifier) {
                 }
                 composable<NavigationRoute.Chat> {
                     ChatScreen(
+                        onBackClick = {
+                            navController.popBackStack()
+                        },
+                    )
+                }
+                composable<NavigationRoute.Media> {
+                    MediaVaultScreen(
+                        onBackClick = {
+                            navController.popBackStack()
+                        },
+                        onOpenPhoto = { photo ->
+                            navController.navigate(
+                                NavigationRoute.PhotoViewer(
+                                    caption = photo.caption,
+                                    moodName = photo.moodName,
+                                    senderName = photo.senderName,
+                                    timestamp = photo.timestamp,
+                                ),
+                            )
+                        },
+                        onOpenStorage = {
+                            navController.navigate(NavigationRoute.Storage)
+                        },
+                    )
+                }
+                composable<NavigationRoute.PhotoViewer> { backStackEntry ->
+                    val args = backStackEntry.toRoute<NavigationRoute.PhotoViewer>()
+                    PhotoViewerScreen(
+                        caption = args.caption,
+                        moodName = args.moodName,
+                        senderName = args.senderName,
+                        timestamp = args.timestamp,
+                        onBackClick = {
+                            navController.popBackStack()
+                        },
+                        onShareClick = {},
+                    )
+                }
+                composable<NavigationRoute.Storage> {
+                    StorageScreen(
                         onBackClick = {
                             navController.popBackStack()
                         },
