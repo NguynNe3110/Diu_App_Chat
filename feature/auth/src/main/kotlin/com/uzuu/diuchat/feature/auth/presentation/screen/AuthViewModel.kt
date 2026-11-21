@@ -3,6 +3,7 @@ package com.uzuu.diuchat.feature.auth.presentation.screen
 import androidx.lifecycle.viewModelScope
 import com.uzuu.diuchat.feature.auth.domain.model.OtpState
 import com.uzuu.diuchat.feature.auth.domain.usecase.SendOtpUseCase
+import com.uzuu.diuchat.feature.auth.domain.usecase.SignInWithGoogleUseCase
 import com.uzuu.diuchat.feature.auth.domain.usecase.VerifyOtpUseCase
 import com.uzuu.diuchat.feature.base.presentation.viewmodel.BaseViewModel
 import kotlinx.coroutines.Job
@@ -11,6 +12,7 @@ import kotlinx.coroutines.launch
 
 class AuthViewModel(
     private val sendOtpUseCase: SendOtpUseCase,
+    private val signInWithGoogleUseCase: SignInWithGoogleUseCase,
     private val verifyOtpUseCase: VerifyOtpUseCase,
 ) : BaseViewModel<AuthUiState, AuthAction>(AuthUiState()) {
     private var cooldownJob: Job? = null
@@ -48,6 +50,27 @@ class AuthViewModel(
                             phone = phone,
                             message = error.message ?: "Gửi mã OTP thất bại. Vui lòng thử lại.",
                             retryable = true,
+                        ),
+                    )
+                }
+        }
+    }
+
+    fun signInWithGoogle(
+        idToken: String? = null,
+        onAuthSuccess: () -> Unit = {},
+    ) {
+        sendAction(AuthAction.SetGoogleSigningIn(true))
+        viewModelScope.launch {
+            signInWithGoogleUseCase(idToken)
+                .onSuccess {
+                    sendAction(AuthAction.SetGoogleSigningIn(false))
+                    sendAction(AuthAction.SetSuccess(uiStateFlow.value.rawPhone))
+                    onAuthSuccess()
+                }.onFailure { error ->
+                    sendAction(
+                        AuthAction.SetGoogleError(
+                            error.message ?: "Đăng nhập Google thất bại. Vui lòng thử lại.",
                         ),
                     )
                 }
