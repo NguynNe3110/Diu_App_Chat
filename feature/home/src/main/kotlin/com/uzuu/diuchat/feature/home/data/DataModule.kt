@@ -1,7 +1,6 @@
 package com.uzuu.diuchat.feature.home.data
 
 import com.uzuu.diuchat.feature.home.data.datasource.api.service.HomeSupabaseService
-import com.uzuu.diuchat.feature.home.data.datasource.api.service.HomeSupabaseServiceImpl
 import com.uzuu.diuchat.feature.home.data.mapper.HomeMapper
 import com.uzuu.diuchat.feature.home.data.repository.HomeRepositoryImpl
 import com.uzuu.diuchat.feature.home.domain.repository.HomeRepository
@@ -11,7 +10,7 @@ import org.koin.dsl.module
 internal val dataModule =
     module {
         single<HomeSupabaseService> {
-            HomeSupabaseServiceImpl(
+            HomeSupabaseService(
                 supabaseClient = getOrNull<SupabaseClient>(),
             )
         }

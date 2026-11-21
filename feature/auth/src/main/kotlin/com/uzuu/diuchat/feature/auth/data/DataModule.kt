@@ -1,7 +1,6 @@
 package com.uzuu.diuchat.feature.auth.data
 
 import com.uzuu.diuchat.feature.auth.data.datasource.api.service.AuthSupabaseService
-import com.uzuu.diuchat.feature.auth.data.datasource.api.service.AuthSupabaseServiceImpl
 import com.uzuu.diuchat.feature.auth.data.mapper.AuthMapper
 import com.uzuu.diuchat.feature.auth.data.repository.AuthRepositoryImpl
 import com.uzuu.diuchat.feature.auth.data.repository.MockAuthRepository
@@ -12,7 +11,7 @@ import org.koin.dsl.module
 internal val dataModule =
     module {
         single<AuthSupabaseService> {
-            AuthSupabaseServiceImpl(supabaseClient = getOrNull())
+            AuthSupabaseService(supabaseClient = getOrNull())
         }
         single { AuthMapper() }
         single<AuthRepository> {

@@ -5,7 +5,6 @@ import com.uzuu.diuchat.feature.contacts.data.datasource.api.model.ContactDto
 import com.uzuu.diuchat.feature.contacts.data.datasource.api.model.InviteLinkDto
 import com.uzuu.diuchat.feature.contacts.data.datasource.api.response.ContactsSyncResponse
 import com.uzuu.diuchat.feature.contacts.data.datasource.api.service.ContactsSupabaseService
-import com.uzuu.diuchat.feature.contacts.data.datasource.api.service.ContactsSupabaseServiceImpl
 import com.uzuu.diuchat.feature.contacts.data.datasource.database.dao.ContactDao
 import com.uzuu.diuchat.feature.contacts.data.datasource.database.entity.ConnectionRequestEntity
 import com.uzuu.diuchat.feature.contacts.data.datasource.database.entity.ContactEntity
@@ -208,8 +207,8 @@ class ContactsRepositoryImplTest {
     }
 
     @Test
-    fun `ContactsSupabaseServiceImpl handles null supabaseClient safely`() = runTest {
-        val service = ContactsSupabaseServiceImpl(supabaseClient = null)
+    fun `ContactsSupabaseService handles null supabaseClient safely`() = runTest {
+        val service = ContactsSupabaseService(supabaseClient = null)
 
         service.syncContacts().shouldBeNull()
         service.fetchContacts().shouldBeNull()

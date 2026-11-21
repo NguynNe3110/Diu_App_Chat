@@ -9,28 +9,10 @@ import io.github.jan.supabase.postgrest.postgrest
 import kotlin.coroutines.cancellation.CancellationException
 import timber.log.Timber
 
-interface ContactsSupabaseService {
-    suspend fun syncContacts(): ContactsSyncResponse?
-
-    suspend fun fetchContacts(): List<ContactDto>?
-
-    suspend fun fetchPendingRequests(): List<ConnectionRequestDto>?
-
-    suspend fun respondToRequest(
-        requestId: String,
-        accept: Boolean,
-        circle: String,
-    ): Boolean
-
-    suspend fun searchUserByPhone(phone: String): ContactDto?
-
-    suspend fun fetchMyInviteLink(): InviteLinkDto?
-}
-
-class ContactsSupabaseServiceImpl(
+class ContactsSupabaseService(
     private val supabaseClient: SupabaseClient?,
-) : ContactsSupabaseService {
-    override suspend fun syncContacts(): ContactsSyncResponse? {
+) {
+    suspend fun syncContacts(): ContactsSyncResponse? {
         val contacts = fetchContacts() ?: return null
         val pendingRequests = fetchPendingRequests() ?: emptyList()
         val inviteLink = fetchMyInviteLink()
@@ -41,7 +23,7 @@ class ContactsSupabaseServiceImpl(
         )
     }
 
-    override suspend fun fetchContacts(): List<ContactDto>? {
+    suspend fun fetchContacts(): List<ContactDto>? {
         val client = supabaseClient ?: return null
         return runCatching {
             client.postgrest
@@ -54,7 +36,7 @@ class ContactsSupabaseServiceImpl(
         }.getOrNull()
     }
 
-    override suspend fun fetchPendingRequests(): List<ConnectionRequestDto>? {
+    suspend fun fetchPendingRequests(): List<ConnectionRequestDto>? {
         val client = supabaseClient ?: return null
         return runCatching {
             client.postgrest
@@ -67,7 +49,7 @@ class ContactsSupabaseServiceImpl(
         }.getOrNull()
     }
 
-    override suspend fun respondToRequest(
+    suspend fun respondToRequest(
         requestId: String,
         accept: Boolean,
         circle: String,
@@ -94,7 +76,7 @@ class ContactsSupabaseServiceImpl(
         }.getOrDefault(false)
     }
 
-    override suspend fun searchUserByPhone(phone: String): ContactDto? {
+    suspend fun searchUserByPhone(phone: String): ContactDto? {
         val client = supabaseClient ?: return null
         return runCatching {
             client.postgrest
@@ -108,7 +90,7 @@ class ContactsSupabaseServiceImpl(
         }.getOrNull()
     }
 
-    override suspend fun fetchMyInviteLink(): InviteLinkDto? {
+    suspend fun fetchMyInviteLink(): InviteLinkDto? {
         val client = supabaseClient ?: return null
         return runCatching {
             client.postgrest

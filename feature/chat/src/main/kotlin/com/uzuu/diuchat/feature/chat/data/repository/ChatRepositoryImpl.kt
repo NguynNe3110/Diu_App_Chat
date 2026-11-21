@@ -2,7 +2,6 @@ package com.uzuu.diuchat.feature.chat.data.repository
 
 import androidx.room.withTransaction
 import com.uzuu.diuchat.feature.chat.data.datasource.api.service.ChatSupabaseService
-import com.uzuu.diuchat.feature.chat.data.datasource.api.service.ChatSupabaseServiceImpl
 import com.uzuu.diuchat.feature.chat.data.datasource.database.DiuChatDatabase
 import com.uzuu.diuchat.feature.chat.data.datasource.database.dao.ConversationDao
 import com.uzuu.diuchat.feature.chat.data.datasource.database.dao.MessageDao
@@ -32,7 +31,7 @@ class ChatRepositoryImpl(
     private val outboxDao: OutboxDao,
     private val database: DiuChatDatabase? = null,
     private val chatMapper: ChatMapper = ChatMapper(),
-    private val supabaseService: ChatSupabaseService = ChatSupabaseServiceImpl(null),
+    private val supabaseService: ChatSupabaseService = ChatSupabaseService(null),
 ) : ChatRepository {
     override fun observeMessages(
         conversationId: String,

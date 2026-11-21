@@ -2,7 +2,6 @@ package com.uzuu.diuchat.feature.contacts.data
 
 import androidx.room.Room
 import com.uzuu.diuchat.feature.contacts.data.datasource.api.service.ContactsSupabaseService
-import com.uzuu.diuchat.feature.contacts.data.datasource.api.service.ContactsSupabaseServiceImpl
 import com.uzuu.diuchat.feature.contacts.data.datasource.database.DiuContactsDatabase
 import com.uzuu.diuchat.feature.contacts.data.mapper.ConnectionRequestMapper
 import com.uzuu.diuchat.feature.contacts.data.mapper.ContactMapper
@@ -25,7 +24,7 @@ internal val dataModule =
         single { get<DiuContactsDatabase>().contactDao() }
 
         single<ContactsSupabaseService> {
-            ContactsSupabaseServiceImpl(
+            ContactsSupabaseService(
                 supabaseClient = getOrNull<SupabaseClient>(),
             )
         }

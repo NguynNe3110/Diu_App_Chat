@@ -7,23 +7,10 @@ import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.storage.storage
 import kotlinx.coroutines.CancellationException
 
-interface MediaSupabaseService {
-    suspend fun fetchVaultMedia(conversationId: String): Result<MediaVaultResponse>
-
-    suspend fun uploadMediaFile(
-        bucketPath: String,
-        bytes: ByteArray,
-    ): Result<String>
-
-    suspend fun upsertMediaItem(item: MediaVaultItemDto): Result<Unit>
-
-    suspend fun deleteConversationMedia(conversationId: String): Result<Unit>
-}
-
-class MediaSupabaseServiceImpl(
+class MediaSupabaseService(
     private val supabaseClient: SupabaseClient?,
-) : MediaSupabaseService {
-    override suspend fun fetchVaultMedia(conversationId: String): Result<MediaVaultResponse> {
+) {
+    suspend fun fetchVaultMedia(conversationId: String): Result<MediaVaultResponse> {
         val client = supabaseClient ?: return Result.success(MediaVaultResponse(conversationId = conversationId))
         return runCatching {
             val items =
@@ -43,7 +30,7 @@ class MediaSupabaseServiceImpl(
         }.onFailure(::rethrowCancellation)
     }
 
-    override suspend fun uploadMediaFile(
+    suspend fun uploadMediaFile(
         bucketPath: String,
         bytes: ByteArray,
     ): Result<String> {
@@ -57,14 +44,14 @@ class MediaSupabaseServiceImpl(
         }.onFailure(::rethrowCancellation)
     }
 
-    override suspend fun upsertMediaItem(item: MediaVaultItemDto): Result<Unit> {
+    suspend fun upsertMediaItem(item: MediaVaultItemDto): Result<Unit> {
         val client = supabaseClient ?: return Result.success(Unit)
         return runCatching {
             client.postgrest.from(TABLE_MEDIA_VAULT).upsert(item)
         }.map { }.onFailure(::rethrowCancellation)
     }
 
-    override suspend fun deleteConversationMedia(conversationId: String): Result<Unit> {
+    suspend fun deleteConversationMedia(conversationId: String): Result<Unit> {
         val client = supabaseClient ?: return Result.success(Unit)
         return runCatching {
             client.postgrest.from(TABLE_MEDIA_VAULT).delete {

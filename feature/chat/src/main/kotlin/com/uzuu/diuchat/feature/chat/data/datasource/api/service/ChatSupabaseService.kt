@@ -8,25 +8,10 @@ import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.storage.storage
 import kotlinx.coroutines.CancellationException
 
-interface ChatSupabaseService {
-    suspend fun fetchConversations(): Result<List<ConversationDto>>
-
-    suspend fun fetchMessages(conversationId: String): Result<ChatMessagesResponse>
-
-    suspend fun upsertMessage(message: MessageDto): Result<Unit>
-
-    suspend fun upsertConversation(conversation: ConversationDto): Result<Unit>
-
-    suspend fun uploadMedia(
-        bucketPath: String,
-        bytes: ByteArray,
-    ): Result<String>
-}
-
-class ChatSupabaseServiceImpl(
+class ChatSupabaseService(
     private val supabaseClient: SupabaseClient?,
-) : ChatSupabaseService {
-    override suspend fun fetchConversations(): Result<List<ConversationDto>> {
+) {
+    suspend fun fetchConversations(): Result<List<ConversationDto>> {
         val client = supabaseClient ?: return Result.success(emptyList())
         return runCatching {
             client.postgrest
@@ -36,7 +21,7 @@ class ChatSupabaseServiceImpl(
         }.onFailure(::rethrowCancellation)
     }
 
-    override suspend fun fetchMessages(conversationId: String): Result<ChatMessagesResponse> {
+    suspend fun fetchMessages(conversationId: String): Result<ChatMessagesResponse> {
         val client = supabaseClient ?: return Result.success(ChatMessagesResponse(conversationId = conversationId))
         return runCatching {
             val messages =
@@ -63,21 +48,21 @@ class ChatSupabaseServiceImpl(
         }.onFailure(::rethrowCancellation)
     }
 
-    override suspend fun upsertMessage(message: MessageDto): Result<Unit> {
+    suspend fun upsertMessage(message: MessageDto): Result<Unit> {
         val client = supabaseClient ?: return Result.success(Unit)
         return runCatching {
             client.postgrest.from(TABLE_MESSAGES).upsert(message)
         }.map { }.onFailure(::rethrowCancellation)
     }
 
-    override suspend fun upsertConversation(conversation: ConversationDto): Result<Unit> {
+    suspend fun upsertConversation(conversation: ConversationDto): Result<Unit> {
         val client = supabaseClient ?: return Result.success(Unit)
         return runCatching {
             client.postgrest.from(TABLE_CONVERSATIONS).upsert(conversation)
         }.map { }.onFailure(::rethrowCancellation)
     }
 
-    override suspend fun uploadMedia(
+    suspend fun uploadMedia(
         bucketPath: String,
         bytes: ByteArray,
     ): Result<String> {

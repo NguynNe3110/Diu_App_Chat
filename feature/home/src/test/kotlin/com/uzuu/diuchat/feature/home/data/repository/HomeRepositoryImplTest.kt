@@ -4,7 +4,6 @@ import com.uzuu.diuchat.feature.home.data.datasource.api.model.HomeStarDto
 import com.uzuu.diuchat.feature.home.data.datasource.api.model.RecentChatDto
 import com.uzuu.diuchat.feature.home.data.datasource.api.response.HomeOverviewResponse
 import com.uzuu.diuchat.feature.home.data.datasource.api.service.HomeSupabaseService
-import com.uzuu.diuchat.feature.home.data.datasource.api.service.HomeSupabaseServiceImpl
 import com.uzuu.diuchat.feature.home.data.mapper.HomeMapper
 import io.mockk.coEvery
 import io.mockk.mockk
@@ -101,8 +100,8 @@ class HomeRepositoryImplTest {
     }
 
     @Test
-    fun `HomeSupabaseServiceImpl returns null safely when supabaseClient is null`() = runTest {
-        val service = HomeSupabaseServiceImpl(supabaseClient = null)
+    fun `HomeSupabaseService returns null safely when supabaseClient is null`() = runTest {
+        val service = HomeSupabaseService(supabaseClient = null)
 
         assertNull(service.fetchOverview())
         assertNull(service.fetchStars())

@@ -5,7 +5,6 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStore
 import com.uzuu.diuchat.feature.media.data.datasource.api.service.MediaSupabaseService
-import com.uzuu.diuchat.feature.media.data.datasource.api.service.MediaSupabaseServiceImpl
 import com.uzuu.diuchat.feature.media.data.datasource.preferences.MediaPreferencesDataSource
 import com.uzuu.diuchat.feature.media.data.mapper.MediaMapper
 import com.uzuu.diuchat.feature.media.data.repository.MediaRepositoryImpl
@@ -23,7 +22,7 @@ val dataModule = module {
     }
     single { MediaPreferencesDataSource(get()) }
     single<MediaSupabaseService> {
-        MediaSupabaseServiceImpl(
+        MediaSupabaseService(
             supabaseClient = getOrNull<SupabaseClient>(),
         )
     }

@@ -8,24 +8,16 @@ import io.github.jan.supabase.postgrest.postgrest
 import kotlin.coroutines.cancellation.CancellationException
 import timber.log.Timber
 
-interface HomeSupabaseService {
-    suspend fun fetchOverview(): HomeOverviewResponse?
-
-    suspend fun fetchStars(): List<HomeStarDto>?
-
-    suspend fun fetchRecentChats(): List<RecentChatDto>?
-}
-
-class HomeSupabaseServiceImpl(
+class HomeSupabaseService(
     private val supabaseClient: SupabaseClient?,
-) : HomeSupabaseService {
-    override suspend fun fetchOverview(): HomeOverviewResponse? {
+) {
+    suspend fun fetchOverview(): HomeOverviewResponse? {
         val stars = fetchStars() ?: return null
         val recentChats = fetchRecentChats() ?: return null
         return HomeOverviewResponse(stars = stars, recentChats = recentChats)
     }
 
-    override suspend fun fetchStars(): List<HomeStarDto>? {
+    suspend fun fetchStars(): List<HomeStarDto>? {
         val client = supabaseClient ?: return null
         return runCatching {
             client.postgrest
@@ -38,7 +30,7 @@ class HomeSupabaseServiceImpl(
         }.getOrNull()
     }
 
-    override suspend fun fetchRecentChats(): List<RecentChatDto>? {
+    suspend fun fetchRecentChats(): List<RecentChatDto>? {
         val client = supabaseClient ?: return null
         return runCatching {
             client.postgrest

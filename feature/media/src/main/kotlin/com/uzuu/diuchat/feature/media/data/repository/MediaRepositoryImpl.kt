@@ -3,7 +3,6 @@ package com.uzuu.diuchat.feature.media.data.repository
 import android.content.Context
 import com.uzuu.diuchat.feature.base.common.res.AppPalette
 import com.uzuu.diuchat.feature.media.data.datasource.api.service.MediaSupabaseService
-import com.uzuu.diuchat.feature.media.data.datasource.api.service.MediaSupabaseServiceImpl
 import com.uzuu.diuchat.feature.media.data.datasource.preferences.MediaPreferencesDataSource
 import com.uzuu.diuchat.feature.media.data.mapper.MediaMapper
 import com.uzuu.diuchat.feature.media.domain.model.AutoDownloadPolicy
@@ -25,7 +24,7 @@ class MediaRepositoryImpl(
     private val context: Context,
     private val preferencesDataSource: MediaPreferencesDataSource,
     private val mediaMapper: MediaMapper = MediaMapper(),
-    private val supabaseService: MediaSupabaseService = MediaSupabaseServiceImpl(null),
+    private val supabaseService: MediaSupabaseService = MediaSupabaseService(null),
 ) : MediaRepository {
 
     private val mediaItemsFlow = MutableStateFlow(createInitialMediaItems())

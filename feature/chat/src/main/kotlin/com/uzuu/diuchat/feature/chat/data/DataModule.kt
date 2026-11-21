@@ -2,7 +2,6 @@ package com.uzuu.diuchat.feature.chat.data
 
 import androidx.room.Room
 import com.uzuu.diuchat.feature.chat.data.datasource.api.service.ChatSupabaseService
-import com.uzuu.diuchat.feature.chat.data.datasource.api.service.ChatSupabaseServiceImpl
 import com.uzuu.diuchat.feature.chat.data.datasource.database.DiuChatDatabase
 import com.uzuu.diuchat.feature.chat.data.mapper.ChatMapper
 import com.uzuu.diuchat.feature.chat.data.repository.ChatRepositoryImpl
@@ -27,7 +26,7 @@ val dataModule = module {
     single { get<DiuChatDatabase>().outboxDao() }
 
     single<ChatSupabaseService> {
-        ChatSupabaseServiceImpl(
+        ChatSupabaseService(
             supabaseClient = getOrNull<SupabaseClient>(),
         )
     }

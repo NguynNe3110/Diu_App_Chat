@@ -1,7 +1,6 @@
 package com.uzuu.diuchat.feature.letters.data.repository
 
 import com.uzuu.diuchat.feature.letters.data.datasource.api.service.LettersSupabaseService
-import com.uzuu.diuchat.feature.letters.data.datasource.api.service.LettersSupabaseServiceImpl
 import com.uzuu.diuchat.feature.letters.data.mapper.LetterMapper
 import com.uzuu.diuchat.feature.letters.domain.model.LetterStatus
 import com.uzuu.diuchat.feature.letters.domain.model.SealedLetter
@@ -14,7 +13,7 @@ import kotlinx.coroutines.flow.update
 
 class LettersRepositoryImpl(
     private val letterMapper: LetterMapper = LetterMapper(),
-    private val supabaseService: LettersSupabaseService = LettersSupabaseServiceImpl(null),
+    private val supabaseService: LettersSupabaseService = LettersSupabaseService(null),
 ) : LettersRepository {
 
     private val lettersFlow = MutableStateFlow(
