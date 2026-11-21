@@ -73,6 +73,16 @@ class SettingsActionTest {
     }
 
     @Test
+    fun `SetThemeMode reduces themeMode in state`() {
+        val initial = SettingsUiState(themeMode = "SYSTEM")
+        val action = SettingsAction.SetThemeMode("DARK")
+
+        val newState = action.reduce(initial)
+
+        newState.themeMode shouldBeEqualTo "DARK"
+    }
+
+    @Test
     fun `SetSubScreen reduces subScreen in state`() {
         val initial = SettingsUiState(subScreen = SettingsSubScreen.OVERVIEW)
         val action = SettingsAction.SetSubScreen(SettingsSubScreen.BLOCKED_CONTACTS)

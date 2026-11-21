@@ -28,6 +28,10 @@ sealed class SettingsAction : BaseAction<SettingsUiState> {
         override fun reduce(state: SettingsUiState): SettingsUiState = state.copy(readReceiptsEnabled = enabled)
     }
 
+    data class SetThemeMode(val themeMode: String) : SettingsAction() {
+        override fun reduce(state: SettingsUiState): SettingsUiState = state.copy(themeMode = themeMode)
+    }
+
     data class SetSubScreen(val subScreen: SettingsSubScreen) : SettingsAction() {
         override fun reduce(state: SettingsUiState): SettingsUiState = state.copy(subScreen = subScreen)
     }

@@ -1,5 +1,6 @@
 package com.uzuu.diuchat.feature.settings.data.repository
 
+import com.uzuu.diuchat.feature.settings.data.datasource.preferences.SettingsPreferencesDataSource
 import com.uzuu.diuchat.feature.settings.domain.model.BlockedContact
 import com.uzuu.diuchat.feature.settings.domain.model.NotificationPrivacy
 import com.uzuu.diuchat.feature.settings.domain.model.QuietSchedule
@@ -8,10 +9,17 @@ import com.uzuu.diuchat.feature.settings.domain.repository.SettingsRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 
-class SettingsRepositoryImpl : SettingsRepository {
-    private val quietScheduleFlow = MutableStateFlow(
+class SettingsRepositoryImpl(
+    private val preferencesDataSource: SettingsPreferencesDataSource? = null,
+) : SettingsRepository {
+
+    private val inMemoryThemeModeFlow = MutableStateFlow("SYSTEM")
+    private val inMemoryReadReceiptsFlow = MutableStateFlow(true)
+
+    private val inMemoryQuietScheduleFlow = MutableStateFlow(
         QuietSchedule(
             enabled = true,
             startMinuteOfDay = 22 * 60 + 30, // 22:30
@@ -21,26 +29,13 @@ class SettingsRepositoryImpl : SettingsRepository {
         ),
     )
 
-    private val notificationPrivacyFlow = MutableStateFlow(NotificationPrivacy.FULL_CONTENT)
+    private val inMemoryNotificationPrivacyFlow = MutableStateFlow(NotificationPrivacy.FULL_CONTENT)
 
-    private val blockedContactsFlow = MutableStateFlow(
-        listOf(
-            BlockedContact(
-                id = "block_1",
-                name = "Quảng cáo Sim Số Đẹp",
-                phone = "+84900112233",
-                blockedAt = "15/11/2026",
-            ),
-            BlockedContact(
-                id = "block_2",
-                name = "Người lạ nhắn tin rác",
-                phone = "+84911223344",
-                blockedAt = "18/11/2026",
-            ),
-        ),
+    private val inMemoryBlockedContactsFlow = MutableStateFlow(
+        SettingsPreferencesDataSource.defaultBlockedContacts(),
     )
 
-    private val userProfileFlow = MutableStateFlow(
+    private val inMemoryUserProfileFlow = MutableStateFlow(
         UserProfile(
             id = "user_me",
             displayName = "Minh",
@@ -53,45 +48,78 @@ class SettingsRepositoryImpl : SettingsRepository {
         ),
     )
 
-    override fun getQuietSchedule(): Flow<QuietSchedule> = quietScheduleFlow.asStateFlow()
+    override fun getThemeMode(): Flow<String> = preferencesDataSource?.themeModeFlow ?: inMemoryThemeModeFlow.asStateFlow()
+
+    override suspend fun updateThemeMode(themeMode: String) {
+        preferencesDataSource?.updateThemeMode(themeMode) ?: run {
+            inMemoryThemeModeFlow.value = themeMode
+        }
+    }
+
+    override fun getReadReceiptsEnabled(): Flow<Boolean> = preferencesDataSource?.readReceiptsFlow ?: inMemoryReadReceiptsFlow.asStateFlow()
+
+    override suspend fun updateReadReceiptsEnabled(enabled: Boolean) {
+        preferencesDataSource?.updateReadReceipts(enabled) ?: run {
+            inMemoryReadReceiptsFlow.value = enabled
+        }
+    }
+
+    override fun getQuietSchedule(): Flow<QuietSchedule> = preferencesDataSource?.quietScheduleFlow ?: inMemoryQuietScheduleFlow.asStateFlow()
 
     override suspend fun updateQuietSchedule(quietSchedule: QuietSchedule) {
-        quietScheduleFlow.value = quietSchedule
+        preferencesDataSource?.updateQuietSchedule(quietSchedule) ?: run {
+            inMemoryQuietScheduleFlow.value = quietSchedule
+        }
     }
 
-    override fun getNotificationPrivacy(): Flow<NotificationPrivacy> = notificationPrivacyFlow.asStateFlow()
+    override fun getNotificationPrivacy(): Flow<NotificationPrivacy> = preferencesDataSource?.notificationPrivacyFlow ?: inMemoryNotificationPrivacyFlow.asStateFlow()
 
     override suspend fun updateNotificationPrivacy(notificationPrivacy: NotificationPrivacy) {
-        notificationPrivacyFlow.value = notificationPrivacy
+        preferencesDataSource?.updateNotificationPrivacy(notificationPrivacy) ?: run {
+            inMemoryNotificationPrivacyFlow.value = notificationPrivacy
+        }
     }
 
-    override fun getBlockedContacts(): Flow<List<BlockedContact>> = blockedContactsFlow.asStateFlow()
+    override fun getBlockedContacts(): Flow<List<BlockedContact>> = preferencesDataSource?.blockedContactsFlow ?: inMemoryBlockedContactsFlow.asStateFlow()
 
     override suspend fun unblockContact(contactId: String) {
-        blockedContactsFlow.update { current ->
-            current.filterNot { it.id == contactId }
+        if (preferencesDataSource != null) {
+            val current = preferencesDataSource.blockedContactsFlow.first()
+            preferencesDataSource.updateBlockedContacts(current.filterNot { it.id == contactId })
+        } else {
+            inMemoryBlockedContactsFlow.update { current ->
+                current.filterNot { it.id == contactId }
+            }
         }
     }
 
     override suspend fun blockContact(contactId: String, name: String, phone: String) {
-        blockedContactsFlow.update { current ->
-            current + BlockedContact(
-                id = contactId,
-                name = name,
-                phone = phone,
-                blockedAt = "Hôm nay",
-            )
+        val newBlocked = BlockedContact(
+            id = contactId,
+            name = name,
+            phone = phone,
+            blockedAt = "Hôm nay",
+        )
+        if (preferencesDataSource != null) {
+            val current = preferencesDataSource.blockedContactsFlow.first()
+            preferencesDataSource.updateBlockedContacts(current + newBlocked)
+        } else {
+            inMemoryBlockedContactsFlow.update { current ->
+                current + newBlocked
+            }
         }
     }
 
-    override fun getUserProfile(): Flow<UserProfile> = userProfileFlow.asStateFlow()
+    override fun getUserProfile(): Flow<UserProfile> = preferencesDataSource?.userProfileFlow ?: inMemoryUserProfileFlow.asStateFlow()
 
     override suspend fun updateUserProfile(userProfile: UserProfile) {
-        userProfileFlow.value = userProfile
+        preferencesDataSource?.updateUserProfile(userProfile) ?: run {
+            inMemoryUserProfileFlow.value = userProfile
+        }
     }
 
     override suspend fun logout() {
-        userProfileFlow.value = UserProfile(
+        val emptyProfile = UserProfile(
             id = "",
             displayName = "",
             username = "",
@@ -101,15 +129,17 @@ class SettingsRepositoryImpl : SettingsRepository {
             primaryMood = "Bình yên",
             avatarUrl = null,
         )
+        preferencesDataSource?.updateUserProfile(emptyProfile) ?: run {
+            inMemoryUserProfileFlow.value = emptyProfile
+        }
     }
 
     override suspend fun deleteAccount(confirmPhone: String) {
-        val current = userProfileFlow.value
+        val current = getUserProfile().first()
         require(current.phone == confirmPhone) {
             "Số điện thoại xác nhận không khớp."
         }
-        // Anonymize user profile and mark tombstone
-        userProfileFlow.value = UserProfile(
+        val anonymizedProfile = UserProfile(
             id = current.id,
             displayName = "Người dùng Dịu",
             username = "deleted_user",
@@ -119,5 +149,8 @@ class SettingsRepositoryImpl : SettingsRepository {
             primaryMood = "Bình yên",
             avatarUrl = null,
         )
+        preferencesDataSource?.updateUserProfile(anonymizedProfile) ?: run {
+            inMemoryUserProfileFlow.value = anonymizedProfile
+        }
     }
 }

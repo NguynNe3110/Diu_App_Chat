@@ -25,7 +25,7 @@ class ChatRepositoryImplTest {
     )
 
     @Test
-    fun `sendMessage creates message with PENDING status initially`() = runTest {
+    fun `sendMessage creates message with PENDING status initially and uses transactional DAO insert`() = runTest {
         val result = sut.sendMessage(
             conversationId = "conv_1",
             content = "Chào buổi sáng",
@@ -37,10 +37,10 @@ class ChatRepositoryImplTest {
         result.conversationId shouldBeEqualTo "conv_1"
 
         coVerify(exactly = 1) {
-            messageDao.insert(match { it.status == MessageStatus.PENDING.value })
-        }
-        coVerify(exactly = 1) {
-            outboxDao.insert(match { it.status == MessageStatus.PENDING.value })
+            messageDao.insertMessageWithOutbox(
+                match { it.status == MessageStatus.PENDING.value && it.content == "Chào buổi sáng" },
+                match { it.status == MessageStatus.PENDING.value },
+            )
         }
         // Ensure no premature status flip to SENT occurs before real ACK
         coVerify(exactly = 0) {
@@ -49,7 +49,7 @@ class ChatRepositoryImplTest {
     }
 
     @Test
-    fun `sendPhotoMessage creates photo message with PENDING status`() = runTest {
+    fun `sendPhotoMessage creates photo message with PENDING status and uses transactional DAO insert`() = runTest {
         val result = sut.sendPhotoMessage(
             conversationId = "conv_1",
             photoUri = "content://media/photos/1",
@@ -61,7 +61,10 @@ class ChatRepositoryImplTest {
         result.caption shouldBeEqualTo "Ảnh chụp hoàng hôn"
 
         coVerify(exactly = 1) {
-            messageDao.insert(match { it.status == MessageStatus.PENDING.value })
+            messageDao.insertMessageWithOutbox(
+                match { it.status == MessageStatus.PENDING.value && it.caption == "Ảnh chụp hoàng hôn" },
+                match { it.status == MessageStatus.PENDING.value },
+            )
         }
         coVerify(exactly = 0) {
             messageDao.updateStatus(any(), MessageStatus.SENT.value)
@@ -69,7 +72,7 @@ class ChatRepositoryImplTest {
     }
 
     @Test
-    fun `retryFailedMessage resets status to PENDING and inserts outbox operation`() = runTest {
+    fun `retryFailedMessage resets status to PENDING and inserts outbox operation via transactional DAO`() = runTest {
         coEvery { messageDao.getMessage("msg_1") } returns mockk(relaxed = true) {
             coEvery { conversationId } returns "conv_1"
         }
@@ -77,10 +80,11 @@ class ChatRepositoryImplTest {
         sut.retryFailedMessage("msg_1")
 
         coVerify(exactly = 1) {
-            messageDao.updateStatus("msg_1", MessageStatus.PENDING.value)
-        }
-        coVerify(exactly = 1) {
-            outboxDao.insert(match { it.status == MessageStatus.PENDING.value })
+            messageDao.retryMessageWithOutbox(
+                "msg_1",
+                MessageStatus.PENDING.value,
+                match { it.status == MessageStatus.PENDING.value },
+            )
         }
     }
 }

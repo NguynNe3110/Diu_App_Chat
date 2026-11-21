@@ -10,6 +10,26 @@ class SettingsRepositoryImplTest {
     private val sut = SettingsRepositoryImpl()
 
     @Test
+    fun `themeMode updates and reads correctly`() = runTest {
+        val initial = sut.getThemeMode().first()
+        initial shouldBeEqualTo "SYSTEM"
+
+        sut.updateThemeMode("DARK")
+        val updated = sut.getThemeMode().first()
+        updated shouldBeEqualTo "DARK"
+    }
+
+    @Test
+    fun `readReceiptsEnabled updates and reads correctly`() = runTest {
+        val initial = sut.getReadReceiptsEnabled().first()
+        initial shouldBeEqualTo true
+
+        sut.updateReadReceiptsEnabled(false)
+        val updated = sut.getReadReceiptsEnabled().first()
+        updated shouldBeEqualTo false
+    }
+
+    @Test
     fun `deleteAccount with matching phone number anonymizes user profile`() = runTest {
         val currentPhone = sut.getUserProfile().first().phone
         sut.deleteAccount(currentPhone)

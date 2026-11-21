@@ -24,6 +24,7 @@ koin = "4.2.2"
 coil = "2.7.0"
 lifecycle = "2.11.0"
 room = "2.8.5"
+datastore = "1.1.3"
 serialization-json = "1.11.0"
 kotlinx-serialization-converter = "1.0.0"
 timber = "5.0.1"
@@ -119,6 +120,7 @@ tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview", version.r
 room-ktx = { module = "androidx.room:room-ktx", version.ref = "room" }
 room-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }
 room-compiler = { module = "androidx.room:room-compiler", version.ref = "room" }
+datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastore" }
 konsist = { module = "com.lemonappdev:konsist", version.ref = "konsist" }
 
 # Ktlint Rules

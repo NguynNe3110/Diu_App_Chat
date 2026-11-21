@@ -7,17 +7,13 @@ sealed interface AuthAction : BaseAction<AuthUiState> {
     data class UpdatePhone(
         val phone: String,
     ) : AuthAction {
-        override fun reduce(state: AuthUiState): AuthUiState = state.copy(
-            otpState = OtpState.EditingPhone(phoneNumber = phone),
-        )
+        override fun reduce(state: AuthUiState): AuthUiState = state.copy(otpState = OtpState.EditingPhone(phoneNumber = phone))
     }
 
     data class SetSending(
         val phone: String,
     ) : AuthAction {
-        override fun reduce(state: AuthUiState): AuthUiState = state.copy(
-            otpState = OtpState.Sending(phoneNumber = phone),
-        )
+        override fun reduce(state: AuthUiState): AuthUiState = state.copy(otpState = OtpState.Sending(phoneNumber = phone))
     }
 
     data class SetAwaitingCode(
@@ -50,17 +46,13 @@ sealed interface AuthAction : BaseAction<AuthUiState> {
         val phone: String,
         val code: String,
     ) : AuthAction {
-        override fun reduce(state: AuthUiState): AuthUiState = state.copy(
-            otpState = OtpState.Verifying(phoneNumber = phone, code = code),
-        )
+        override fun reduce(state: AuthUiState): AuthUiState = state.copy(otpState = OtpState.Verifying(phoneNumber = phone, code = code))
     }
 
     data class SetSuccess(
         val phone: String,
     ) : AuthAction {
-        override fun reduce(state: AuthUiState): AuthUiState = state.copy(
-            otpState = OtpState.Success(phoneNumber = phone),
-        )
+        override fun reduce(state: AuthUiState): AuthUiState = state.copy(otpState = OtpState.Success(phoneNumber = phone))
     }
 
     data class SetError(
@@ -76,9 +68,7 @@ sealed interface AuthAction : BaseAction<AuthUiState> {
     data class TickCooldown(
         val secondsRemaining: Int,
     ) : AuthAction {
-        override fun reduce(state: AuthUiState): AuthUiState = state.copy(
-            resendSecondsRemaining = secondsRemaining,
-        )
+        override fun reduce(state: AuthUiState): AuthUiState = state.copy(resendSecondsRemaining = secondsRemaining)
     }
 
     data class BackToPhone(
@@ -87,24 +77,6 @@ sealed interface AuthAction : BaseAction<AuthUiState> {
         override fun reduce(state: AuthUiState): AuthUiState = state.copy(
             otpState = OtpState.EditingPhone(phoneNumber = phone),
             resendSecondsRemaining = 0,
-        )
-    }
-
-    data class SetGoogleSigningIn(
-        val isSigningIn: Boolean,
-    ) : AuthAction {
-        override fun reduce(state: AuthUiState): AuthUiState = state.copy(
-            isGoogleSigningIn = isSigningIn,
-            googleError = if (isSigningIn) null else state.googleError,
-        )
-    }
-
-    data class SetGoogleError(
-        val error: String?,
-    ) : AuthAction {
-        override fun reduce(state: AuthUiState): AuthUiState = state.copy(
-            isGoogleSigningIn = false,
-            googleError = error,
         )
     }
 }

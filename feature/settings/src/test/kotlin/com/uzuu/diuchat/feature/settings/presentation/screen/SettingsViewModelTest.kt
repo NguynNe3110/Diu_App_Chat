@@ -10,11 +10,15 @@ import com.uzuu.diuchat.feature.settings.domain.usecase.GetBlockedContactsUseCas
 import com.uzuu.diuchat.feature.settings.domain.usecase.GetNotificationPrivacyUseCase
 import com.uzuu.diuchat.feature.settings.domain.usecase.GetProfileUseCase
 import com.uzuu.diuchat.feature.settings.domain.usecase.GetQuietScheduleUseCase
+import com.uzuu.diuchat.feature.settings.domain.usecase.GetReadReceiptsEnabledUseCase
+import com.uzuu.diuchat.feature.settings.domain.usecase.GetThemeModeUseCase
 import com.uzuu.diuchat.feature.settings.domain.usecase.LogoutUseCase
 import com.uzuu.diuchat.feature.settings.domain.usecase.UnblockContactUseCase
 import com.uzuu.diuchat.feature.settings.domain.usecase.UpdateNotificationPrivacyUseCase
 import com.uzuu.diuchat.feature.settings.domain.usecase.UpdateProfileUseCase
 import com.uzuu.diuchat.feature.settings.domain.usecase.UpdateQuietScheduleUseCase
+import com.uzuu.diuchat.feature.settings.domain.usecase.UpdateReadReceiptsEnabledUseCase
+import com.uzuu.diuchat.feature.settings.domain.usecase.UpdateThemeModeUseCase
 import com.uzuu.diuchat.library.testutils.CoroutinesTestDispatcherExtension
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -40,11 +44,15 @@ class SettingsViewModelTest {
     private val getNotificationPrivacyUseCase: GetNotificationPrivacyUseCase = mockk()
     private val getProfileUseCase: GetProfileUseCase = mockk()
     private val getQuietScheduleUseCase: GetQuietScheduleUseCase = mockk()
+    private val getReadReceiptsEnabledUseCase: GetReadReceiptsEnabledUseCase = mockk()
+    private val getThemeModeUseCase: GetThemeModeUseCase = mockk()
     private val logoutUseCase: LogoutUseCase = mockk(relaxed = true)
     private val unblockContactUseCase: UnblockContactUseCase = mockk(relaxed = true)
     private val updateNotificationPrivacyUseCase: UpdateNotificationPrivacyUseCase = mockk(relaxed = true)
     private val updateProfileUseCase: UpdateProfileUseCase = mockk(relaxed = true)
     private val updateQuietScheduleUseCase: UpdateQuietScheduleUseCase = mockk(relaxed = true)
+    private val updateReadReceiptsEnabledUseCase: UpdateReadReceiptsEnabledUseCase = mockk(relaxed = true)
+    private val updateThemeModeUseCase: UpdateThemeModeUseCase = mockk(relaxed = true)
 
     private val testProfile = UserProfile(
         id = "u1",
@@ -74,6 +82,8 @@ class SettingsViewModelTest {
         every { getQuietScheduleUseCase() } returns flowOf(testQuietSchedule)
         every { getNotificationPrivacyUseCase() } returns flowOf(testNotificationPrivacy)
         every { getBlockedContactsUseCase() } returns flowOf(testBlockedContacts)
+        every { getReadReceiptsEnabledUseCase() } returns flowOf(true)
+        every { getThemeModeUseCase() } returns flowOf("SYSTEM")
 
         sut = SettingsViewModel(
             deleteAccountUseCase = deleteAccountUseCase,
@@ -81,11 +91,15 @@ class SettingsViewModelTest {
             getNotificationPrivacyUseCase = getNotificationPrivacyUseCase,
             getProfileUseCase = getProfileUseCase,
             getQuietScheduleUseCase = getQuietScheduleUseCase,
+            getReadReceiptsEnabledUseCase = getReadReceiptsEnabledUseCase,
+            getThemeModeUseCase = getThemeModeUseCase,
             logoutUseCase = logoutUseCase,
             unblockContactUseCase = unblockContactUseCase,
             updateNotificationPrivacyUseCase = updateNotificationPrivacyUseCase,
             updateProfileUseCase = updateProfileUseCase,
             updateQuietScheduleUseCase = updateQuietScheduleUseCase,
+            updateReadReceiptsEnabledUseCase = updateReadReceiptsEnabledUseCase,
+            updateThemeModeUseCase = updateThemeModeUseCase,
         )
     }
 
@@ -97,6 +111,8 @@ class SettingsViewModelTest {
         sut.uiStateFlow.value.quietSchedule shouldBeEqualTo testQuietSchedule
         sut.uiStateFlow.value.notificationPrivacy shouldBeEqualTo testNotificationPrivacy
         sut.uiStateFlow.value.blockedContacts shouldBeEqualTo testBlockedContacts
+        sut.uiStateFlow.value.readReceiptsEnabled shouldBeEqualTo true
+        sut.uiStateFlow.value.themeMode shouldBeEqualTo "SYSTEM"
     }
 
     @Test
@@ -160,9 +176,23 @@ class SettingsViewModelTest {
     }
 
     @Test
-    fun `toggleReadReceipts updates state`() = runTest {
+    fun `toggleReadReceipts invokes usecase`() = runTest {
         sut.toggleReadReceipts(false)
-        sut.uiStateFlow.value.readReceiptsEnabled shouldBeEqualTo false
+        advanceUntilIdle()
+
+        coVerify {
+            updateReadReceiptsEnabledUseCase(false)
+        }
+    }
+
+    @Test
+    fun `setThemeMode invokes usecase`() = runTest {
+        sut.setThemeMode("DARK")
+        advanceUntilIdle()
+
+        coVerify {
+            updateThemeModeUseCase("DARK")
+        }
     }
 
     @Test

@@ -13,6 +13,7 @@ data class SettingsUiState(
     val notificationPrivacy: NotificationPrivacy = NotificationPrivacy.FULL_CONTENT,
     val blockedContacts: List<BlockedContact> = emptyList(),
     val readReceiptsEnabled: Boolean = true,
+    val themeMode: String = "SYSTEM",
     val subScreen: SettingsSubScreen = SettingsSubScreen.OVERVIEW,
     val showPrivacyDialog: Boolean = false,
     val showQuietHoursDialog: Boolean = false,
