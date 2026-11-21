@@ -71,6 +71,9 @@ sealed interface NavigationRoute {
     data object CallHistory : NavigationRoute
 
     @Serializable
+    data object NewGroup : NavigationRoute
+
+    @Serializable
     data class LocationPicker(
         val conversationId: String = "",
     ) : NavigationRoute

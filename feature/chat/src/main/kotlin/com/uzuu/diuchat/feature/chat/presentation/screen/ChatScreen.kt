@@ -65,8 +65,13 @@ import org.koin.androidx.compose.koinViewModel
 fun ChatScreen(
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier,
+    conversationId: String = "conv_linh_diu",
     viewModel: ChatViewModel = koinViewModel(),
 ) {
+    LaunchedEffect(conversationId) {
+        viewModel.loadMessages(conversationId)
+    }
+
     val state by viewModel.uiStateFlow.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
 

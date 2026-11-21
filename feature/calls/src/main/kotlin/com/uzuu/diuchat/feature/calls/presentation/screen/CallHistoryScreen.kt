@@ -1,7 +1,9 @@
 package com.uzuu.diuchat.feature.calls.presentation.screen
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,12 +16,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -29,6 +30,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -36,7 +38,6 @@ import androidx.compose.ui.unit.sp
 import com.uzuu.diuchat.feature.base.common.res.AppIcons
 import com.uzuu.diuchat.feature.base.common.res.AppTheme
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuOrbAvatar
-import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuTopBar
 import com.uzuu.diuchat.feature.calls.domain.model.CallEndReason
 import com.uzuu.diuchat.feature.calls.domain.model.CallLog
 import com.uzuu.diuchat.feature.calls.domain.model.CallType
@@ -46,6 +47,7 @@ fun CallHistoryScreen(
     viewModel: CallHistoryViewModel,
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier,
+    onStartCall: () -> Unit = {},
 ) {
     val uiState by viewModel.uiStateFlow.collectAsState()
 
@@ -53,7 +55,11 @@ fun CallHistoryScreen(
         uiState = uiState,
         onNavigateBack = onNavigateBack,
         onSetFilter = { viewModel.setFilter(it) },
-        onRedial = { viewModel.redial(it) },
+        onRedial = { log ->
+            viewModel.redial(log)
+            onStartCall()
+        },
+        onStartCall = onStartCall,
         modifier = modifier,
     )
 }
@@ -65,6 +71,7 @@ fun CallHistoryContent(
     onSetFilter: (CallHistoryFilter) -> Unit,
     onRedial: (CallLog) -> Unit,
     modifier: Modifier = Modifier,
+    onStartCall: () -> Unit = {},
 ) {
     val colors = AppTheme.colors
 
@@ -73,45 +80,79 @@ fun CallHistoryContent(
             .fillMaxSize()
             .background(colors.background),
     ) {
-        DiuTopBar(
-            title = "Cuộc gọi",
-            navigationIcon = {
-                IconButton(onClick = onNavigateBack) {
-                    Icon(
-                        painter = painterResource(AppIcons.Back),
-                        contentDescription = "Quay lại",
-                        tint = colors.ink,
-                    )
-                }
-            },
-        )
-
-        // Filter tabs: Tất cả / Gọi nhỡ
-        TabRow(
-            selectedTabIndex = uiState.filter.ordinal,
-            containerColor = colors.background,
-            contentColor = colors.accent,
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 20.dp, end = 12.dp, top = 16.dp, bottom = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            Tab(
+            Text(
+                text = "Cuộc gọi",
+                style = AppTheme.typography.headlineMedium.copy(fontFamily = FontFamily.Serif),
+                color = colors.ink,
+            )
+            IconButton(onClick = onNavigateBack) {
+                Icon(
+                    painter = painterResource(AppIcons.Back),
+                    contentDescription = "Quay lại",
+                    tint = colors.ink,
+                )
+            }
+        }
+
+        // Filter chips: Tất cả / Lỡ (matching prototype .chips)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 6.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            CallPillChip(
+                text = "Tất cả",
                 selected = uiState.filter == CallHistoryFilter.ALL,
                 onClick = { onSetFilter(CallHistoryFilter.ALL) },
-                text = {
-                    Text(
-                        text = "Tất cả",
-                        fontWeight = if (uiState.filter == CallHistoryFilter.ALL) FontWeight.Bold else FontWeight.Normal,
-                    )
-                },
             )
-            Tab(
+            CallPillChip(
+                text = "Lỡ",
                 selected = uiState.filter == CallHistoryFilter.MISSED,
                 onClick = { onSetFilter(CallHistoryFilter.MISSED) },
-                text = {
-                    Text(
-                        text = "Cuộc gọi nhỡ",
-                        fontWeight = if (uiState.filter == CallHistoryFilter.MISSED) FontWeight.Bold else FontWeight.Normal,
-                    )
-                },
             )
+        }
+
+        // Favorites row (matching prototype .fav-row)
+        val favoriteCallers = listOf(
+            Triple("Minh", "M", colors.moods.thuong),
+            Triple("Mẹ", "M", colors.moods.vui),
+            Triple("Thảo", "T", colors.moods.nho),
+            Triple("Ba", "B", colors.moods.binhyen),
+        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            favoriteCallers.forEach { (name, initials, mood) ->
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.clickable { onStartCall() },
+                ) {
+                    DiuOrbAvatar(
+                        initials = initials,
+                        moodColor = mood,
+                        size = 56.dp,
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = name,
+                        style = AppTheme.typography.bodySmall,
+                        fontSize = 12.sp,
+                        color = colors.inkSecondary,
+                    )
+                }
+            }
         }
 
         if (uiState.filteredLogs.isEmpty()) {
@@ -123,9 +164,9 @@ fun CallHistoryContent(
             ) {
                 Text(
                     text = if (uiState.filter == CallHistoryFilter.MISSED) {
-                        "Không có cuộc gọi nhỡ"
+                        "Không có cuộc gọi lỡ nào. Yên bình ghê."
                     } else {
-                        "Chưa có lịch sử cuộc gọi"
+                        "Chưa có cuộc gọi nào. Yên bình ghê."
                     },
                     color = colors.inkSecondary,
                     fontSize = 15.sp,
@@ -135,7 +176,7 @@ fun CallHistoryContent(
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                    .padding(horizontal = 20.dp, vertical = 4.dp),
             ) {
                 items(uiState.filteredLogs, key = { it.id }) { log ->
                     CallHistoryItem(
@@ -146,6 +187,36 @@ fun CallHistoryContent(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun CallPillChip(
+    text: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    val colors = AppTheme.colors
+    Box(
+        modifier = Modifier
+            .height(36.dp)
+            .clip(RoundedCornerShape(18.dp))
+            .background(if (selected) colors.ink else colors.surface)
+            .border(
+                width = 1.dp,
+                color = if (selected) colors.ink else colors.line,
+                shape = RoundedCornerShape(18.dp),
+            )
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = text,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Medium,
+            color = if (selected) colors.background else colors.inkSecondary,
+        )
     }
 }
 

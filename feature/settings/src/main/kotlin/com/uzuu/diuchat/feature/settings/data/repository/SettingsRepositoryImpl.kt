@@ -91,12 +91,21 @@ class SettingsRepositoryImpl : SettingsRepository {
     }
 
     override suspend fun logout() {
-        // Clear active session / memory cache
+        userProfileFlow.value = UserProfile(
+            id = "",
+            displayName = "",
+            username = "",
+            bio = "",
+            birthday = "",
+            phone = "",
+            primaryMood = "Bình yên",
+            avatarUrl = null,
+        )
     }
 
     override suspend fun deleteAccount(confirmPhone: String) {
         val current = userProfileFlow.value
-        require(current.phone == confirmPhone || confirmPhone.isNotBlank()) {
+        require(current.phone == confirmPhone) {
             "Số điện thoại xác nhận không khớp."
         }
         // Anonymize user profile and mark tombstone

@@ -140,13 +140,13 @@ class AuthViewModel(
         cooldownJob?.cancel()
         cooldownJob =
             viewModelScope.launch {
-                while (true) {
-                    val remainingMs = deadlineEpochMs - System.currentTimeMillis()
-                    val remainingSec = (remainingMs / 1000).coerceAtLeast(0).toInt()
+                var remainingSec = ((deadlineEpochMs - System.currentTimeMillis()) / 1000).coerceAtLeast(0).toInt()
+                while (remainingSec > 0) {
                     sendAction(AuthAction.TickCooldown(remainingSec))
-                    if (remainingSec <= 0) break
                     delay(1000)
+                    remainingSec--
                 }
+                sendAction(AuthAction.TickCooldown(0))
             }
     }
 
