@@ -75,7 +75,7 @@ class HomeRepositoryImpl(
     suspend fun syncFromRemote() {
         val overview = homeSupabaseService.fetchOverview()
         if (overview == null) {
-            if (homeSupabaseService.isConfigured() && starsFlow.replayCache.isEmpty()) {
+            if (homeSupabaseService.isConfigured() && homeSupabaseService.isAuthenticated() && starsFlow.replayCache.isEmpty()) {
                 starsFlow.tryEmit(emptyList())
                 recentChatsFlow.tryEmit(emptyList())
             }

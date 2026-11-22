@@ -44,6 +44,7 @@ import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import timber.log.Timber
 import java.time.Instant
+import kotlin.time.Duration.Companion.days
 
 @Suppress("TooManyFunctions")
 class ChatSupabaseService(
@@ -98,7 +99,8 @@ class ChatSupabaseService(
             } else {
                 rawConversation
             }
-            val resolvedMessages = enrichSenderNames(client, rawMessages)
+            val enrichedMessages = enrichSenderNames(client, rawMessages)
+            val resolvedMessages = signPrivateMediaUrls(client, enrichedMessages)
 
             ChatMessagesResponse(
                 conversationId = conversationId,
@@ -192,8 +194,48 @@ class ChatSupabaseService(
             bucket.upload(path = bucketPath, data = bytes) {
                 upsert = true
             }
-            bucket.publicUrl(bucketPath)
+            runCatching {
+                bucket.createSignedUrl(path = bucketPath, expiresIn = SIGNED_URL_EXPIRY_DAYS.days)
+            }.getOrElse {
+                bucket.publicUrl(bucketPath)
+            }
         }.onFailure(::rethrowCancellation)
+    }
+
+    private suspend fun signPrivateMediaUrls(
+        client: SupabaseClient,
+        messages: List<MessageDto>,
+    ): List<MessageDto> {
+        val bucket = client.storage.from(BUCKET_CHAT_MEDIA)
+        return messages.map { msg ->
+            val rawUrl = msg.mediaUrl
+            if (rawUrl.isNullOrBlank() || rawUrl.contains("/object/sign/")) {
+                msg
+            } else {
+                val storagePath = extractStoragePath(rawUrl)
+                if (storagePath != null) {
+                    val signed =
+                        runCatching {
+                            bucket.createSignedUrl(path = storagePath, expiresIn = SIGNED_URL_EXPIRY_DAYS.days)
+                        }.getOrNull()
+                    if (!signed.isNullOrBlank()) msg.copy(mediaUrl = signed) else msg
+                } else {
+                    msg
+                }
+            }
+        }
+    }
+
+    private fun extractStoragePath(url: String): String? {
+        val marker = "/object/public/$BUCKET_CHAT_MEDIA/"
+        val idx = url.indexOf(marker)
+        return if (idx >= 0) {
+            url.substring(idx + marker.length).substringBefore("?").takeIf { it.isNotBlank() }
+        } else if (!url.startsWith("http://") && !url.startsWith("https://") && !url.startsWith("content://")) {
+            url.takeIf { it.isNotBlank() }
+        } else {
+            null
+        }
     }
 
     private suspend fun resolveDirectConversationTitles(
@@ -329,6 +371,22 @@ class ChatSupabaseService(
                     }
                 }
         }.onFailure(::rethrowCancellation)
+        runCatching {
+            val globalChannel =
+                client.realtime.subscriptions["realtime:$CHANNEL_GLOBAL_SYNC"]
+                    ?: client.channel(CHANNEL_GLOBAL_SYNC)
+            if (globalChannel.status.value != RealtimeChannel.Status.SUBSCRIBED) {
+                runCatching { globalChannel.subscribe() }
+            }
+            globalChannel.broadcast(
+                event = EVENT_CONVERSATION_READ,
+                message =
+                buildJsonObject {
+                    put(COL_CONVERSATION_ID, conversationId)
+                    put("user_id", myId)
+                },
+            )
+        }.onFailure(::rethrowCancellation)
     }
 
     suspend fun broadcastTyping(
@@ -338,9 +396,13 @@ class ChatSupabaseService(
         val client = supabaseClient ?: return
         val myId = currentUserId() ?: return
         runCatching {
+            val topic = typingChannelName(conversationId)
             val ch =
-                client.realtime.subscriptions["realtime:${channelName(conversationId)}"]
-                    ?: client.channel(channelName(conversationId))
+                client.realtime.subscriptions["realtime:$topic"]
+                    ?: client.channel(topic)
+            if (ch.status.value != RealtimeChannel.Status.SUBSCRIBED) {
+                runCatching { ch.subscribe() }
+            }
             ch.broadcast(
                 event = EVENT_TYPING,
                 message =
@@ -356,9 +418,10 @@ class ChatSupabaseService(
         val client = supabaseClient ?: return emptyFlow()
         val myId = currentUserId()
         return channelFlow {
+            val topic = typingChannelName(conversationId)
             val ch =
-                client.realtime.subscriptions["realtime:${channelName(conversationId)}"]
-                    ?: client.channel(channelName(conversationId))
+                client.realtime.subscriptions["realtime:$topic"]
+                    ?: client.channel(topic)
             val typingFlow =
                 ch.broadcastFlow<JsonObject>(event = EVENT_TYPING).mapNotNull { payload ->
                     val senderId = payload["user_id"]?.jsonPrimitive?.contentOrNull
@@ -374,7 +437,11 @@ class ChatSupabaseService(
             if (ch.status.value != RealtimeChannel.Status.SUBSCRIBED) {
                 runCatching { ch.subscribe() }.onFailure(::rethrowCancellation)
             }
-            awaitClose { }
+            awaitClose {
+                CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
+                    removeChannelSafely(client, ch)
+                }
+            }
         }
     }
 
@@ -461,8 +528,12 @@ class ChatSupabaseService(
         const val CHANNEL_CHAT_PROFILE_UPDATES = "chat_profile_updates"
         const val EVENT_NEW_MESSAGE = "new_message"
         const val EVENT_PROFILE_UPDATED = "profile_updated"
+        const val EVENT_CONVERSATION_READ = "conversation_read"
         const val EVENT_TYPING = "typing"
+        const val SIGNED_URL_EXPIRY_DAYS = 30
 
         fun channelName(conversationId: String): String = "chat_messages_$conversationId"
+
+        fun typingChannelName(conversationId: String): String = "chat_typing_$conversationId"
     }
 }
