@@ -121,4 +121,19 @@ class JournalViewModelTest {
         coVerify { mockSaveMoodCheckinUseCase(any()) }
         assertFalse(sut.uiStateFlow.value.isCheckinSheetVisible)
     }
+
+    @Test
+    fun `coreFiveMoods returns the 5 prototype emotions in order THUONG VUI BINH_YEN NHO TRAM`() {
+        val coreMoods = JournalMoodType.coreFiveMoods()
+        assertEquals(
+            listOf(
+                JournalMoodType.THUONG,
+                JournalMoodType.VUI,
+                JournalMoodType.BINH_YEN,
+                JournalMoodType.NHO,
+                JournalMoodType.TRAM,
+            ),
+            coreMoods,
+        )
+    }
 }

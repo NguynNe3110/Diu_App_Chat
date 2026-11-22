@@ -176,4 +176,16 @@ class ContactsViewModelTest {
         state.inviteCodeInput shouldBeEqualTo ""
         state.scanResultMessage shouldBeEqualTo "Đã gửi lời mời kết nối tới diu.vn/minh/8X3K2P"
     }
+
+    @Test
+    fun `onSelectMood matches case-insensitive AppPalette mood hex`() = runTest {
+        advanceUntilIdle()
+
+        sut.onSelectMood("#f4ca84")
+
+        val filtered = sut.uiStateFlow.value
+        filtered.selectedMoodHex shouldBeEqualTo "#f4ca84"
+        filtered.filteredContacts.size shouldBeEqualTo 1
+        filtered.filteredContacts.first().name shouldBeEqualTo "Mẹ"
+    }
 }

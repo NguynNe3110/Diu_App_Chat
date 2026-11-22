@@ -46,7 +46,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.uzuu.diuchat.feature.base.common.res.AppIcons
 import com.uzuu.diuchat.feature.base.common.res.AppTheme
-import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuAmbientBackground
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuCard
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuEmptyState
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuFilterChip
@@ -90,7 +89,7 @@ fun MediaVaultContent(
     onTogglePlayVoice: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    DiuAmbientBackground(modifier = modifier) {
+    Box(modifier = modifier.fillMaxSize()) {
         Scaffold(
             containerColor = Color.Transparent,
             topBar = {

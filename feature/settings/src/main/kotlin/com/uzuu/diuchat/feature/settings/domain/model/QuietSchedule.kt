@@ -17,6 +17,30 @@ data class QuietSchedule(
     val timeRangeFormatted: String
         get() = "$startTimeFormatted – $endTimeFormatted ($timeZoneId)"
 
+    val durationMinutes: Int
+        get() = if (endMinuteOfDay >= startMinuteOfDay) {
+            endMinuteOfDay - startMinuteOfDay
+        } else {
+            (24 * 60 - startMinuteOfDay) + endMinuteOfDay
+        }
+
+    val durationHoursFormatted: String
+        get() {
+            val hours = durationMinutes / 60
+            val half = (durationMinutes % 60) >= 30
+            return if (half) "$hours,5 giờ nghỉ" else "$hours giờ nghỉ"
+        }
+
+    fun stepStartMinutes(deltaMinutes: Int): QuietSchedule {
+        val next = ((startMinuteOfDay + deltaMinutes) % MINUTES_PER_DAY + MINUTES_PER_DAY) % MINUTES_PER_DAY
+        return copy(startMinuteOfDay = next)
+    }
+
+    fun stepEndMinutes(deltaMinutes: Int): QuietSchedule {
+        val next = ((endMinuteOfDay + deltaMinutes) % MINUTES_PER_DAY + MINUTES_PER_DAY) % MINUTES_PER_DAY
+        return copy(endMinuteOfDay = next)
+    }
+
     fun isInQuietHours(minuteOfDay: Int): Boolean {
         if (!enabled) return false
         return if (startMinuteOfDay <= endMinuteOfDay) {
@@ -28,6 +52,7 @@ data class QuietSchedule(
     }
 
     companion object {
+        private const val MINUTES_PER_DAY = 1440
         val DEFAULT_REPEAT_DAYS = setOf(1, 2, 3, 4, 5, 6, 7)
     }
 }

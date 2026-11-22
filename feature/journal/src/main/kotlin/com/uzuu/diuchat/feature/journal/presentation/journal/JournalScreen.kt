@@ -25,7 +25,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextAlign
@@ -119,7 +122,7 @@ fun JournalContent(
                 },
             )
         },
-        containerColor = AppTheme.colors.background,
+        containerColor = Color.Transparent,
         modifier = modifier,
     ) { paddingValues ->
         Box(
@@ -190,7 +193,6 @@ fun JournalContent(
                 modifier = Modifier
                     .fillMaxWidth()
                     .align(Alignment.BottomCenter)
-                    .background(AppTheme.colors.background.copy(alpha = 0.95f))
                     .padding(horizontal = 20.dp, vertical = 16.dp),
             ) {
                 DiuButton(
@@ -281,31 +283,52 @@ private fun CalendarGrid(
                         val isSelected = day == selectedDay
                         val moodColor = checkin?.mood?.color ?: Color.Transparent
                         val isFuture = yearMonth.atDay(day).isAfter(today)
+                        val inkColor = AppTheme.colors.ink
+                        val futureBorderColor = AppTheme.colors.inkSecondary.copy(alpha = 0.45f)
 
                         Box(
                             modifier = Modifier
                                 .weight(1f)
-                                .height(44.dp)
-                                .padding(2.dp)
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(
-                                    if (isSelected) {
-                                        AppTheme.colors.accent.copy(alpha = 0.12f)
-                                    } else {
-                                        Color.Transparent
-                                    },
-                                )
-                                .border(
-                                    width = if (isSelected) 1.5.dp else 0.dp,
-                                    color = if (isSelected) AppTheme.colors.accent else Color.Transparent,
-                                    shape = RoundedCornerShape(12.dp),
-                                )
-                                .clickable(enabled = !isFuture) { onSelectDay(day) },
+                                .height(44.dp),
                             contentAlignment = Alignment.Center,
                         ) {
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.Center,
+                            Box(
+                                modifier = Modifier
+                                    .size(38.dp)
+                                    .drawBehind {
+                                        val radius = size.minDimension / 2f
+                                        if (isSelected) {
+                                            drawCircle(
+                                                color = inkColor,
+                                                radius = radius,
+                                                style = Stroke(width = 1.5.dp.toPx()),
+                                            )
+                                            drawCircle(
+                                                color = inkColor,
+                                                radius = radius - 3.dp.toPx(),
+                                                style = Stroke(width = 1.dp.toPx()),
+                                            )
+                                        } else if (isFuture) {
+                                            drawCircle(
+                                                color = futureBorderColor,
+                                                radius = radius - 1.dp.toPx(),
+                                                style = Stroke(
+                                                    width = 1.5.dp.toPx(),
+                                                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(8f, 8f), 0f),
+                                                ),
+                                            )
+                                        }
+                                    }
+                                    .clip(CircleShape)
+                                    .background(
+                                        when {
+                                            checkin != null -> moodColor.copy(alpha = 0.78f)
+                                            !isFuture -> AppTheme.colors.surface.copy(alpha = 0.45f)
+                                            else -> Color.Transparent
+                                        },
+                                    )
+                                    .clickable(enabled = !isFuture) { onSelectDay(day) },
+                                contentAlignment = Alignment.Center,
                             ) {
                                 Text(
                                     text = day.toString(),
@@ -316,17 +339,6 @@ private fun CalendarGrid(
                                         AppTheme.colors.ink
                                     },
                                 )
-                                Spacer(modifier = Modifier.height(2.dp))
-                                if (checkin != null) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(6.dp)
-                                            .clip(CircleShape)
-                                            .background(moodColor),
-                                    )
-                                } else {
-                                    Spacer(modifier = Modifier.size(6.dp))
-                                }
                             }
                         }
                     }
@@ -475,12 +487,14 @@ private fun MoodComparisonCard(
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                     modifier = Modifier.weight(1f),
                 ) {
-                    comparison.myMoods.take(14).forEach { mood ->
+                    val myStrip = comparison.myMoods.take(14)
+                    myStrip.forEach { mood ->
                         Box(
                             modifier = Modifier
-                                .size(14.dp)
-                                .clip(CircleShape)
-                                .background(mood.color),
+                                .weight(1f)
+                                .height(22.dp)
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(mood.color.copy(alpha = 0.85f)),
                         )
                     }
                 }
@@ -502,12 +516,14 @@ private fun MoodComparisonCard(
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                     modifier = Modifier.weight(1f),
                 ) {
-                    comparison.partnerMoods.take(14).forEach { mood ->
+                    val partnerStrip = comparison.partnerMoods.take(14)
+                    partnerStrip.forEach { mood ->
                         Box(
                             modifier = Modifier
-                                .size(14.dp)
-                                .clip(CircleShape)
-                                .background(mood.color),
+                                .weight(1f)
+                                .height(22.dp)
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(mood.color.copy(alpha = 0.85f)),
                         )
                     }
                 }

@@ -1,34 +1,46 @@
 package com.uzuu.diuchat.feature.calls.presentation.screen
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.uzuu.diuchat.feature.base.common.res.AppIcons
 import com.uzuu.diuchat.feature.base.common.res.AppTheme
+import com.uzuu.diuchat.feature.base.common.res.DiuSerif
+import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuAmbientBackground
+import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuIconButton
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuOrbAvatar
+import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuRippleOrb
+import com.uzuu.diuchat.feature.base.presentation.compose.composable.parseMoodColorHex
 import com.uzuu.diuchat.feature.calls.domain.model.CallSession
 import com.uzuu.diuchat.feature.calls.domain.model.CallStatus
 import com.uzuu.diuchat.feature.calls.domain.model.CallType
 import com.uzuu.diuchat.feature.calls.presentation.composable.CallControls
-import com.uzuu.diuchat.feature.calls.presentation.composable.IncomingCallBanner
+import com.uzuu.diuchat.feature.calls.presentation.composable.IncomingCallFullScreen
 import com.uzuu.diuchat.feature.calls.presentation.composable.VideoOverlay
 
 @Composable
@@ -36,13 +48,41 @@ fun CallScreen(
     viewModel: CallViewModel,
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier,
+    peerId: String = "minh",
+    peerName: String = "Minh",
+    peerMoodHex: String = "#F7A3A9",
+    isVideo: Boolean = false,
+    isIncoming: Boolean = false,
 ) {
     val uiState by viewModel.uiStateFlow.collectAsState()
 
+    LaunchedEffect(peerId, peerName, peerMoodHex, isVideo, isIncoming) {
+        viewModel.initializeCallFromRoute(
+            peerId = peerId,
+            peerName = peerName,
+            peerMoodHex = peerMoodHex,
+            isVideo = isVideo,
+            isIncoming = isIncoming,
+        )
+    }
+
     CallContent(
         uiState = uiState,
+        onNavigateBack = onNavigateBack,
         onAcceptCall = { viewModel.acceptIncomingCall() },
-        onRejectCall = { viewModel.rejectIncomingCall() },
+        onRejectCall = {
+            viewModel.rejectIncomingCall()
+            onNavigateBack()
+        },
+        onToggleQuickReply = { viewModel.toggleQuickReplyOptions() },
+        onSelectQuickReply = { message ->
+            viewModel.sendQuickReplyAndDecline(message)
+            onNavigateBack()
+        },
+        onRemindMe = {
+            viewModel.scheduleCallReminder()
+            onNavigateBack()
+        },
         onToggleMic = { viewModel.toggleMicrophone() },
         onToggleSpeaker = { viewModel.toggleSpeakerphone() },
         onToggleVideo = { viewModel.toggleCameraVideo() },
@@ -68,109 +108,120 @@ fun CallContent(
     onToggleMinimize: () -> Unit,
     onHangUp: () -> Unit,
     modifier: Modifier = Modifier,
+    onNavigateBack: () -> Unit = onHangUp,
+    onToggleQuickReply: () -> Unit = {},
+    onSelectQuickReply: (String) -> Unit = {},
+    onRemindMe: () -> Unit = {},
 ) {
     val session = uiState.callSession
     val colors = AppTheme.colors
+    val peerMoodColor = parseMoodColorHex(uiState.peerMoodHex)
+    val displayPeerName = when {
+        session == null -> uiState.peerName
+        session.isIncoming -> session.callerName
+        else -> session.calleeName
+    }
 
-    Surface(
+    DiuAmbientBackground(
         modifier = modifier.fillMaxSize(),
-        color = colors.background,
+        primaryBlobColor = peerMoodColor,
+        secondaryBlobColor = colors.peach,
     ) {
-        if (session == null || session.status == CallStatus.IDLE || session.status == CallStatus.ENDED) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center,
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = "Không có cuộc gọi đang diễn ra",
-                        color = colors.inkSecondary,
-                        fontSize = 16.sp,
-                    )
-                }
-            }
-        } else if (session.isIncoming && session.status == CallStatus.RINGING) {
-            Box(modifier = Modifier.fillMaxSize()) {
-                IncomingCallBanner(
-                    session = session,
-                    onAccept = onAcceptCall,
-                    onDecline = onRejectCall,
-                    modifier = Modifier.align(Alignment.Center),
-                )
-            }
+        if (session != null && session.isIncoming && session.status == CallStatus.RINGING) {
+            IncomingCallFullScreen(
+                session = session,
+                peerMoodColor = peerMoodColor,
+                isQuickReplyExpanded = uiState.isQuickReplyExpanded,
+                onToggleQuickReply = onToggleQuickReply,
+                onSelectQuickReply = onSelectQuickReply,
+                onRemindMe = onRemindMe,
+                onAccept = onAcceptCall,
+                onDecline = onRejectCall,
+            )
         } else {
-            // Outgoing / Active Call Screen
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(
-                                colors.background,
-                                colors.surfaceElevated,
+            val isVideoMode = (session?.type == CallType.VIDEO) || uiState.isVideoEnabled
+            val statusText = when (session?.status) {
+                CallStatus.ACTIVE -> uiState.formattedDuration
+                CallStatus.CONNECTING -> "Đang kết nối dịu dàng…"
+                else -> "Đang gọi dịu dàng…"
+            }
+
+            Box(modifier = Modifier.fillMaxSize()) {
+                if (isVideoMode) {
+                    // Full-screen remote video feed backdrop
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(
+                                Brush.verticalGradient(
+                                    colors = listOf(
+                                        peerMoodColor.copy(alpha = 0.28f),
+                                        colors.peach.copy(alpha = 0.22f),
+                                        colors.surface,
+                                    ),
+                                ),
                             ),
-                        ),
-                    ),
-            ) {
-                // Header & Avatar
-                Column(
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        DiuOrbAvatar(
+                            initials = displayPeerName.take(1),
+                            moodColor = peerMoodColor,
+                            size = 132.dp,
+                            isPulsing = true,
+                        )
+                    }
+                }
+
+                // Top bar: Back button + "Chỉ hai người · mã hoá" glass pill
+                Row(
                     modifier = Modifier
-                        .fillMaxSize()
-                        .padding(top = 72.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 18.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
-                    val peerName = if (session.isIncoming) session.callerName else session.calleeName
-
-                    DiuOrbAvatar(
-                        initials = peerName.take(1),
-                        moodColor = colors.accent,
-                        size = 110.dp,
-                    )
-
-                    Spacer(modifier = Modifier.height(20.dp))
-
-                    Text(
-                        text = peerName,
-                        fontSize = 24.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = colors.ink,
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    val statusText = when (session.status) {
-                        CallStatus.INVITING -> "Đang gọi..."
-                        CallStatus.CONNECTING -> "Đang kết nối..."
-                        CallStatus.ACTIVE -> uiState.formattedDuration
-                        else -> ""
+                    DiuIconButton(
+                        onClick = onNavigateBack,
+                        contentDescription = "Quay lại",
+                        soft = true,
+                    ) {
+                        Icon(
+                            painter = painterResource(AppIcons.Back),
+                            contentDescription = "Quay lại",
+                            tint = colors.ink,
+                            modifier = Modifier.size(20.dp),
+                        )
                     }
 
-                    Text(
-                        text = statusText,
-                        fontSize = 16.sp,
-                        color = colors.inkSecondary,
-                    )
-
-                    if (session.status == CallStatus.ACTIVE) {
-                        Box(
-                            modifier = Modifier
-                                .padding(top = 8.dp)
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(Color(0xFFE8F5E9))
-                                .padding(horizontal = 8.dp, vertical = 2.dp),
+                    Surface(
+                        shape = RoundedCornerShape(50),
+                        color = colors.surface,
+                        border = BorderStroke(1.dp, colors.line),
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
                         ) {
+                            Icon(
+                                painter = painterResource(AppIcons.Lock),
+                                contentDescription = null,
+                                tint = colors.inkSecondary,
+                                modifier = Modifier.size(12.dp),
+                            )
                             Text(
-                                text = "${uiState.connectionQuality} • Mã hóa đầu cuối",
-                                fontSize = 11.sp,
-                                color = Color(0xFF2E7D32),
+                                text = "Chỉ hai người · mã hoá",
+                                fontSize = 12.sp,
                                 fontWeight = FontWeight.Medium,
+                                color = colors.inkSecondary,
                             )
                         }
                     }
+
+                    Spacer(modifier = Modifier.size(44.dp))
                 }
 
-                // Video Overlay (for video call)
-                if (session.type == CallType.VIDEO && uiState.isVideoEnabled) {
+                if (isVideoMode) {
                     VideoOverlay(
                         isMinimized = uiState.isOverlayMinimized,
                         isFrontCamera = uiState.isFrontCamera,
@@ -178,24 +229,87 @@ fun CallContent(
                         onFlipCamera = onFlipCamera,
                         modifier = Modifier
                             .align(Alignment.TopEnd)
-                            .padding(top = 48.dp, end = 20.dp),
+                            .padding(top = 78.dp, end = 20.dp),
+                    )
+
+                    Column(
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .fillMaxWidth()
+                            .padding(bottom = 28.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Text(
+                            text = displayPeerName,
+                            fontFamily = DiuSerif,
+                            fontSize = 30.sp,
+                            color = colors.ink,
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = statusText,
+                            fontSize = 14.sp,
+                            color = colors.inkSecondary,
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        CallControls(
+                            isMuted = uiState.isMuted,
+                            isSpeakerOn = uiState.isSpeakerOn,
+                            isVideoEnabled = true,
+                            onToggleMic = onToggleMic,
+                            onToggleSpeaker = onToggleSpeaker,
+                            onToggleVideo = onToggleVideo,
+                            onFlipCamera = onFlipCamera,
+                            onHangUp = onHangUp,
+                        )
+                    }
+                } else {
+                    // Audio call layout (Prototype #29)
+                    Column(
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .padding(bottom = 64.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        DiuRippleOrb(
+                            initials = displayPeerName.take(1),
+                            moodColor = peerMoodColor,
+                            size = 148.dp,
+                        )
+
+                        Spacer(modifier = Modifier.height(24.dp))
+
+                        Text(
+                            text = displayPeerName,
+                            fontFamily = DiuSerif,
+                            fontSize = 40.sp,
+                            fontWeight = FontWeight.Normal,
+                            color = colors.ink,
+                        )
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Text(
+                            text = statusText,
+                            fontSize = 15.sp,
+                            color = colors.inkSecondary,
+                        )
+                    }
+
+                    CallControls(
+                        isMuted = uiState.isMuted,
+                        isSpeakerOn = uiState.isSpeakerOn,
+                        isVideoEnabled = uiState.isVideoEnabled,
+                        onToggleMic = onToggleMic,
+                        onToggleSpeaker = onToggleSpeaker,
+                        onToggleVideo = onToggleVideo,
+                        onFlipCamera = onFlipCamera,
+                        onHangUp = onHangUp,
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .padding(bottom = 28.dp),
                     )
                 }
-
-                // Controls at bottom
-                CallControls(
-                    isMuted = uiState.isMuted,
-                    isSpeakerOn = uiState.isSpeakerOn,
-                    isVideoEnabled = uiState.isVideoEnabled,
-                    onToggleMic = onToggleMic,
-                    onToggleSpeaker = onToggleSpeaker,
-                    onToggleVideo = onToggleVideo,
-                    onFlipCamera = onFlipCamera,
-                    onHangUp = onHangUp,
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .padding(bottom = 32.dp),
-                )
             }
         }
     }
@@ -210,15 +324,15 @@ private fun CallScreenPreview() {
                 callSession = CallSession(
                     callId = "call_preview_1",
                     callerId = "u1",
-                    callerName = "Minh",
-                    calleeId = "u2",
-                    calleeName = "Linh Dịu",
+                    callerName = "Tôi",
+                    calleeId = "minh",
+                    calleeName = "Minh",
                     status = CallStatus.ACTIVE,
                     type = CallType.AUDIO,
                     isIncoming = false,
-                    durationSeconds = 125,
+                    durationSeconds = 83,
                 ),
-                formattedDuration = "02:05",
+                formattedDuration = "01:23",
                 connectionQuality = "HD",
             ),
             onAcceptCall = {},

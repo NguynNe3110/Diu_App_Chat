@@ -112,6 +112,87 @@ sealed interface ChatAction : BaseAction<ChatUiState> {
         override fun reduce(state: ChatUiState): ChatUiState = state.copy(isNewGroupOpen = isOpen)
     }
 
+    data class SetSlowSendSheetOpen(
+        val isOpen: Boolean,
+    ) : ChatAction {
+        override fun reduce(state: ChatUiState): ChatUiState = state.copy(isSlowSendSheetOpen = isOpen)
+    }
+
+    data class SetAttachmentSheetOpen(
+        val isOpen: Boolean,
+    ) : ChatAction {
+        override fun reduce(state: ChatUiState): ChatUiState = state.copy(isAttachmentSheetOpen = isOpen)
+    }
+
+    data class UpdateSlowSendDraft(
+        val content: String,
+        val scheduleLabel: String,
+    ) : ChatAction {
+        override fun reduce(state: ChatUiState): ChatUiState = state.copy(
+            slowSendDraftContent = content,
+            slowSendScheduleLabel = scheduleLabel,
+        )
+    }
+
+    data class AppendLocalMessage(
+        val message: ChatMessage,
+    ) : ChatAction {
+        override fun reduce(state: ChatUiState): ChatUiState = state.copy(
+            messages = state.messages + message,
+        )
+    }
+
+    data class ToggleRevealSealedMessage(
+        val messageId: String,
+    ) : ChatAction {
+        override fun reduce(state: ChatUiState): ChatUiState = state.copy(
+            messages = state.messages.map { msg ->
+                if (msg.id == messageId) msg.copy(isSealedRevealed = !msg.isSealedRevealed) else msg
+            },
+        )
+    }
+
+    data class CancelSealedMessage(
+        val messageId: String,
+    ) : ChatAction {
+        override fun reduce(state: ChatUiState): ChatUiState = state.copy(
+            messages = state.messages.filterNot { it.id == messageId },
+        )
+    }
+
+    data class SetGroupEditSheetOpen(
+        val isOpen: Boolean,
+    ) : ChatAction {
+        override fun reduce(state: ChatUiState): ChatUiState = state.copy(isGroupEditSheetOpen = isOpen)
+    }
+
+    data class ToggleNewGroupMember(
+        val memberId: String,
+        val maxSelectablePeers: Int = 7,
+    ) : ChatAction {
+        override fun reduce(state: ChatUiState): ChatUiState {
+            val current = state.newGroupSelectedMemberIds
+            val updated = if (current.contains(memberId)) {
+                current - memberId
+            } else if (current.size < maxSelectablePeers) {
+                current + memberId
+            } else {
+                current
+            }
+            return state.copy(newGroupSelectedMemberIds = updated)
+        }
+    }
+
+    data class UpdateNewGroupDraft(
+        val title: String,
+        val mood: MoodType,
+    ) : ChatAction {
+        override fun reduce(state: ChatUiState): ChatUiState = state.copy(
+            newGroupTitle = title,
+            newGroupMood = mood,
+        )
+    }
+
     data object ClearInput : ChatAction {
         override fun reduce(state: ChatUiState): ChatUiState = state.copy(
             inputContent = "",

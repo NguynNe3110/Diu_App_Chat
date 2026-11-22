@@ -175,6 +175,22 @@ class SettingsViewModelTest {
     }
 
     @Test
+    fun `updatePrimaryMoodQuickly and stepQuietStartTime persist changes via usecases`() = runTest {
+        advanceUntilIdle()
+        sut.updatePrimaryMoodQuickly("Thương")
+        advanceUntilIdle()
+        coVerify { updateProfileUseCase(testProfile.copy(primaryMood = "Thương")) }
+
+        sut.stepQuietStartTime(-30)
+        advanceUntilIdle()
+        coVerify { updateQuietScheduleUseCase(testQuietSchedule.copy(startMinuteOfDay = 1320)) }
+
+        sut.stepQuietEndTime(30)
+        advanceUntilIdle()
+        coVerify { updateQuietScheduleUseCase(testQuietSchedule.copy(endMinuteOfDay = 390)) }
+    }
+
+    @Test
     fun `setNotificationPrivacy updates privacy and dismisses dialog`() = runTest {
         advanceUntilIdle()
 
@@ -205,7 +221,7 @@ class SettingsViewModelTest {
         sut.uiStateFlow.value.subScreen shouldBeEqualTo SettingsSubScreen.BLOCKED_CONTACTS
 
         sut.navigateBackToOverview()
-        sut.uiStateFlow.value.subScreen shouldBeEqualTo SettingsSubScreen.OVERVIEW
+        sut.uiStateFlow.value.subScreen shouldBeEqualTo SettingsSubScreen.PROFILE_OVERVIEW
     }
 
     @Test

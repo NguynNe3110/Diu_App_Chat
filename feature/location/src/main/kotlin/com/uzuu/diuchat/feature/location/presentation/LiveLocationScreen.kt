@@ -1,6 +1,5 @@
 package com.uzuu.diuchat.feature.location.presentation
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -67,8 +66,7 @@ fun LiveLocationContent(
 
     Column(
         modifier = modifier
-            .fillMaxSize()
-            .background(colors.background),
+            .fillMaxSize(),
     ) {
         DiuTopBar(
             title = "Vị trí trực tiếp",

@@ -18,5 +18,7 @@ enum class JournalMoodType(
 
     companion object {
         fun fromId(id: String): JournalMoodType = entries.find { it.id.equals(id, ignoreCase = true) } ?: BINH_YEN
+
+        fun coreFiveMoods(): List<JournalMoodType> = listOf(THUONG, VUI, BINH_YEN, NHO, TRAM)
     }
 }

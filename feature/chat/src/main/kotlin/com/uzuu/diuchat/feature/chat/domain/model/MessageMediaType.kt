@@ -4,4 +4,6 @@ enum class MessageMediaType {
     TEXT,
     PHOTO,
     VOICE,
+    SEALED_LETTER,
+    LOCATION,
 }

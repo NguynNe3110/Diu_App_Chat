@@ -37,6 +37,14 @@ sealed class SettingsAction : BaseAction<SettingsUiState> {
         override fun reduce(state: SettingsUiState): SettingsUiState = state.copy(softSendAnimationEnabled = enabled)
     }
 
+    data class ToggleVibrateOnce(val enabled: Boolean) : SettingsAction() {
+        override fun reduce(state: SettingsUiState): SettingsUiState = state.copy(vibrateOnceEnabled = enabled)
+    }
+
+    data class ToggleEveningGroupDigest(val enabled: Boolean) : SettingsAction() {
+        override fun reduce(state: SettingsUiState): SettingsUiState = state.copy(eveningGroupDigestEnabled = enabled)
+    }
+
     data class SetThemeMode(val themeMode: String) : SettingsAction() {
         override fun reduce(state: SettingsUiState): SettingsUiState = state.copy(themeMode = themeMode)
     }

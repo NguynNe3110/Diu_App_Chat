@@ -2,6 +2,7 @@ package com.uzuu.diuchat.feature.chat.presentation.screen
 
 import com.uzuu.diuchat.feature.chat.domain.model.ChatMessage
 import com.uzuu.diuchat.feature.chat.domain.model.Conversation
+import com.uzuu.diuchat.feature.chat.domain.model.MessageMediaType
 import com.uzuu.diuchat.feature.chat.domain.model.MessageStatus
 import com.uzuu.diuchat.feature.chat.domain.model.MoodType
 import com.uzuu.diuchat.feature.chat.domain.model.VoiceRecordingState
@@ -168,6 +169,64 @@ class ChatActionTest {
 
         val s2 = ChatAction.SetNewGroupOpen(true).reduce(initialState)
         s2.isNewGroupOpen shouldBeEqualTo true
+    }
+
+    @Test
+    fun `SetSlowSendSheetOpen and UpdateSlowSendDraft update slow send state`() {
+        val opened = ChatAction.SetSlowSendSheetOpen(true).reduce(initialState)
+        opened.isSlowSendSheetOpen shouldBeEqualTo true
+
+        val drafted = ChatAction.UpdateSlowSendDraft("Thương em nhiều", "Khi Minh thức dậy").reduce(opened)
+        drafted.slowSendDraftContent shouldBeEqualTo "Thương em nhiều"
+        drafted.slowSendScheduleLabel shouldBeEqualTo "Khi Minh thức dậy"
+    }
+
+    @Test
+    fun `AppendLocalMessage ToggleRevealSealedMessage and CancelSealedMessage manage sealed letter bubble`() {
+        val sealedMsg = ChatMessage(
+            id = "sealed_1",
+            conversationId = "conv_1",
+            senderId = "me",
+            senderName = "Mình",
+            content = "Lời nhắn hẹn giờ",
+            mood = MoodType.THUONG,
+            status = MessageStatus.SENT,
+            mediaType = MessageMediaType.SEALED_LETTER,
+            scheduledForLabel = "7:00 sáng mai",
+        )
+        val withSealed = ChatAction.AppendLocalMessage(sealedMsg).reduce(initialState)
+        withSealed.messages.size shouldBeEqualTo 1
+        withSealed.messages.first().isSealedRevealed shouldBeEqualTo false
+
+        val revealed = ChatAction.ToggleRevealSealedMessage("sealed_1").reduce(withSealed)
+        revealed.messages.first().isSealedRevealed shouldBeEqualTo true
+
+        val cancelled = ChatAction.CancelSealedMessage("sealed_1").reduce(revealed)
+        cancelled.messages.isEmpty() shouldBeEqualTo true
+    }
+
+    @Test
+    fun `ToggleNewGroupMember caps selection at 7 peers for 8 total members`() {
+        var state = initialState
+        (1..8).forEach { idx ->
+            state = ChatAction.ToggleNewGroupMember("user_$idx").reduce(state)
+        }
+        state.newGroupSelectedMemberIds.size shouldBeEqualTo 7
+        state.newGroupSelectedMemberIds.contains("user_8") shouldBeEqualTo false
+
+        // Deselecting an existing member works when at capacity
+        val afterRemove = ChatAction.ToggleNewGroupMember("user_3").reduce(state)
+        afterRemove.newGroupSelectedMemberIds.size shouldBeEqualTo 6
+    }
+
+    @Test
+    fun `SetGroupEditSheetOpen and UpdateNewGroupDraft update group states`() {
+        val s1 = ChatAction.SetGroupEditSheetOpen(true).reduce(initialState)
+        s1.isGroupEditSheetOpen shouldBeEqualTo true
+
+        val s2 = ChatAction.UpdateNewGroupDraft("Nhà mình", MoodType.VUI).reduce(s1)
+        s2.newGroupTitle shouldBeEqualTo "Nhà mình"
+        s2.newGroupMood shouldBeEqualTo MoodType.VUI
     }
 
     @Test

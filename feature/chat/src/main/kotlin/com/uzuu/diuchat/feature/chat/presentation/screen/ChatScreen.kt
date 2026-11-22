@@ -1,13 +1,17 @@
 package com.uzuu.diuchat.feature.chat.presentation.screen
 
 import android.net.Uri
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -18,28 +22,15 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Bedtime
-import androidx.compose.material.icons.filled.Call
-import androidx.compose.material.icons.filled.GroupAdd
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.MailOutline
-import androidx.compose.material.icons.filled.Mic
-import androidx.compose.material.icons.filled.PhotoLibrary
-import androidx.compose.material.icons.filled.Videocam
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -51,30 +42,47 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import kotlinx.coroutines.launch
+import com.uzuu.diuchat.feature.base.common.res.AppIcons
+import com.uzuu.diuchat.feature.base.common.res.AppPalette
 import com.uzuu.diuchat.feature.base.common.res.AppTheme
+import com.uzuu.diuchat.feature.base.common.res.DiuSerif
+import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuButton
+import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuIconButton
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuMediaSourceSheet
+import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuMoodDot
+import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuOrbAvatar
 import com.uzuu.diuchat.feature.base.presentation.util.rememberMediaPickerController
 import com.uzuu.diuchat.feature.chat.domain.model.ChatMessage
 import com.uzuu.diuchat.feature.chat.domain.model.Conversation
 import com.uzuu.diuchat.feature.chat.domain.model.MessageStatus
 import com.uzuu.diuchat.feature.chat.domain.model.MoodType
-import com.uzuu.diuchat.feature.chat.domain.model.VoiceRecordingState
 import com.uzuu.diuchat.feature.chat.presentation.composable.ChatComposer
 import com.uzuu.diuchat.feature.chat.presentation.composable.ForwardDialog
 import com.uzuu.diuchat.feature.chat.presentation.composable.MessageBubble
 import com.uzuu.diuchat.feature.chat.presentation.composable.PinnedMessageBar
 import com.uzuu.diuchat.feature.chat.presentation.composable.ReactDetailDialog
 import com.uzuu.diuchat.feature.chat.presentation.composable.ReplyQuoteBar
-import com.uzuu.diuchat.feature.chat.presentation.composable.VoiceRecorderBar
+import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @Suppress("compose:vm-forwarding-check")
 @OptIn(ExperimentalMaterial3Api::class)
@@ -83,8 +91,10 @@ fun ChatScreen(
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier,
     conversationId: String = "conv_linh_diu",
-    onStartVoiceCall: () -> Unit = {},
-    onStartVideoCall: () -> Unit = {},
+    onStartVoiceCall: (peerId: String, peerName: String, peerMoodHex: String) -> Unit = { _, _, _ -> },
+    onStartVideoCall: (peerId: String, peerName: String, peerMoodHex: String) -> Unit = { _, _, _ -> },
+    onOpenPhotoClick: (ChatMessage) -> Unit = {},
+    onOpenPhotoViewer: (caption: String, moodName: String, senderName: String, timestamp: String) -> Unit = { _, _, _, _ -> },
     onAttachLocationClick: () -> Unit = {},
     onSendDelayedLetterClick: () -> Unit = {},
     onSearchInChatClick: () -> Unit = {},
@@ -98,7 +108,6 @@ fun ChatScreen(
 
     val state by viewModel.uiStateFlow.collectAsStateWithLifecycle()
     var showMediaSourceSheet by remember { mutableStateOf(false) }
-    var showAttachmentOptionsSheet by remember { mutableStateOf(false) }
 
     val mediaPickerController = rememberMediaPickerController(
         onSelectImage = { uri: Uri ->
@@ -106,7 +115,26 @@ fun ChatScreen(
         },
     )
 
-    val partnerMoodColor = Color(state.partnerMood.colorHex)
+    val peerMoodHex = remember(state.partnerMood) {
+        String.format(Locale.US, "#%06X", (state.partnerMood.colorHex and 0xFFFFFF))
+    }
+
+    val handleVoiceCall = {
+        onStartVoiceCall(state.conversationId, state.conversationTitle, peerMoodHex)
+    }
+    val handleVideoCall = {
+        onStartVideoCall(state.conversationId, state.conversationTitle, peerMoodHex)
+    }
+    val handlePhotoOpen: (ChatMessage) -> Unit = { message ->
+        onOpenPhotoClick(message)
+        val timeText = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(message.createdAtEpochMs))
+        onOpenPhotoViewer(
+            message.caption ?: message.content,
+            message.mood.displayName,
+            message.senderName,
+            timeText,
+        )
+    }
 
     // Sub-screen: ChatInfoScreen
     if (state.isChatInfoOpen) {
@@ -116,8 +144,8 @@ fun ChatScreen(
             mood = state.partnerMood,
             lastMessage = "",
             lastMessageTimeEpochMs = 0L,
-            daysTogether = 120,
-            anniversaryDate = "14/02/2024",
+            daysTogether = 712,
+            anniversaryDate = "12/10",
         )
         ChatInfoScreen(
             conversation = currentConvo,
@@ -134,11 +162,19 @@ fun ChatScreen(
             onToggleMute = viewModel::onToggleMute,
             onManageMemberRole = viewModel::onManageMemberRole,
             onRemoveMember = viewModel::onRemoveMember,
-            onVoiceCallClick = onStartVoiceCall,
-            onVideoCallClick = onStartVideoCall,
+            onVoiceCallClick = handleVoiceCall,
+            onVideoCallClick = handleVideoCall,
             onSearchInChatClick = onSearchInChatClick,
             onOpenSharedMediaClick = onOpenSharedMediaClick,
             onOpenPendingLettersClick = onOpenPendingLettersClick,
+            onOpenPhotoViewer = onOpenPhotoViewer,
+            isGroupEditSheetOpen = state.isGroupEditSheetOpen,
+            onOpenGroupEditSheet = viewModel::onOpenGroupEditSheet,
+            onUpdateGroupTitleAndMood = viewModel::onUpdateGroupTitleAndMood,
+            onOpenNewGroup = {
+                viewModel.onOpenChatInfo(false)
+                viewModel.onOpenNewGroup(true)
+            },
         )
         return
     }
@@ -150,6 +186,11 @@ fun ChatScreen(
             onCreateGroupSuccess = { _ ->
                 viewModel.onOpenNewGroup(false)
             },
+            selectedMemberIds = state.newGroupSelectedMemberIds,
+            groupTitle = state.newGroupTitle,
+            selectedMood = state.newGroupMood,
+            onToggleMember = viewModel::onToggleNewGroupMember,
+            onUpdateDraft = viewModel::onUpdateNewGroupDraft,
             onCreateGroup = { title, mood, members, onSuccess ->
                 viewModel.onCreateGroup(
                     title = title,
@@ -165,22 +206,19 @@ fun ChatScreen(
     ChatContent(
         state = state,
         onBackClick = onBackClick,
-        onStartVoiceCall = onStartVoiceCall,
-        onStartVideoCall = onStartVideoCall,
-        onSendDelayedLetterClick = onSendDelayedLetterClick,
+        onStartVoiceCall = handleVoiceCall,
+        onStartVideoCall = handleVideoCall,
+        onOpenSlowSendSheet = { viewModel.onOpenSlowSendSheet(true) },
         onOpenChatInfo = { viewModel.onOpenChatInfo(true) },
-        onOpenNewGroup = { viewModel.onOpenNewGroup(true) },
         onUnpinCurrentMessage = viewModel::onUnpinCurrentMessage,
         onCancelReply = viewModel::onCancelReply,
         onCancelVoiceRecording = viewModel::onCancelVoiceRecording,
-        onStopVoiceRecording = { viewModel.onStopVoiceRecording() },
         onSendVoiceMessage = viewModel::onSendVoiceMessage,
-        onTogglePreviewPlay = viewModel::onTogglePreviewPlay,
         onInputChange = viewModel::onInputChanged,
         onSelectMood = viewModel::onSelectMood,
         onToggleMoodTray = viewModel::onToggleMoodTray,
         onAttachPhotoClick = {
-            showAttachmentOptionsSheet = true
+            viewModel.onOpenAttachmentSheet(!state.isAttachmentSheetOpen)
         },
         onClearPhoto = viewModel::onClearPhoto,
         onStartVoiceRecording = viewModel::onStartVoiceRecording,
@@ -194,28 +232,59 @@ fun ChatScreen(
         onOpenForwardDialog = viewModel::onOpenForwardDialog,
         onCloseForwardDialog = viewModel::onCloseForwardDialog,
         onConfirmForward = viewModel::onConfirmForward,
+        onToggleSealedReveal = viewModel::onToggleRevealSealedMessage,
+        onCancelScheduledLetter = viewModel::onCancelSealedMessage,
+        onPhotoClick = handlePhotoOpen,
         modifier = modifier,
     )
 
-    if (showAttachmentOptionsSheet) {
+    if (state.isAttachmentSheetOpen) {
         ChatAttachmentOptionsSheet(
-            onPickPhotoClick = {
-                showAttachmentOptionsSheet = false
+            onTakePhotoClick = {
+                viewModel.onOpenAttachmentSheet(false)
+                mediaPickerController.launchCamera()
+            },
+            onPickRecentPhotoClick = { demoUri ->
+                viewModel.onOpenAttachmentSheet(false)
+                viewModel.onPhotoSelected(demoUri)
+            },
+            onPickGalleryClick = {
+                viewModel.onOpenAttachmentSheet(false)
                 showMediaSourceSheet = true
             },
             onAttachLocationClick = {
-                showAttachmentOptionsSheet = false
+                viewModel.onSendLocationBubble()
                 onAttachLocationClick()
             },
-            onSendDelayedLetterClick = {
-                showAttachmentOptionsSheet = false
-                onSendDelayedLetterClick()
-            },
             onStartVoiceClick = {
-                showAttachmentOptionsSheet = false
+                viewModel.onOpenAttachmentSheet(false)
                 viewModel.onStartVoiceRecording()
             },
-            onDismiss = { showAttachmentOptionsSheet = false },
+            onOpenSlowSendClick = {
+                viewModel.onOpenAttachmentSheet(false)
+                viewModel.onOpenSlowSendSheet(true)
+            },
+            onDismiss = { viewModel.onOpenAttachmentSheet(false) },
+        )
+    }
+
+    if (state.isSlowSendSheetOpen) {
+        ChatSlowSendSheet(
+            partnerName = state.conversationTitle,
+            draftContent = state.slowSendDraftContent,
+            selectedSchedule = state.slowSendScheduleLabel,
+            moodColor = Color(state.selectedMood.colorHex),
+            onDraftChange = { newText ->
+                viewModel.onUpdateSlowSendDraft(content = newText, scheduleLabel = state.slowSendScheduleLabel)
+            },
+            onScheduleSelect = { schedule ->
+                viewModel.onUpdateSlowSendDraft(content = state.slowSendDraftContent, scheduleLabel = schedule)
+            },
+            onSealAndSchedule = {
+                viewModel.onSealSlowSendMessage()
+                onSendDelayedLetterClick()
+            },
+            onDismiss = { viewModel.onOpenSlowSendSheet(false) },
         )
     }
 
@@ -236,15 +305,12 @@ fun ChatContent(
     onBackClick: () -> Unit,
     onStartVoiceCall: () -> Unit = {},
     onStartVideoCall: () -> Unit = {},
-    onSendDelayedLetterClick: () -> Unit = {},
+    onOpenSlowSendSheet: () -> Unit = {},
     onOpenChatInfo: () -> Unit = {},
-    onOpenNewGroup: () -> Unit = {},
     onUnpinCurrentMessage: () -> Unit = {},
     onCancelReply: () -> Unit = {},
     onCancelVoiceRecording: () -> Unit = {},
-    onStopVoiceRecording: () -> Unit = {},
     onSendVoiceMessage: () -> Unit = {},
-    onTogglePreviewPlay: () -> Unit = {},
     onInputChange: (String) -> Unit = {},
     onSelectMood: (MoodType) -> Unit = {},
     onToggleMoodTray: () -> Unit = {},
@@ -261,11 +327,16 @@ fun ChatContent(
     onOpenForwardDialog: (ChatMessage) -> Unit = {},
     onCloseForwardDialog: () -> Unit = {},
     onConfirmForward: (List<String>) -> Unit = {},
+    onToggleSealedReveal: (String) -> Unit = {},
+    onCancelScheduledLetter: (String) -> Unit = {},
+    onPhotoClick: (ChatMessage) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
+    val colors = AppTheme.colors
     val partnerMoodColor = Color(state.partnerMood.colorHex)
+    val isGroup = state.currentConversation?.isGroup == true
 
     LaunchedEffect(state.messages.size) {
         if (state.messages.isNotEmpty()) {
@@ -275,91 +346,122 @@ fun ChatContent(
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
-        containerColor = AppTheme.colors.background,
+        containerColor = Color.Transparent,
         topBar = {
             Column {
-                TopAppBar(
-                    title = {
+                // Prototype .chat-h.glass header with ONLY Phone & Video call actions
+                Surface(
+                    color = colors.surface,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Column {
                         Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 8.dp, vertical = 10.dp),
                             verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.clickable { onOpenChatInfo() },
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(12.dp)
-                                    .clip(CircleShape)
-                                    .background(partnerMoodColor),
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Column {
-                                Text(
-                                    text = state.conversationTitle,
-                                    style = AppTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                                    color = AppTheme.colors.ink,
+                            DiuIconButton(
+                                onClick = onBackClick,
+                                contentDescription = "Quay lại",
+                            ) {
+                                Icon(
+                                    painter = painterResource(AppIcons.Back),
+                                    contentDescription = null,
+                                    tint = colors.ink,
+                                    modifier = Modifier.size(22.dp),
                                 )
-                                if (state.isPartnerInQuietHours) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(
-                                            imageVector = Icons.Default.Bedtime,
-                                            contentDescription = "Giờ yên lặng",
-                                            tint = AppTheme.colors.quietPurple,
-                                            modifier = Modifier.size(11.dp),
-                                        )
-                                        Spacer(modifier = Modifier.width(3.dp))
-                                        Text(
-                                            text = "Đang trong giờ yên lặng",
-                                            style = AppTheme.typography.bodySmall,
-                                            color = AppTheme.colors.quietPurple,
-                                            fontSize = 11.sp,
-                                        )
+                            }
+
+                            // Clickable .chat-hit area (opens ChatInfoScreen)
+                            Row(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .clickable(onClick = onOpenChatInfo)
+                                    .padding(horizontal = 6.dp, vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            ) {
+                                DiuOrbAvatar(
+                                    initials = state.conversationTitle.take(1).ifEmpty { "D" },
+                                    moodColor = partnerMoodColor,
+                                    size = 40.dp,
+                                    badgeText = if (isGroup) "${state.currentConversation?.members?.size ?: 4}" else null,
+                                )
+
+                                Column {
+                                    Text(
+                                        text = state.conversationTitle,
+                                        style = AppTheme.typography.titleMedium.copy(
+                                            fontSize = 17.sp,
+                                            fontWeight = FontWeight.Medium,
+                                        ),
+                                        color = colors.ink,
+                                    )
+                                    if (state.isPartnerInQuietHours) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                        ) {
+                                            Icon(
+                                                painter = painterResource(AppIcons.Moon),
+                                                contentDescription = "Giờ yên lặng",
+                                                tint = colors.quietPurple,
+                                                modifier = Modifier.size(12.dp),
+                                            )
+                                            Text(
+                                                text = "đang nghỉ ngơi",
+                                                style = AppTheme.typography.bodySmall.copy(fontSize = 12.sp),
+                                                color = colors.quietPurple,
+                                            )
+                                        }
+                                    } else {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(5.dp),
+                                        ) {
+                                            DiuMoodDot(
+                                                color = partnerMoodColor,
+                                                size = 7.dp,
+                                            )
+                                            Text(
+                                                text = "đang thấy ${state.partnerMood.displayName.lowercase()}",
+                                                style = AppTheme.typography.bodySmall.copy(fontSize = 12.sp),
+                                                color = colors.inkSecondary,
+                                            )
+                                        }
                                     }
                                 }
                             }
-                        }
-                    },
-                    navigationIcon = {
-                        IconButton(onClick = onBackClick) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Quay lại",
-                                tint = AppTheme.colors.ink,
-                            )
-                        }
-                    },
-                    actions = {
-                        IconButton(onClick = onStartVoiceCall) {
-                            Icon(
-                                imageVector = Icons.Default.Call,
+
+                            // ONLY 2 actions: Voice Call & Video Call
+                            DiuIconButton(
+                                onClick = onStartVoiceCall,
                                 contentDescription = "Gọi thoại",
-                                tint = AppTheme.colors.ink,
-                            )
-                        }
-                        IconButton(onClick = onStartVideoCall) {
-                            Icon(
-                                imageVector = Icons.Default.Videocam,
+                            ) {
+                                Icon(
+                                    painter = painterResource(AppIcons.Phone),
+                                    contentDescription = null,
+                                    tint = colors.ink,
+                                    modifier = Modifier.size(20.dp),
+                                )
+                            }
+                            DiuIconButton(
+                                onClick = onStartVideoCall,
                                 contentDescription = "Gọi video",
-                                tint = AppTheme.colors.ink,
-                            )
+                            ) {
+                                Icon(
+                                    painter = painterResource(AppIcons.Video),
+                                    contentDescription = null,
+                                    tint = colors.ink,
+                                    modifier = Modifier.size(20.dp),
+                                )
+                            }
                         }
-                        IconButton(onClick = onOpenNewGroup) {
-                            Icon(
-                                imageVector = Icons.Default.GroupAdd,
-                                contentDescription = "Tạo nhóm mới",
-                                tint = AppTheme.colors.ink,
-                            )
-                        }
-                        IconButton(onClick = onOpenChatInfo) {
-                            Icon(
-                                imageVector = Icons.Default.Info,
-                                contentDescription = "Thông tin hội thoại",
-                                tint = AppTheme.colors.ink,
-                            )
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = AppTheme.colors.surfaceElevated,
-                    ),
-                )
+                        HorizontalDivider(thickness = 1.dp, color = colors.line)
+                    }
+                }
 
                 // Sticky Pinned Message Banner
                 state.pinnedSnippet?.let { snippet ->
@@ -390,13 +492,6 @@ fun ChatContent(
         },
         bottomBar = {
             Column(modifier = Modifier.imePadding()) {
-                if (state.isPartnerInQuietHours) {
-                    QuietHoursSlowSendBanner(
-                        partnerName = state.conversationTitle,
-                        onSlowSendClick = onSendDelayedLetterClick,
-                    )
-                }
-
                 state.replyingTo?.let { replyingMessage ->
                     ReplyQuoteBar(
                         replyingTo = replyingMessage,
@@ -404,31 +499,26 @@ fun ChatContent(
                     )
                 }
 
-                if (state.voiceRecordingState !is VoiceRecordingState.Idle) {
-                    VoiceRecorderBar(
-                        recordingState = state.voiceRecordingState,
-                        selectedMood = state.selectedMood,
-                        onCancelRecording = onCancelVoiceRecording,
-                        onStopRecording = onStopVoiceRecording,
-                        onSendVoiceMessage = onSendVoiceMessage,
-                        onTogglePreviewPlay = onTogglePreviewPlay,
-                    )
-                } else {
-                    ChatComposer(
-                        inputContent = state.inputContent,
-                        selectedMood = state.selectedMood,
-                        isMoodTrayOpen = state.isMoodTrayOpen,
-                        isSending = state.isSending,
-                        pendingPhotoUri = state.pendingPhotoUri,
-                        onInputChange = onInputChange,
-                        onSelectMood = onSelectMood,
-                        onToggleMoodTray = onToggleMoodTray,
-                        onAttachPhotoClick = onAttachPhotoClick,
-                        onClearPhotoClick = onClearPhoto,
-                        onStartVoiceRecording = onStartVoiceRecording,
-                        onSendClick = onSendMessage,
-                    )
-                }
+                ChatComposer(
+                    inputContent = state.inputContent,
+                    selectedMood = state.selectedMood,
+                    isMoodTrayOpen = state.isMoodTrayOpen,
+                    isSending = state.isSending,
+                    pendingPhotoUri = state.pendingPhotoUri,
+                    partnerName = state.conversationTitle,
+                    isAttachmentOpen = state.isAttachmentSheetOpen,
+                    voiceRecordingState = state.voiceRecordingState,
+                    onInputChange = onInputChange,
+                    onSelectMood = onSelectMood,
+                    onToggleMoodTray = onToggleMoodTray,
+                    onAttachPhotoClick = onAttachPhotoClick,
+                    onClearPhotoClick = onClearPhoto,
+                    onSlowSendClick = onOpenSlowSendSheet,
+                    onStartVoiceRecording = onStartVoiceRecording,
+                    onCancelVoiceRecording = onCancelVoiceRecording,
+                    onSendVoiceMessage = onSendVoiceMessage,
+                    onSendClick = onSendMessage,
+                )
             }
         },
     ) { paddingValues ->
@@ -446,37 +536,37 @@ fun ChatContent(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier.padding(24.dp),
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .size(48.dp)
-                                .clip(CircleShape)
-                                .background(partnerMoodColor.copy(alpha = 0.2f)),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(24.dp)
-                                    .clip(CircleShape)
-                                    .background(partnerMoodColor),
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(12.dp))
+                        DiuOrbAvatar(
+                            initials = state.conversationTitle.take(1).ifEmpty { "D" },
+                            moodColor = partnerMoodColor,
+                            size = 56.dp,
+                            isPulsing = true,
+                        )
+                        Spacer(modifier = Modifier.height(14.dp))
                         Text(
                             text = "Bắt đầu cuộc trò chuyện",
                             style = AppTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
-                            color = AppTheme.colors.ink,
+                            color = colors.ink,
                         )
                         Text(
                             text = "Gửi lời nhắn mang sắc thái cảm xúc dịu êm.",
                             style = AppTheme.typography.bodySmall,
-                            color = AppTheme.colors.inkSecondary,
+                            color = colors.inkSecondary,
                         )
+                        if (state.isPartnerInQuietHours) {
+                            Spacer(modifier = Modifier.height(16.dp))
+                            QuietNoteInlinePill(
+                                partnerName = state.conversationTitle,
+                                onSlowSendClick = onOpenSlowSendSheet,
+                            )
+                        }
                     }
                 }
             } else {
                 LazyColumn(
                     state = listState,
                     modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(vertical = 10.dp),
                 ) {
                     items(
                         items = state.messages,
@@ -487,17 +577,36 @@ fun ChatContent(
                             onReplyClick = onReplyToMessage,
                             isPlayingAudio = state.playingAudioMessageId == message.id,
                             audioProgress = state.audioPlaybackProgress,
+                            isGroupConversation = isGroup,
                             onToggleAudioPlayback = onToggleAudioPlayback,
                             onReactionClick = onToggleReaction,
                             onViewReactions = onOpenReactionDetail,
                             onPinClick = onTogglePinMessage,
                             onForwardClick = onOpenForwardDialog,
+                            onToggleSealedReveal = onToggleSealedReveal,
+                            onCancelScheduledLetter = onCancelScheduledLetter,
+                            onPhotoClick = onPhotoClick,
                         )
+                    }
+
+                    if (state.isPartnerInQuietHours) {
+                        item(key = "quiet_hours_inline_note") {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 20.dp, vertical = 12.dp),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                QuietNoteInlinePill(
+                                    partnerName = state.conversationTitle,
+                                    onSlowSendClick = onOpenSlowSendSheet,
+                                )
+                            }
+                        }
                     }
                 }
             }
 
-            // Reaction details dialog
             state.activeReactionDetailMessage?.let { detailMsg ->
                 ReactDetailDialog(
                     reactions = detailMsg.reactions,
@@ -505,7 +614,6 @@ fun ChatContent(
                 )
             }
 
-            // Forward dialog
             state.activeForwardMessage?.let { forwardMsg ->
                 ForwardDialog(
                     messageToForward = forwardMsg,
@@ -519,156 +627,373 @@ fun ChatContent(
 }
 
 @Composable
-private fun QuietHoursSlowSendBanner(
+private fun QuietNoteInlinePill(
     partnerName: String,
     onSlowSendClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val colors = AppTheme.colors
     Surface(
-        modifier = modifier.fillMaxWidth(),
-        color = AppTheme.colors.quietPurple.copy(alpha = 0.12f),
+        modifier = modifier
+            .clip(RoundedCornerShape(20.dp))
+            .clickable(onClick = onSlowSendClick),
+        shape = RoundedCornerShape(20.dp),
+        color = colors.quietPurple.copy(alpha = 0.22f),
+        border = BorderStroke(1.dp, colors.quietPurple.copy(alpha = 0.45f)),
     ) {
-        Row(
+        val annotated = buildAnnotatedString {
+            append("🌙 $partnerName đang nghỉ ngơi đến 6:00. Tin nhắn sẽ nằm yên chờ thức dậy — hoặc bạn có thể ")
+            withStyle(
+                SpanStyle(
+                    fontWeight = FontWeight.SemiBold,
+                    textDecoration = TextDecoration.Underline,
+                ),
+            ) {
+                append("gửi chậm")
+            }
+            append(".")
+        }
+        Text(
+            text = annotated,
+            style = AppTheme.typography.bodySmall,
+            color = colors.ink,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+        )
+    }
+}
+
+private data class RecentPhotoCell(
+    val label: String,
+    val tint: Color,
+    val uri: String,
+)
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ChatAttachmentOptionsSheet(
+    onTakePhotoClick: () -> Unit,
+    onPickRecentPhotoClick: (String) -> Unit,
+    onPickGalleryClick: () -> Unit,
+    onAttachLocationClick: () -> Unit,
+    onStartVoiceClick: () -> Unit,
+    onOpenSlowSendClick: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val colors = AppTheme.colors
+    val recentPhotos = remember {
+        listOf(
+            RecentPhotoCell("Hoàng hôn", AppPalette.MoodThuong, "content://diu/recent/sunset.jpg"),
+            RecentPhotoCell("Tách trà", AppPalette.MoodVui, "content://diu/recent/tea.jpg"),
+            RecentPhotoCell("Ban công", AppPalette.MoodBinhYen, "content://diu/recent/balcony.jpg"),
+            RecentPhotoCell("Phố chiều", AppPalette.MoodNho, "content://diu/recent/street.jpg"),
+            RecentPhotoCell("Mưa đêm", AppPalette.MoodTram, "content://diu/recent/rain.jpg"),
+        )
+    }
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
+        containerColor = colors.surfaceElevated,
+    ) {
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 14.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
+                .padding(horizontal = 20.dp)
+                .padding(bottom = 28.dp),
+            verticalArrangement = Arrangement.spacedBy(18.dp),
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.weight(1f),
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Bedtime,
-                    contentDescription = "Giờ yên lặng",
-                    tint = AppTheme.colors.quietPurple,
-                    modifier = Modifier.size(16.dp),
-                )
-                Text(
-                    text = "$partnerName đang trong giờ yên lặng · Tin nhắn sẽ giữ im lặng",
-                    style = AppTheme.typography.bodySmall,
-                    color = AppTheme.colors.quietPurple,
-                )
+            // 3-column grid (.att-grid): 1 Camera cell + 5 recent photo thumbnails
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                // Row 1: Camera + 2 photos
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    // Camera cell ("Chụp" with colors.ink background + white camera icon)
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .aspectRatio(1f)
+                            .clip(RoundedCornerShape(18.dp))
+                            .background(colors.ink)
+                            .clickable(onClick = onTakePhotoClick),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            Icon(
+                                painter = painterResource(AppIcons.Camera),
+                                contentDescription = "Chụp",
+                                tint = colors.background,
+                                modifier = Modifier.size(24.dp),
+                            )
+                            Text(
+                                text = "Chụp",
+                                style = AppTheme.typography.labelMedium,
+                                color = colors.background,
+                            )
+                        }
+                    }
+
+                    recentPhotos.take(2).forEach { cell ->
+                        RecentPhotoGridItem(
+                            cell = cell,
+                            onClick = { onPickRecentPhotoClick(cell.uri) },
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                }
+
+                // Row 2: 3 recent photos
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    recentPhotos.drop(2).forEach { cell ->
+                        RecentPhotoGridItem(
+                            cell = cell,
+                            onClick = { onPickRecentPhotoClick(cell.uri) },
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                }
             }
-            Spacer(modifier = Modifier.width(8.dp))
-            Surface(
-                shape = RoundedCornerShape(12.dp),
-                color = AppTheme.colors.quietPurple.copy(alpha = 0.18f),
-                modifier = Modifier
-                    .clip(RoundedCornerShape(12.dp))
-                    .clickable(onClick = onSlowSendClick),
+
+            // Bottom row of 4 square 56.dp buttons (.att-row)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceAround,
             ) {
-                Text(
-                    text = "Gửi chậm",
-                    style = AppTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
-                    color = AppTheme.colors.quietPurple,
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                AttachmentSquareButton(
+                    iconRes = AppIcons.Image,
+                    label = "Thư viện",
+                    onClick = onPickGalleryClick,
+                )
+                AttachmentSquareButton(
+                    iconRes = AppIcons.Location,
+                    label = "Vị trí",
+                    onClick = onAttachLocationClick,
+                )
+                AttachmentSquareButton(
+                    iconRes = AppIcons.Mic,
+                    label = "Thoại",
+                    onClick = onStartVoiceClick,
+                )
+                AttachmentSquareButton(
+                    iconRes = AppIcons.Clock,
+                    label = "Gửi chậm",
+                    onClick = onOpenSlowSendClick,
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun RecentPhotoGridItem(
+    cell: RecentPhotoCell,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val colors = AppTheme.colors
+    Box(
+        modifier = modifier
+            .aspectRatio(1f)
+            .clip(RoundedCornerShape(18.dp))
+            .background(cell.tint.copy(alpha = 0.45f))
+            .border(1.dp, colors.line, RoundedCornerShape(18.dp))
+            .clickable(onClick = onClick)
+            .padding(10.dp),
+        contentAlignment = Alignment.BottomStart,
+    ) {
+        Surface(
+            shape = RoundedCornerShape(8.dp),
+            color = colors.photoLabelBg,
+        ) {
+            Text(
+                text = cell.label,
+                style = AppTheme.typography.labelSmall,
+                color = colors.photoLabelText,
+                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun AttachmentSquareButton(
+    iconRes: Int,
+    label: String,
+    onClick: () -> Unit,
+) {
+    val colors = AppTheme.colors
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(56.dp)
+                .clip(RoundedCornerShape(18.dp))
+                .background(AppPalette.Peach.copy(alpha = 0.45f))
+                .border(1.dp, colors.line, RoundedCornerShape(18.dp))
+                .clickable(onClick = onClick),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                painter = painterResource(iconRes),
+                contentDescription = label,
+                tint = colors.ink,
+                modifier = Modifier.size(22.dp),
+            )
+        }
+        Text(
+            text = label,
+            style = AppTheme.typography.labelSmall,
+            color = colors.inkSecondary,
+        )
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ChatAttachmentOptionsSheet(
-    onPickPhotoClick: () -> Unit,
-    onAttachLocationClick: () -> Unit,
-    onSendDelayedLetterClick: () -> Unit,
-    onStartVoiceClick: () -> Unit,
+private fun ChatSlowSendSheet(
+    partnerName: String,
+    draftContent: String,
+    selectedSchedule: String,
+    moodColor: Color,
+    onDraftChange: (String) -> Unit,
+    onScheduleSelect: (String) -> Unit,
+    onSealAndSchedule: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val colors = AppTheme.colors
+    val scheduleOptions = remember(partnerName) {
+        listOf(
+            "Khi $partnerName thức dậy",
+            "Sáng mai 7:00",
+            "Tối nay 22:00",
+            "Ngày kỷ niệm 12/10",
+        )
+    }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = colors.background,
+        shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
+        containerColor = colors.surfaceElevated,
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 24.dp)
+                .padding(horizontal = 22.dp)
                 .padding(bottom = 28.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             Text(
-                text = "Đính kèm trong trò chuyện",
-                style = AppTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
+                text = "Gửi chậm",
+                style = AppTheme.headlineSerif.copy(fontSize = 28.sp),
                 color = colors.ink,
             )
+            Text(
+                text = "Lời nhắn sẽ được niêm phong và đến bên $partnerName đúng lúc...",
+                style = AppTheme.typography.bodySmall,
+                color = colors.inkSecondary,
+            )
 
-            ChatAttachmentOptionRow(
-                icon = Icons.Default.PhotoLibrary,
-                title = "Ảnh & Máy ảnh",
-                subtitle = "Chọn ảnh từ thư viện hoặc chụp mới",
-                onClick = onPickPhotoClick,
-            )
-            ChatAttachmentOptionRow(
-                icon = Icons.Default.LocationOn,
-                title = "Chia sẻ vị trí",
-                subtitle = "Gửi vị trí hiện tại hoặc chia sẻ trực tiếp",
-                onClick = onAttachLocationClick,
-            )
-            ChatAttachmentOptionRow(
-                icon = Icons.Default.MailOutline,
-                title = "Thư gửi chậm",
-                subtitle = "Hẹn giờ mở thư vào thời khắc dịu dàng",
-                onClick = onSendDelayedLetterClick,
-            )
-            ChatAttachmentOptionRow(
-                icon = Icons.Default.Mic,
-                title = "Lời nhắn thoại",
-                subtitle = "Ghi âm giọng nói gửi ngay",
-                onClick = onStartVoiceClick,
-            )
-        }
-    }
-}
+            // Lined paper text box (.letter)
+            val lineColor = colors.line
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(128.dp)
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(colors.surface)
+                    .border(1.dp, moodColor.copy(alpha = 0.55f), RoundedCornerShape(20.dp))
+                    .drawBehind {
+                        val lineStep = 28.dp.toPx()
+                        var y = lineStep
+                        while (y < size.height) {
+                            drawLine(
+                                color = lineColor,
+                                start = Offset(14.dp.toPx(), y),
+                                end = Offset(size.width - 14.dp.toPx(), y),
+                                strokeWidth = 1.dp.toPx(),
+                            )
+                            y += lineStep
+                        }
+                    }
+                    .padding(16.dp),
+            ) {
+                if (draftContent.isEmpty()) {
+                    Text(
+                        text = "Viết đôi dòng dịu dàng gửi $partnerName…",
+                        style = AppTheme.typography.bodyMedium.copy(
+                            fontFamily = DiuSerif,
+                            fontStyle = FontStyle.Italic,
+                        ),
+                        color = colors.inkTertiary,
+                    )
+                }
+                BasicTextField(
+                    value = draftContent,
+                    onValueChange = onDraftChange,
+                    textStyle = AppTheme.typography.bodyMedium.copy(
+                        fontFamily = DiuSerif,
+                        color = colors.ink,
+                    ),
+                    cursorBrush = SolidColor(colors.ink),
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
 
-@Composable
-private fun ChatAttachmentOptionRow(
-    icon: ImageVector,
-    title: String,
-    subtitle: String,
-    onClick: () -> Unit,
-) {
-    val colors = AppTheme.colors
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .clickable(onClick = onClick),
-        color = colors.surface,
-        shape = RoundedCornerShape(16.dp),
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = colors.accent,
-                modifier = Modifier.size(24.dp),
-            )
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(
-                    text = title,
-                    style = AppTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium,
-                    color = colors.ink,
-                )
-                Text(
-                    text = subtitle,
-                    style = AppTheme.typography.bodySmall,
-                    color = colors.inkSecondary,
-                )
+            // 2x2 schedule options grid
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                scheduleOptions.chunked(2).forEach { rowItems ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        rowItems.forEach { option ->
+                            val isSelected = option == selectedSchedule
+                            Surface(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .clickable { onScheduleSelect(option) },
+                                shape = RoundedCornerShape(16.dp),
+                                color = if (isSelected) moodColor.copy(alpha = 0.28f) else colors.surface,
+                                border = BorderStroke(
+                                    1.dp,
+                                    if (isSelected) moodColor else colors.line,
+                                ),
+                            ) {
+                                Text(
+                                    text = option,
+                                    style = AppTheme.typography.labelMedium.copy(
+                                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                                    ),
+                                    color = colors.ink,
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 12.dp),
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            DiuButton(
+                onClick = onSealAndSchedule,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text("Niêm phong & hẹn gửi")
             }
         }
     }
@@ -680,14 +1005,15 @@ private fun ChatScreenPreview() {
     AppTheme {
         ChatContent(
             state = ChatUiState(
-                conversationTitle = "Linh Dịu",
-                partnerMood = MoodType.BINHYEN,
+                conversationTitle = "Minh",
+                partnerMood = MoodType.THUONG,
+                isPartnerInQuietHours = true,
                 messages = listOf(
                     ChatMessage(
                         id = "msg_1",
                         conversationId = "conv_1",
                         senderId = "partner",
-                        senderName = "Linh",
+                        senderName = "Minh",
                         content = "Hôm nay trời xanh và dịu êm quá!",
                         mood = MoodType.BINHYEN,
                         status = MessageStatus.SENT,

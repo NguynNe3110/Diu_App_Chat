@@ -6,6 +6,8 @@ import com.uzuu.diuchat.feature.chat.domain.model.ChatMessage
 import com.uzuu.diuchat.feature.chat.domain.model.Conversation
 import com.uzuu.diuchat.feature.chat.domain.model.GroupError
 import com.uzuu.diuchat.feature.chat.domain.model.GroupRole
+import com.uzuu.diuchat.feature.chat.domain.model.MessageMediaType
+import com.uzuu.diuchat.feature.chat.domain.model.MessageStatus
 import com.uzuu.diuchat.feature.chat.domain.model.MoodType
 import com.uzuu.diuchat.feature.chat.domain.model.VoiceRecordingState
 import com.uzuu.diuchat.feature.chat.domain.usecase.CreateGroupUseCase
@@ -22,6 +24,7 @@ import com.uzuu.diuchat.feature.chat.domain.usecase.UpdateGroupInfoUseCase
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
 
+@Suppress("TooManyFunctions")
 class ChatViewModel(
     private val createGroupUseCase: CreateGroupUseCase,
     private val forwardMessageUseCase: ForwardMessageUseCase,
@@ -90,7 +93,7 @@ class ChatViewModel(
         sendAction(
             ChatAction.SetVoiceRecordingState(
                 VoiceRecordingState.Recording(
-                    elapsedMs = 3000L,
+                    elapsedMs = 9000L,
                     amplitudes = defaultAmplitudes,
                 ),
             ),
@@ -335,5 +338,102 @@ class ChatViewModel(
                 onError(e.message ?: "DEC-07: Quản trị viên cuối cùng không thể rời nhóm.")
             }
         }
+    }
+
+    // UI Overhaul Prototype Alignment: Slow-Send, Attachment, Location, Group Edit & NewGroup Selection
+    fun onOpenSlowSendSheet(isOpen: Boolean) {
+        sendAction(ChatAction.SetSlowSendSheetOpen(isOpen))
+    }
+
+    fun onOpenAttachmentSheet(isOpen: Boolean) {
+        sendAction(ChatAction.SetAttachmentSheetOpen(isOpen))
+    }
+
+    fun onUpdateSlowSendDraft(
+        content: String = uiStateFlow.value.slowSendDraftContent,
+        scheduleLabel: String = uiStateFlow.value.slowSendScheduleLabel,
+    ) {
+        sendAction(ChatAction.UpdateSlowSendDraft(content = content, scheduleLabel = scheduleLabel))
+    }
+
+    fun onSealSlowSendMessage() {
+        val currentState = uiStateFlow.value
+        val draftText = currentState.slowSendDraftContent.trim().ifEmpty {
+            currentState.inputContent.trim().ifEmpty { "Lời nhắn dịu dàng hẹn gửi…" }
+        }
+        val sealedMessage = ChatMessage(
+            id = "sealed_${System.currentTimeMillis()}",
+            conversationId = currentState.conversationId,
+            senderId = "me",
+            senderName = "Mình",
+            content = draftText,
+            mood = currentState.selectedMood,
+            status = MessageStatus.SENT,
+            isFromMe = true,
+            mediaType = MessageMediaType.SEALED_LETTER,
+            scheduledForLabel = currentState.slowSendScheduleLabel,
+            isSealedRevealed = false,
+        )
+        sendAction(ChatAction.AppendLocalMessage(sealedMessage))
+        sendAction(ChatAction.UpdateSlowSendDraft(content = "", scheduleLabel = currentState.slowSendScheduleLabel))
+        sendAction(ChatAction.SetSlowSendSheetOpen(false))
+    }
+
+    fun onToggleRevealSealedMessage(messageId: String) {
+        sendAction(ChatAction.ToggleRevealSealedMessage(messageId))
+    }
+
+    fun onCancelSealedMessage(messageId: String) {
+        sendAction(ChatAction.CancelSealedMessage(messageId))
+    }
+
+    fun onSendLocationBubble(
+        distanceLabel: String = "Mình đang ở đây · cách bạn 1,2 km",
+    ) {
+        val currentState = uiStateFlow.value
+        val locationMsg = ChatMessage(
+            id = "loc_${System.currentTimeMillis()}",
+            conversationId = currentState.conversationId,
+            senderId = "me",
+            senderName = "Mình",
+            content = distanceLabel,
+            mood = currentState.selectedMood,
+            status = MessageStatus.SENT,
+            isFromMe = true,
+            mediaType = MessageMediaType.LOCATION,
+            locationDistanceLabel = distanceLabel,
+        )
+        sendAction(ChatAction.AppendLocalMessage(locationMsg))
+        sendAction(ChatAction.SetAttachmentSheetOpen(false))
+    }
+
+    fun onOpenGroupEditSheet(isOpen: Boolean) {
+        sendAction(ChatAction.SetGroupEditSheetOpen(isOpen))
+    }
+
+    fun onUpdateGroupTitleAndMood(title: String, mood: MoodType) {
+        val convo = uiStateFlow.value.currentConversation
+        if (convo != null) {
+            viewModelScope.launch {
+                updateGroupInfoUseCase(convo.id, title = title, mood = mood)
+                sendAction(
+                    ChatAction.SetConversation(
+                        convo.copy(
+                            title = title,
+                            mood = mood,
+                        ),
+                    ),
+                )
+            }
+        }
+        sendAction(ChatAction.SetGroupEditSheetOpen(false))
+    }
+
+    fun onToggleNewGroupMember(memberId: String) {
+        sendAction(ChatAction.ToggleNewGroupMember(memberId))
+    }
+
+    fun onUpdateNewGroupDraft(title: String, mood: MoodType) {
+        sendAction(ChatAction.UpdateNewGroupDraft(title = title, mood = mood))
     }
 }

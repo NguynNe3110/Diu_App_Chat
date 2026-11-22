@@ -103,6 +103,20 @@ class SettingsViewModel(
         }
     }
 
+    fun stepQuietStartTime(deltaMinutes: Int) {
+        val updated = uiStateFlow.value.quietSchedule.stepStartMinutes(deltaMinutes)
+        viewModelScope.launch {
+            updateQuietScheduleUseCase(updated)
+        }
+    }
+
+    fun stepQuietEndTime(deltaMinutes: Int) {
+        val updated = uiStateFlow.value.quietSchedule.stepEndMinutes(deltaMinutes)
+        viewModelScope.launch {
+            updateQuietScheduleUseCase(updated)
+        }
+    }
+
     fun setNotificationPrivacy(privacy: NotificationPrivacy) {
         viewModelScope.launch {
             updateNotificationPrivacyUseCase(privacy)
@@ -126,6 +140,14 @@ class SettingsViewModel(
         viewModelScope.launch {
             updateSoftSendAnimationEnabledUseCase(enabled)
         }
+    }
+
+    fun toggleVibrateOnce(enabled: Boolean) {
+        sendAction(SettingsAction.ToggleVibrateOnce(enabled))
+    }
+
+    fun toggleEveningGroupDigest(enabled: Boolean) {
+        sendAction(SettingsAction.ToggleEveningGroupDigest(enabled))
     }
 
     fun setNotificationSound(sound: NotificationSound) {
@@ -166,12 +188,16 @@ class SettingsViewModel(
         }
     }
 
+    fun navigateToSubScreen(subScreen: SettingsSubScreen) {
+        sendAction(SettingsAction.SetSubScreen(subScreen))
+    }
+
     fun navigateToBlockedContacts() {
         sendAction(SettingsAction.SetSubScreen(SettingsSubScreen.BLOCKED_CONTACTS))
     }
 
     fun navigateBackToOverview() {
-        sendAction(SettingsAction.SetSubScreen(SettingsSubScreen.OVERVIEW))
+        sendAction(SettingsAction.SetSubScreen(SettingsSubScreen.PROFILE_OVERVIEW))
     }
 
     fun showPrivacyDialog(show: Boolean) {
@@ -184,6 +210,14 @@ class SettingsViewModel(
 
     fun showEditProfile(show: Boolean) {
         sendAction(SettingsAction.SetShowEditProfileSheet(show))
+    }
+
+    fun updatePrimaryMoodQuickly(moodName: String) {
+        val current = uiStateFlow.value.userProfile
+        val updated = current.copy(primaryMood = moodName)
+        viewModelScope.launch {
+            updateProfileUseCase(updated)
+        }
     }
 
     fun updateProfile(
@@ -204,6 +238,9 @@ class SettingsViewModel(
         viewModelScope.launch {
             updateProfileUseCase(updated)
             sendAction(SettingsAction.SetShowEditProfileSheet(false))
+            if (uiStateFlow.value.subScreen == SettingsSubScreen.EDIT_PROFILE) {
+                sendAction(SettingsAction.SetSubScreen(SettingsSubScreen.PROFILE_OVERVIEW))
+            }
         }
     }
 

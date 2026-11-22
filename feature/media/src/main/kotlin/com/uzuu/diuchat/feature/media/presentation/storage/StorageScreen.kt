@@ -37,7 +37,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.uzuu.diuchat.feature.base.common.res.AppIcons
 import com.uzuu.diuchat.feature.base.common.res.AppPalette
 import com.uzuu.diuchat.feature.base.common.res.AppTheme
-import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuAmbientBackground
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuButton
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuButtonVariant
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuCard
@@ -89,7 +88,7 @@ fun StorageContent(
     onConfirmClearConversationMedia: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    DiuAmbientBackground(modifier = modifier) {
+    Box(modifier = modifier.fillMaxSize()) {
         Scaffold(
             containerColor = Color.Transparent,
             topBar = {

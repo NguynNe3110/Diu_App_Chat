@@ -90,7 +90,6 @@ fun LocationPickerContent(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(colors.background)
             .statusBarsPadding()
             .navigationBarsPadding(),
     ) {
@@ -117,11 +116,11 @@ fun LocationPickerContent(
                 .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            // Centered glowing user orb over map preview
+            // Centered glowing user orb over map preview with overlaid address pill
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(240.dp),
+                    .height(260.dp),
                 contentAlignment = Alignment.Center,
             ) {
                 DiuMapPreview(
@@ -151,31 +150,34 @@ fun LocationPickerContent(
                         size = 48.dp,
                     )
                 }
-            }
 
-            // Address pill
-            Surface(
-                shape = RoundedCornerShape(50),
-                color = colors.surface,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                // Overlaid address pill at bottom edge of map Box
+                Surface(
+                    shape = RoundedCornerShape(50),
+                    color = colors.surfaceElevated,
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .padding(12.dp),
                 ) {
-                    Icon(
-                        painter = painterResource(AppIcons.Location),
-                        contentDescription = null,
-                        tint = colors.accent,
-                        modifier = Modifier.size(18.dp),
-                    )
-                    Text(
-                        text = uiState.currentLocation?.address ?: "Đang xác định địa chỉ...",
-                        style = AppTheme.typography.bodyMedium,
-                        color = colors.ink,
-                        modifier = Modifier.weight(1f),
-                    )
+                    Row(
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        Icon(
+                            painter = painterResource(AppIcons.Location),
+                            contentDescription = null,
+                            tint = colors.accent,
+                            modifier = Modifier.size(18.dp),
+                        )
+                        Text(
+                            text = uiState.currentLocation?.address ?: "Đang xác định địa chỉ...",
+                            style = AppTheme.typography.bodyMedium,
+                            color = colors.ink,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
                 }
             }
 

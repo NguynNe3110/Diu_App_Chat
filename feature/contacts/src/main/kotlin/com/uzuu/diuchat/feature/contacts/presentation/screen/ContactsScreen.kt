@@ -11,6 +11,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -44,7 +45,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -68,9 +73,10 @@ import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuOrbAvata
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuPersonRow
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuQrCodeImage
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuSearchField
+import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuTabHeader
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuTextButton
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuTextField
-import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuTopBar
+import com.uzuu.diuchat.feature.base.presentation.compose.composable.parseMoodColorHex
 import com.uzuu.diuchat.feature.contacts.domain.model.ConnectionRequest
 import com.uzuu.diuchat.feature.contacts.domain.model.Contact
 import com.uzuu.diuchat.feature.contacts.domain.model.ContactCircle
@@ -139,7 +145,7 @@ fun ContactsScreenContent(
             .statusBarsPadding()
             .navigationBarsPadding(),
     ) {
-        DiuTopBar(
+        DiuTabHeader(
             title = "Danh bạ",
             actions = {
                 DiuIconButton(
@@ -201,6 +207,7 @@ fun ContactsScreenContent(
                 Modifier
                     .fillMaxWidth()
                     .weight(1f),
+                contentPadding = PaddingValues(bottom = 110.dp),
             ) {
                 // "Ai đang thấy…" mood filter row (matching prototype .moodfilter)
                 if (uiState.searchQuery.isEmpty() && uiState.contacts.isNotEmpty()) {
@@ -288,10 +295,22 @@ fun ContactsScreenContent(
 
                     // Invite row (matching prototype .invite-row)
                     item {
+                        val dashBorderColor = colors.accent.copy(alpha = 0.55f)
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(14.dp))
+                                .padding(horizontal = 20.dp, vertical = 8.dp)
+                                .clip(RoundedCornerShape(20.dp))
+                                .drawBehind {
+                                    drawRoundRect(
+                                        color = dashBorderColor,
+                                        cornerRadius = CornerRadius(20.dp.toPx(), 20.dp.toPx()),
+                                        style = Stroke(
+                                            width = 1.5.dp.toPx(),
+                                            pathEffect = PathEffect.dashPathEffect(floatArrayOf(12f, 10f), 0f),
+                                        ),
+                                    )
+                                }
                                 .clickable(onClick = onShowQrSheet)
                                 .padding(horizontal = 20.dp, vertical = 14.dp),
                             verticalAlignment = Alignment.CenterVertically,
@@ -304,7 +323,7 @@ fun ContactsScreenContent(
                                 modifier = Modifier.size(18.dp),
                             )
                             Text(
-                                text = "Mời thêm người thân thiết",
+                                text = "+ Mời thêm người thân thiết",
                                 style = AppTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
                                 color = colors.accent,
                             )
@@ -696,10 +715,7 @@ private fun MoodFilterRow(
                     contacts.filter { contact ->
                         contact.moodColorHex.equals(mood.hex, ignoreCase = true) ||
                             contact.moodColorHex.contains(mood.key, ignoreCase = true) ||
-                            runCatching {
-                                val parsed = Color(android.graphics.Color.parseColor(contact.moodColorHex))
-                                parsed == mood.color
-                            }.getOrDefault(false)
+                            parseMoodColorHex(contact.moodColorHex, Color.Unspecified) == mood.color
                     }
 
                 Column(
@@ -778,11 +794,7 @@ private fun MoodFilterRow(
 private fun parseColorSafely(
     hex: String,
     fallback: Color,
-): Color = try {
-    Color(android.graphics.Color.parseColor(hex))
-} catch (_: Exception) {
-    fallback
-}
+): Color = parseMoodColorHex(hex, fallback)
 
 @Preview(name = "Contacts Screen — Light", showBackground = true)
 @Composable
@@ -797,7 +809,7 @@ private fun ContactsScreenPreview() {
                         phone = "0901234567",
                         initials = "M",
                         circle = ContactCircle.LOVE,
-                        moodColorHex = "#E57373",
+                        moodColorHex = "#F7A3A9",
                         nickname = "Em",
                     ),
                     Contact(
@@ -806,7 +818,7 @@ private fun ContactsScreenPreview() {
                         phone = "0909876543",
                         initials = "N",
                         circle = ContactCircle.FAMILY,
-                        moodColorHex = "#81C784",
+                        moodColorHex = "#A2D7AC",
                     ),
                 ),
                 pendingRequests = listOf(
@@ -816,7 +828,7 @@ private fun ContactsScreenPreview() {
                         senderName = "Thảo",
                         senderPhone = "0912345678",
                         senderInitials = "T",
-                        senderMoodColorHex = "#64B5F6",
+                        senderMoodColorHex = "#95C4E7",
                         proposedCircle = ContactCircle.FRIENDS,
                         createdAt = "Hôm nay",
                     ),

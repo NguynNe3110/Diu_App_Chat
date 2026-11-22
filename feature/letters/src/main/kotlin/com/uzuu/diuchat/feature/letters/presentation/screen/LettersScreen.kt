@@ -42,16 +42,27 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.uzuu.diuchat.feature.base.common.res.AppIcons
+import com.uzuu.diuchat.feature.base.common.res.AppPalette
 import com.uzuu.diuchat.feature.base.common.res.AppTheme
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuButton
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuButtonVariant
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuCard
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuEmptyState
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuFilterChip
+import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuOrbAvatar
+import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuSectionHeader
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuTopBar
 import com.uzuu.diuchat.feature.letters.domain.model.LetterStatus
 import com.uzuu.diuchat.feature.letters.domain.model.SealedLetter
@@ -113,7 +124,7 @@ fun LettersContent(
 
     Surface(
         modifier = modifier.fillMaxSize(),
-        color = AppTheme.colors.background,
+        color = Color.Transparent,
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
             Column(
@@ -159,24 +170,40 @@ fun LettersContent(
 
                 // Danh sách thư
                 if (uiState.filteredLetters.isEmpty()) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(32.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        DiuEmptyState(
-                            title = "Chưa có lá thư nào",
-                            description = "Hãy viết một bức thư niêm phong và gửi đến người thương trong tương lai.",
-                        )
-                    }
-                } else {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
-                        items(uiState.filteredLetters, key = { it.id }) { letter ->
+                        item(key = "lt_hero") {
+                            LettersHeroSection()
+                        }
+                        item(key = "lt_empty") {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(32.dp),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                DiuEmptyState(
+                                    title = "Chưa có lá thư nào",
+                                    description = "Hãy viết một bức thư niêm phong và gửi đến người thương trong tương lai.",
+                                )
+                            }
+                        }
+                    }
+                } else {
+                    val activeLetters = uiState.filteredLetters.filter { it.status != LetterStatus.OPENED }
+                    val openedLetters = uiState.filteredLetters.filter { it.status == LetterStatus.OPENED }
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        item(key = "lt_hero") {
+                            LettersHeroSection()
+                        }
+                        items(activeLetters, key = { it.id }) { letter ->
                             LetterCard(
                                 letter = letter,
                                 onOpenLetter = { onOpenLetter(letter.id) },
@@ -185,6 +212,21 @@ fun LettersContent(
                                 onSendImmediately = { onSendImmediately(letter.id) },
                                 onViewOpenedLetter = { onViewOpenedLetter(letter) },
                             )
+                        }
+                        if (openedLetters.isNotEmpty()) {
+                            item(key = "arrived_header") {
+                                DiuSectionHeader(title = "ĐÃ ĐẾN NƠI")
+                            }
+                            items(openedLetters, key = { it.id }) { letter ->
+                                LetterCard(
+                                    letter = letter,
+                                    onOpenLetter = { onOpenLetter(letter.id) },
+                                    onEditLetter = { onEditLetter(letter) },
+                                    onCancelLetter = { onCancelLetter(letter.id) },
+                                    onSendImmediately = { onSendImmediately(letter.id) },
+                                    onViewOpenedLetter = { onViewOpenedLetter(letter) },
+                                )
+                            }
                         }
                         item {
                             Spacer(modifier = Modifier.height(72.dp))
@@ -222,6 +264,45 @@ fun LettersContent(
 }
 
 @Composable
+private fun LettersHeroSection(modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 12.dp, horizontal = 16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        DiuOrbAvatar(
+            initials = "",
+            moodColor = AppPalette.Peach,
+            size = 96.dp,
+            isPulsing = true,
+        ) {
+            Icon(
+                painter = painterResource(AppIcons.Envelope),
+                contentDescription = null,
+                tint = AppTheme.colors.ink,
+                modifier = Modifier.size(36.dp),
+            )
+        }
+        Text(
+            text = "Những lời nhắn đang được niêm phong, chờ đúng lúc để đến bên người nhận.",
+            style = AppTheme.typography.bodyMedium,
+            color = AppTheme.colors.inkSecondary,
+            textAlign = TextAlign.Center,
+        )
+    }
+}
+
+private fun resolveLetterMoodColor(moodName: String): Color = when {
+    moodName.contains("Vui", ignoreCase = true) -> AppPalette.MoodVui
+    moodName.contains("Bình yên", ignoreCase = true) -> AppPalette.MoodBinhYen
+    moodName.contains("Nhớ", ignoreCase = true) -> AppPalette.MoodNho
+    moodName.contains("Trầm", ignoreCase = true) -> AppPalette.MoodTram
+    else -> AppPalette.MoodThuong
+}
+
+@Composable
 private fun LetterCard(
     letter: SealedLetter,
     onOpenLetter: () -> Unit,
@@ -231,10 +312,28 @@ private fun LetterCard(
     onViewOpenedLetter: () -> Unit,
 ) {
     val colors = AppTheme.colors
+    val moodColor = resolveLetterMoodColor(letter.moodName)
+    val isPending = letter.status == LetterStatus.SEALED_PENDING
 
     DiuCard(
         modifier = Modifier
             .fillMaxWidth()
+            .then(
+                if (isPending) {
+                    Modifier.drawBehind {
+                        drawRoundRect(
+                            color = moodColor.copy(alpha = 0.85f),
+                            cornerRadius = CornerRadius(24.dp.toPx(), 24.dp.toPx()),
+                            style = Stroke(
+                                width = 1.5.dp.toPx(),
+                                pathEffect = PathEffect.dashPathEffect(floatArrayOf(12f, 10f), 0f),
+                            ),
+                        )
+                    }
+                } else {
+                    Modifier
+                },
+            )
             .clickable(enabled = letter.status == LetterStatus.OPENED) { onViewOpenedLetter() },
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
@@ -316,7 +415,7 @@ private fun LetterCard(
                             )
                         }
 
-                        // Thư của mình cho phép sửa, gửi ngay hoặc hủy trước giờ mở
+                        // Thư của mình cho phép sửa, hủy hoặc gửi ngay trước giờ mở
                         if (letter.isSender) {
                             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 DiuButton(
@@ -331,6 +430,17 @@ private fun LetterCard(
                                     )
                                 }
                                 DiuButton(
+                                    onClick = onCancelLetter,
+                                    variant = DiuButtonVariant.Outline,
+                                    shape = RoundedCornerShape(16.dp),
+                                ) {
+                                    Text(
+                                        text = "Huỷ",
+                                        style = AppTheme.typography.labelSmall,
+                                        color = colors.danger,
+                                    )
+                                }
+                                DiuButton(
                                     onClick = onSendImmediately,
                                     variant = DiuButtonVariant.Soft,
                                     shape = RoundedCornerShape(16.dp),
@@ -339,17 +449,6 @@ private fun LetterCard(
                                         text = "Gửi ngay",
                                         style = AppTheme.typography.labelSmall,
                                         color = colors.ink,
-                                    )
-                                }
-                                DiuButton(
-                                    onClick = onCancelLetter,
-                                    variant = DiuButtonVariant.Outline,
-                                    shape = RoundedCornerShape(16.dp),
-                                ) {
-                                    Text(
-                                        text = "Hủy",
-                                        style = AppTheme.typography.labelSmall,
-                                        color = colors.danger,
                                     )
                                 }
                             }

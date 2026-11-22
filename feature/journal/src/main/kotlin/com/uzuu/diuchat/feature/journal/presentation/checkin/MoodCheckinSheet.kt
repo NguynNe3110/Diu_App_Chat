@@ -1,22 +1,21 @@
 package com.uzuu.diuchat.feature.journal.presentation.checkin
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -29,16 +28,21 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.uzuu.diuchat.feature.base.common.res.AppTheme
+import com.uzuu.diuchat.feature.base.common.res.DiuSerif
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuButton
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuButtonVariant
-import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuFilterChip
+import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuOrbAvatar
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuTextField
 import com.uzuu.diuchat.feature.journal.domain.model.JournalMoodType
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun MoodCheckinSheet(
     selectedMood: JournalMoodType?,
@@ -107,57 +111,51 @@ fun MoodCheckinSheet(
                 color = AppTheme.colors.ink,
             )
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
-            // 6 Mood Orbs Grid (2 rows of 3)
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                JournalMoodType.entries.chunked(3).forEach { rowMoods ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+            // 5 Glowing 70.dp Floating Orbs
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(20.dp, Alignment.CenterHorizontally),
+                verticalArrangement = Arrangement.spacedBy(18.dp),
+            ) {
+                JournalMoodType.coreFiveMoods().forEach { mood ->
+                    val isSelected = selectedMood == mood
+                    val targetScale = if (isSelected) 1.18f else 1f
+                    val targetAlpha = when {
+                        selectedMood == null -> 1f
+                        isSelected -> 1f
+                        else -> 0.4f
+                    }
+                    val scale by animateFloatAsState(targetValue = targetScale, label = "orbScale")
+                    val orbAlpha by animateFloatAsState(targetValue = targetAlpha, label = "orbAlpha")
+
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier
+                            .graphicsLayer {
+                                scaleX = scale
+                                scaleY = scale
+                                alpha = orbAlpha
+                            }
+                            .clickable { onSelectMood(mood) }
+                            .padding(4.dp),
                     ) {
-                        rowMoods.forEach { mood ->
-                            val isSelected = selectedMood == mood
-                            val borderColor = if (isSelected) mood.color else AppTheme.colors.line
-                            val containerColor = if (isSelected) {
-                                mood.color.copy(alpha = 0.2f)
-                            } else {
-                                AppTheme.colors.surface
-                            }
-
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .clip(RoundedCornerShape(18.dp))
-                                    .background(containerColor)
-                                    .border(
-                                        width = if (isSelected) 2.dp else 1.dp,
-                                        color = borderColor,
-                                        shape = RoundedCornerShape(18.dp),
-                                    )
-                                    .clickable { onSelectMood(mood) }
-                                    .padding(vertical = 14.dp, horizontal = 6.dp),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Column(
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.Center,
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(28.dp)
-                                            .clip(CircleShape)
-                                            .background(mood.color),
-                                    )
-                                    Spacer(modifier = Modifier.height(6.dp))
-                                    Text(
-                                        text = mood.displayName,
-                                        style = AppTheme.typography.labelSmall,
-                                        color = if (isSelected) AppTheme.colors.ink else AppTheme.colors.inkSecondary,
-                                    )
-                                }
-                            }
-                        }
+                        DiuOrbAvatar(
+                            initials = "",
+                            moodColor = mood.color,
+                            size = 70.dp,
+                            isPulsing = isSelected,
+                        )
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Text(
+                            text = mood.displayName,
+                            fontFamily = DiuSerif,
+                            fontStyle = FontStyle.Italic,
+                            fontSize = 15.sp,
+                            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                            color = if (isSelected) AppTheme.colors.ink else AppTheme.colors.inkSecondary,
+                        )
                     }
                 }
             }
@@ -167,7 +165,7 @@ fun MoodCheckinSheet(
 
                 // Private note field (DEC-08)
                 Text(
-                    text = "Ghi chú riêng tư (chỉ mình bạn đọc được)",
+                    text = "Một dòng cho riêng mình",
                     style = AppTheme.typography.labelSmall,
                     color = AppTheme.colors.inkSecondary,
                 )
@@ -176,32 +174,61 @@ fun MoodCheckinSheet(
                 DiuTextField(
                     value = note,
                     onValueChange = onChangeNote,
-                    label = "Ghi chú riêng tư",
+                    label = "Một dòng cho riêng mình",
                     placeholder = "Một dòng cho riêng mình (tuỳ chọn)…",
                     modifier = Modifier.fillMaxWidth(),
                 )
 
                 Spacer(modifier = Modifier.height(20.dp))
 
-                // Allowlist selection
+                // Allowlist selection with 30.dp DiuOrbAvatar chips
                 Text(
-                    text = "Cho ai thấy màu này trong danh bạ",
+                    text = "Cho ai thấy màu này",
                     style = AppTheme.typography.labelSmall,
                     color = AppTheme.colors.inkSecondary,
                 )
                 Spacer(modifier = Modifier.height(8.dp))
 
-                Row(
+                FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     availableContacts.forEach { (contactId, name) ->
                         val isShared = allowlist.contains(contactId)
-                        DiuFilterChip(
-                            text = name,
-                            selected = isShared,
-                            onClick = { onToggleContact(contactId) },
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(50))
+                                .background(
+                                    if (isShared) {
+                                        moodColor.copy(alpha = 0.25f)
+                                    } else {
+                                        AppTheme.colors.surface
+                                    },
+                                )
+                                .border(
+                                    width = if (isShared) 1.5.dp else 1.dp,
+                                    color = if (isShared) moodColor else AppTheme.colors.line,
+                                    shape = RoundedCornerShape(50),
+                                )
+                                .clickable { onToggleContact(contactId) }
+                                .padding(start = 6.dp, end = 12.dp, top = 6.dp, bottom = 6.dp),
+                        ) {
+                            DiuOrbAvatar(
+                                initials = name.take(1),
+                                moodColor = moodColor,
+                                size = 30.dp,
+                            )
+                            Text(
+                                text = name,
+                                style = AppTheme.typography.bodySmall.copy(
+                                    fontWeight = if (isShared) FontWeight.SemiBold else FontWeight.Normal,
+                                ),
+                                color = AppTheme.colors.ink,
+                            )
+                        }
                     }
                 }
             }
