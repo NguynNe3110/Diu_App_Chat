@@ -8,6 +8,7 @@ val presentationModule = module {
     viewModel {
         LettersViewModel(
             cancelSealedLetterUseCase = get(),
+            getLetterRecipientsUseCase = get(),
             getLettersUseCase = get(),
             openSealedLetterUseCase = get(),
             sendLetterImmediatelyUseCase = get(),

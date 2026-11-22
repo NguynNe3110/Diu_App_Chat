@@ -27,6 +27,9 @@ sealed interface NavigationRoute {
 
     @Serializable
     data class PhotoViewer(
+        val imageUrl: String = "",
+        val messageId: String = "",
+        val conversationId: String = "",
         val caption: String = "",
         val moodName: String = "",
         val senderName: String = "",

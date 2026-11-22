@@ -14,4 +14,6 @@ interface HomeRepository {
     suspend fun refreshFromRemote() {}
 
     suspend fun clearLocalData() {}
+
+    suspend fun deleteConversation(conversationId: String) {}
 }

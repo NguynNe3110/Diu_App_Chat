@@ -65,6 +65,9 @@ import com.uzuu.diuchat.feature.chat.domain.model.GroupMember
 import com.uzuu.diuchat.feature.chat.domain.model.GroupRole
 import com.uzuu.diuchat.feature.chat.domain.model.MessageMediaType
 import com.uzuu.diuchat.feature.chat.domain.model.MoodType
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 private val CORE_GROUP_MOODS = listOf(
     MoodType.THUONG,
@@ -91,7 +94,16 @@ fun ChatInfoScreen(
     onNotificationSoundClick: () -> Unit = {},
     onOpenSharedMediaClick: () -> Unit = {},
     onOpenPendingLettersClick: () -> Unit = {},
-    onOpenPhotoViewer: (caption: String, moodName: String, senderName: String, timestamp: String) -> Unit = { _, _, _, _ -> },
+    onOpenPhotoViewer: (
+        imageUrl: String,
+        messageId: String,
+        conversationId: String,
+        caption: String,
+        moodName: String,
+        senderName: String,
+        timestamp: String,
+    ) -> Unit = { _, _, _, _, _, _, _ -> },
+    onDeleteConversation: () -> Unit = {},
     isGroupEditSheetOpen: Boolean = false,
     onOpenGroupEditSheet: (Boolean) -> Unit = {},
     onUpdateGroupTitleAndMood: (String, MoodType) -> Unit = { _, _ -> },
@@ -102,6 +114,7 @@ fun ChatInfoScreen(
     var showNicknameDialog by remember { mutableStateOf(false) }
     var nicknameInput by remember(conversation.customNickname) { mutableStateOf(conversation.customNickname ?: "") }
     var showLeaveConfirmDialog by remember { mutableStateOf(false) }
+    var showDeleteConversationDialog by remember { mutableStateOf(false) }
     var showLastAdminWarning by remember { mutableStateOf(false) }
     var localGroupEditSheetOpen by remember { mutableStateOf(false) }
 
@@ -330,11 +343,16 @@ fun ChatInfoScreen(
                                         .background(colors.surface)
                                         .border(1.dp, colors.line, RoundedCornerShape(16.dp))
                                         .clickable {
+                                            val timeText = SimpleDateFormat("HH:mm", Locale.getDefault())
+                                                .format(Date(photoMsg.createdAtEpochMs))
                                             onOpenPhotoViewer(
+                                                photoMsg.mediaUri.orEmpty(),
+                                                photoMsg.id,
+                                                photoMsg.conversationId,
                                                 photoMsg.caption ?: photoMsg.content,
                                                 photoMsg.mood.displayName,
                                                 photoMsg.senderName,
-                                                "",
+                                                timeText,
                                             )
                                         },
                                     contentAlignment = Alignment.Center,
@@ -513,12 +531,19 @@ fun ChatInfoScreen(
                 }
             }
 
-            // Bottom danger card: "Rời nhóm" (group) or "Tạm ngừng liên lạc" (1-1)
+            // Bottom danger card: "Xoá cuộc hội thoại" + "Rời nhóm" (group) / "Tạm ngừng liên lạc" (1-1)
             item {
                 DiuCard(
                     modifier = Modifier.fillMaxWidth(),
                     contentPadding = PaddingValues(0.dp),
                 ) {
+                    DiuSettingsRow(
+                        title = "Xoá cuộc hội thoại",
+                        subtitle = "Xoá cuộc trò chuyện này khỏi danh sách của bạn",
+                        destructive = true,
+                        onClick = { showDeleteConversationDialog = true },
+                    )
+                    HorizontalDivider(color = colors.line)
                     DiuSettingsRow(
                         title = if (conversation.isGroup) "Rời nhóm" else "Tạm ngừng liên lạc",
                         destructive = true,
@@ -602,6 +627,21 @@ fun ChatInfoScreen(
                 }
             }
         }
+    }
+
+    if (showDeleteConversationDialog) {
+        DiuConfirmationDialog(
+            title = "Xoá cuộc hội thoại",
+            message = "Cuộc hội thoại với $displayTitle sẽ bị xoá khỏi danh sách của bạn.",
+            confirmLabel = "Xoá",
+            dismissLabel = "Huỷ",
+            destructive = true,
+            onConfirm = {
+                showDeleteConversationDialog = false
+                onDeleteConversation()
+            },
+            onDismiss = { showDeleteConversationDialog = false },
+        )
     }
 
     // Confirmation dialog for leaving group / pausing contact

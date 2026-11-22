@@ -11,6 +11,8 @@ import com.uzuu.diuchat.feature.chat.domain.model.MessageStatus
 import com.uzuu.diuchat.feature.chat.domain.model.MoodType
 import com.uzuu.diuchat.feature.chat.domain.model.VoiceRecordingState
 import com.uzuu.diuchat.feature.chat.domain.usecase.CreateGroupUseCase
+import com.uzuu.diuchat.feature.chat.domain.usecase.DeleteConversationUseCase
+import com.uzuu.diuchat.feature.chat.domain.usecase.DeleteMessageUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.ForwardMessageUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.GetConversationUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.GetConversationsUseCase
@@ -20,6 +22,7 @@ import com.uzuu.diuchat.feature.chat.domain.usecase.ManageGroupMemberUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.ObserveTypingStatusUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.SendMessageUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.SendPhotoMessageUseCase
+import com.uzuu.diuchat.feature.chat.domain.usecase.SendSealedMessageUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.SendTypingStatusUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.SendVoiceMessageUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.TogglePinMessageUseCase
@@ -32,10 +35,13 @@ import kotlinx.coroutines.launch
 
 private const val TYPING_IDLE_TIMEOUT_MS = 2_500L
 private const val TYPING_REMOTE_CLEAR_MS = 3_500L
+private const val DEFAULT_SLOW_SEND_DELAY_MS = 12 * 3600 * 1000L
 
 @Suppress("TooManyFunctions", "LongParameterList")
 class ChatViewModel(
     private val createGroupUseCase: CreateGroupUseCase,
+    private val deleteConversationUseCase: DeleteConversationUseCase,
+    private val deleteMessageUseCase: DeleteMessageUseCase,
     private val forwardMessageUseCase: ForwardMessageUseCase,
     private val getConversationUseCase: GetConversationUseCase,
     private val getConversationsUseCase: GetConversationsUseCase,
@@ -45,6 +51,7 @@ class ChatViewModel(
     private val observeTypingStatusUseCase: ObserveTypingStatusUseCase,
     private val sendMessageUseCase: SendMessageUseCase,
     private val sendPhotoMessageUseCase: SendPhotoMessageUseCase,
+    private val sendSealedMessageUseCase: SendSealedMessageUseCase,
     private val sendTypingStatusUseCase: SendTypingStatusUseCase,
     private val sendVoiceMessageUseCase: SendVoiceMessageUseCase,
     private val togglePinMessageUseCase: TogglePinMessageUseCase,
@@ -146,6 +153,27 @@ class ChatViewModel(
 
     fun onReplyToMessage(message: ChatMessage) {
         sendAction(ChatAction.SetReplyingTo(message))
+    }
+
+    fun onReplyToMessageById(messageId: String) {
+        val target = uiStateFlow.value.messages.find { it.id == messageId } ?: return
+        sendAction(ChatAction.SetReplyingTo(target))
+    }
+
+    fun onDeleteMessage(messageId: String) {
+        viewModelScope.launch {
+            deleteMessageUseCase(messageId)
+        }
+    }
+
+    fun onDeleteConversation(onSuccess: () -> Unit) {
+        val convoId = uiStateFlow.value.conversationId
+        if (convoId.isBlank()) return
+        viewModelScope.launch {
+            deleteConversationUseCase(convoId)
+            sendAction(ChatAction.SetChatInfoOpen(false))
+            onSuccess()
+        }
     }
 
     fun onCancelReply() {
@@ -430,8 +458,15 @@ class ChatViewModel(
     fun onUpdateSlowSendDraft(
         content: String = uiStateFlow.value.slowSendDraftContent,
         scheduleLabel: String = uiStateFlow.value.slowSendScheduleLabel,
+        unlockEpochMs: Long? = uiStateFlow.value.slowSendUnlockEpochMs,
     ) {
-        sendAction(ChatAction.UpdateSlowSendDraft(content = content, scheduleLabel = scheduleLabel))
+        sendAction(
+            ChatAction.UpdateSlowSendDraft(
+                content = content,
+                scheduleLabel = scheduleLabel,
+                unlockEpochMs = unlockEpochMs,
+            ),
+        )
     }
 
     fun onSealSlowSendMessage() {
@@ -439,22 +474,26 @@ class ChatViewModel(
         val draftText = currentState.slowSendDraftContent.trim().ifEmpty {
             currentState.inputContent.trim().ifEmpty { "Lời nhắn dịu dàng hẹn gửi…" }
         }
-        val sealedMessage = ChatMessage(
-            id = "sealed_${System.currentTimeMillis()}",
-            conversationId = currentState.conversationId,
-            senderId = "me",
-            senderName = "Mình",
-            content = draftText,
-            mood = currentState.selectedMood,
-            status = MessageStatus.SENT,
-            isFromMe = true,
-            mediaType = MessageMediaType.SEALED_LETTER,
-            scheduledForLabel = currentState.slowSendScheduleLabel,
-            isSealedRevealed = false,
-        )
-        sendAction(ChatAction.AppendLocalMessage(sealedMessage))
-        sendAction(ChatAction.UpdateSlowSendDraft(content = "", scheduleLabel = currentState.slowSendScheduleLabel))
-        sendAction(ChatAction.SetSlowSendSheetOpen(false))
+        val unlockEpochMs = currentState.slowSendUnlockEpochMs
+            ?: (System.currentTimeMillis() + DEFAULT_SLOW_SEND_DELAY_MS)
+        val scheduleLabel = currentState.slowSendScheduleLabel
+        viewModelScope.launch {
+            sendSealedMessageUseCase(
+                conversationId = currentState.conversationId,
+                content = draftText,
+                mood = currentState.selectedMood,
+                unlockAtEpochMs = unlockEpochMs,
+                scheduledLabel = scheduleLabel,
+            )
+            sendAction(
+                ChatAction.UpdateSlowSendDraft(
+                    content = "",
+                    scheduleLabel = scheduleLabel,
+                    unlockEpochMs = null,
+                ),
+            )
+            sendAction(ChatAction.SetSlowSendSheetOpen(false))
+        }
     }
 
     fun onToggleRevealSealedMessage(messageId: String) {

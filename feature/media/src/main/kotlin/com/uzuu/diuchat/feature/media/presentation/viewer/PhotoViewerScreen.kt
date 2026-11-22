@@ -24,12 +24,14 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Reply
+import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -50,8 +52,10 @@ import coil.compose.AsyncImage
 import com.uzuu.diuchat.feature.base.common.res.AppIcons
 import com.uzuu.diuchat.feature.base.common.res.AppPalette
 import com.uzuu.diuchat.feature.base.common.res.AppTheme
+import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuConfirmationDialog
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuIconButton
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuMoodDot
+import kotlinx.coroutines.delay
 
 private val viewerMoodReactions = listOf(
     "Thương" to AppPalette.MoodThuong,
@@ -72,6 +76,7 @@ fun PhotoViewerScreen(
     modifier: Modifier = Modifier,
     imageUrl: String = "",
     selectedReactionMood: String? = null,
+    isMemorySaved: Boolean = false,
     onReactionClick: (String) -> Unit = {},
     onReplyClick: () -> Unit = {},
     onSaveMemoryClick: () -> Unit = {},
@@ -80,6 +85,17 @@ fun PhotoViewerScreen(
     var showControls by remember { mutableStateOf(true) }
     var hasLoadError by remember(imageUrl) { mutableStateOf(false) }
     var localReactionMood by remember(selectedReactionMood) { mutableStateOf(selectedReactionMood) }
+    var localMemorySaved by remember(isMemorySaved) { mutableStateOf(isMemorySaved) }
+    var feedbackMessage by remember { mutableStateOf<String?>(null) }
+    var showDeleteConfirm by remember { mutableStateOf(false) }
+
+    LaunchedEffect(feedbackMessage) {
+        if (feedbackMessage != null) {
+            delay(2_000L)
+            feedbackMessage = null
+        }
+    }
+
     val moodColor = when (moodName) {
         "Thương" -> AppPalette.MoodThuong
         "Vui" -> AppPalette.MoodVui
@@ -99,33 +115,35 @@ fun PhotoViewerScreen(
             ),
     ) {
         // Center photo presentation
-        Box(
-            modifier = Modifier
-                .fillMaxWidth(0.92f)
-                .aspectRatio(0.85f)
-                .align(Alignment.Center)
-                .clip(RoundedCornerShape(18.dp))
-                .background(
-                    Brush.radialGradient(
-                        colors = listOf(
-                            moodColor.copy(alpha = 0.5f),
-                            moodColor.copy(alpha = 0.25f),
-                            Color(0xFF1B1B1B),
+        if (imageUrl.isNotBlank() && !hasLoadError) {
+            AsyncImage(
+                model = imageUrl,
+                contentDescription = caption.ifBlank { "Hình ảnh kỷ niệm" },
+                contentScale = ContentScale.Fit,
+                onError = { hasLoadError = true },
+                onSuccess = { hasLoadError = false },
+                modifier = Modifier
+                    .fillMaxSize()
+                    .align(Alignment.Center),
+            )
+        } else {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(0.92f)
+                    .aspectRatio(0.85f)
+                    .align(Alignment.Center)
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(
+                        Brush.radialGradient(
+                            colors = listOf(
+                                moodColor.copy(alpha = 0.5f),
+                                moodColor.copy(alpha = 0.25f),
+                                Color(0xFF1B1B1B),
+                            ),
                         ),
                     ),
-                ),
-            contentAlignment = Alignment.Center,
-        ) {
-            if (imageUrl.isNotBlank() && !hasLoadError) {
-                AsyncImage(
-                    model = imageUrl,
-                    contentDescription = caption.ifBlank { "Hình ảnh kỷ niệm" },
-                    contentScale = ContentScale.Crop,
-                    onError = { hasLoadError = true },
-                    onSuccess = { hasLoadError = false },
-                    modifier = Modifier.fillMaxSize(),
-                )
-            } else {
+                contentAlignment = Alignment.Center,
+            ) {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center,
@@ -143,6 +161,28 @@ fun PhotoViewerScreen(
                         style = AppTheme.typography.bodyMedium.copy(fontSize = 15.sp),
                     )
                 }
+            }
+        }
+
+        // Transient feedback pill
+        AnimatedVisibility(
+            visible = feedbackMessage != null,
+            enter = fadeIn(),
+            exit = fadeOut(),
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = 88.dp),
+        ) {
+            Surface(
+                shape = RoundedCornerShape(20.dp),
+                color = Color.Black.copy(alpha = 0.78f),
+            ) {
+                Text(
+                    text = feedbackMessage.orEmpty(),
+                    color = Color.White,
+                    style = AppTheme.typography.labelMedium,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                )
             }
         }
 
@@ -289,19 +329,39 @@ fun PhotoViewerScreen(
                         onClick = onReplyClick,
                     )
                     PhotoViewerBottomAction(
-                        icon = Icons.Outlined.BookmarkBorder,
-                        label = "Lưu kỷ niệm",
-                        onClick = onSaveMemoryClick,
+                        icon = if (localMemorySaved) Icons.Filled.Bookmark else Icons.Outlined.BookmarkBorder,
+                        label = if (localMemorySaved) "Đã lưu" else "Lưu kỷ niệm",
+                        tint = if (localMemorySaved) AppPalette.MoodVui else Color.White,
+                        onClick = {
+                            localMemorySaved = !localMemorySaved
+                            feedbackMessage = if (localMemorySaved) "Đã lưu vào kỷ niệm" else "Đã bỏ lưu kỷ niệm"
+                            onSaveMemoryClick()
+                        },
                     )
                     PhotoViewerBottomAction(
                         icon = Icons.Outlined.DeleteOutline,
                         label = "Xoá",
                         tint = AppPalette.MoodThuong,
-                        onClick = onDeleteClick,
+                        onClick = { showDeleteConfirm = true },
                     )
                 }
             }
         }
+    }
+
+    if (showDeleteConfirm) {
+        DiuConfirmationDialog(
+            title = "Xoá ảnh này",
+            message = "Ảnh sẽ được xoá khỏi cuộc trò chuyện này.",
+            confirmLabel = "Xoá",
+            dismissLabel = "Huỷ",
+            destructive = true,
+            onConfirm = {
+                showDeleteConfirm = false
+                onDeleteClick()
+            },
+            onDismiss = { showDeleteConfirm = false },
+        )
     }
 }
 

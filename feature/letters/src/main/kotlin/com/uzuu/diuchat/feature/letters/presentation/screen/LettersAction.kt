@@ -16,6 +16,18 @@ sealed class LettersAction : BaseAction<LettersUiState> {
         )
     }
 
+    data class SetRecipients(val recipients: List<Pair<String, String>>) : LettersAction() {
+        override fun reduce(state: LettersUiState): LettersUiState {
+            val currentValid = recipients.any { it.first == state.draftRecipientId }
+            val fallback = recipients.firstOrNull()
+            return state.copy(
+                availableRecipients = recipients,
+                draftRecipientId = if (currentValid) state.draftRecipientId else fallback?.first.orEmpty(),
+                draftRecipientName = if (currentValid) state.draftRecipientName else fallback?.second.orEmpty(),
+            )
+        }
+    }
+
     data class SetTab(val tab: LetterTab) : LettersAction() {
         override fun reduce(state: LettersUiState): LettersUiState = state.copy(selectedTab = tab)
     }

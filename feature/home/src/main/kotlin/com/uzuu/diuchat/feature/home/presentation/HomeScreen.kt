@@ -56,6 +56,7 @@ import com.uzuu.diuchat.feature.base.common.res.AppIcons
 import com.uzuu.diuchat.feature.base.common.res.AppPalette
 import com.uzuu.diuchat.feature.base.common.res.AppTheme
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuButton
+import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuConfirmationDialog
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuEmptyState
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuIconButton
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuInlineNotice
@@ -87,6 +88,7 @@ fun HomeScreen(
         state = state,
         modifier = modifier,
         onOpenChat = onOpenChat,
+        onDeleteConversation = viewModel::onDeleteConversation,
         onOpenContacts = onOpenContacts,
         onOpenCheckin = onOpenCheckin,
         onOpenQuietHours = onOpenQuietHours,
@@ -100,12 +102,15 @@ fun HomeScreenContent(
     state: HomeUiState,
     modifier: Modifier = Modifier,
     onOpenChat: (String) -> Unit = {},
+    onDeleteConversation: (String) -> Unit = {},
     onOpenContacts: () -> Unit = {},
     onOpenCheckin: () -> Unit = {},
     onOpenQuietHours: () -> Unit = {},
     onInvite: () -> Unit = {},
     onSearchClick: () -> Unit = onOpenContacts,
 ) {
+    var pendingDeleteChat by remember { mutableStateOf<RecentChat?>(null) }
+
     Box(modifier = modifier.fillMaxSize()) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
@@ -226,6 +231,7 @@ fun HomeScreenContent(
                         subtitle = chat.lastMessage,
                         timestamp = chat.timestamp,
                         onClick = { onOpenChat(chat.id) },
+                        onLongClick = { pendingDeleteChat = chat },
                         trailing = {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
@@ -281,6 +287,21 @@ fun HomeScreenContent(
                 }
             }
         }
+    }
+
+    pendingDeleteChat?.let { target ->
+        DiuConfirmationDialog(
+            title = "Xoá cuộc hội thoại",
+            message = "Cuộc hội thoại với ${target.contactName} sẽ bị xoá khỏi danh sách của bạn.",
+            confirmLabel = "Xoá",
+            dismissLabel = "Huỷ",
+            destructive = true,
+            onConfirm = {
+                pendingDeleteChat = null
+                onDeleteConversation(target.id)
+            },
+            onDismiss = { pendingDeleteChat = null },
+        )
     }
 }
 

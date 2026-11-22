@@ -4,18 +4,21 @@ import androidx.lifecycle.viewModelScope
 import com.uzuu.diuchat.feature.base.presentation.viewmodel.BaseViewModel
 import com.uzuu.diuchat.feature.home.domain.model.RecentChat
 import com.uzuu.diuchat.feature.home.domain.model.StarPerson
+import com.uzuu.diuchat.feature.home.domain.usecase.DeleteHomeConversationUseCase
 import com.uzuu.diuchat.feature.home.domain.usecase.GetHomeStarsUseCase
 import com.uzuu.diuchat.feature.home.domain.usecase.GetRecentChatsUseCase
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
 import java.util.Calendar
 
 private const val QUIET_START_HOUR = 22
 private const val QUIET_END_HOUR = 6
 
 class HomeViewModel(
+    private val deleteHomeConversationUseCase: DeleteHomeConversationUseCase,
     private val getHomeStarsUseCase: GetHomeStarsUseCase,
     private val getRecentChatsUseCase: GetRecentChatsUseCase,
 ) : BaseViewModel<HomeUiState, HomeAction>(HomeUiState()) {
@@ -59,5 +62,11 @@ class HomeViewModel(
 
     fun onSetLoading(isLoading: Boolean) {
         sendAction(HomeAction.SetLoading(isLoading))
+    }
+
+    fun onDeleteConversation(conversationId: String) {
+        viewModelScope.launch {
+            deleteHomeConversationUseCase(conversationId)
+        }
     }
 }

@@ -354,6 +354,134 @@ class ChatSupabaseService(
         }
     }
 
+    suspend fun deleteMessage(messageId: String): Result<Unit> {
+        val client = supabaseClient ?: return Result.success(Unit)
+        return runCatching {
+            client.postgrest
+                .from(TABLE_MESSAGES)
+                .update(
+                    buildJsonObject {
+                        put("deleted_at", Instant.now().toString())
+                    },
+                ) {
+                    filter {
+                        eq("id", messageId)
+                    }
+                }
+        }.map { }.onFailure { error ->
+            rethrowCancellation(error)
+            Timber.w(error, "Failed to soft-delete message %s", messageId)
+        }
+    }
+
+    suspend fun toggleStarMessage(messageId: String): Result<Boolean> {
+        val client = supabaseClient ?: return Result.success(true)
+        val myId = currentUserId() ?: return Result.success(true)
+        return runCatching {
+            val existing =
+                client.postgrest
+                    .from(TABLE_STARRED_MESSAGES)
+                    .select {
+                        filter {
+                            eq(COL_USER_ID, myId)
+                            eq(COL_MESSAGE_ID, messageId)
+                        }
+                    }.decodeList<JsonObject>()
+            if (existing.isNotEmpty()) {
+                client.postgrest.from(TABLE_STARRED_MESSAGES).delete {
+                    filter {
+                        eq(COL_USER_ID, myId)
+                        eq(COL_MESSAGE_ID, messageId)
+                    }
+                }
+                false
+            } else {
+                client.postgrest.from(TABLE_STARRED_MESSAGES).insert(
+                    buildJsonObject {
+                        put(COL_USER_ID, myId)
+                        put(COL_MESSAGE_ID, messageId)
+                    },
+                )
+                true
+            }
+        }.onFailure { error ->
+            rethrowCancellation(error)
+            Timber.w(error, "Failed to toggle starred message %s", messageId)
+        }
+    }
+
+    suspend fun deleteConversation(conversationId: String): Result<Unit> {
+        val client = supabaseClient ?: return Result.success(Unit)
+        val myId = currentUserId() ?: return Result.success(Unit)
+        return runCatching {
+            client.postgrest
+                .from(TABLE_CONVERSATION_MEMBERS)
+                .update(
+                    buildJsonObject {
+                        put("left_at", Instant.now().toString())
+                    },
+                ) {
+                    filter {
+                        eq(COL_CONVERSATION_ID, conversationId)
+                        eq(COL_USER_ID, myId)
+                    }
+                }
+            runCatching {
+                val globalChannel =
+                    client.realtime.subscriptions["realtime:$CHANNEL_GLOBAL_SYNC"]
+                        ?: client.channel(CHANNEL_GLOBAL_SYNC)
+                if (globalChannel.status.value != RealtimeChannel.Status.SUBSCRIBED) {
+                    runCatching { globalChannel.subscribe() }
+                }
+                globalChannel.broadcast(
+                    event = EVENT_CONVERSATION_DELETED,
+                    message =
+                    buildJsonObject {
+                        put(COL_CONVERSATION_ID, conversationId)
+                        put(COL_USER_ID, myId)
+                    },
+                )
+            }.onFailure(::rethrowCancellation)
+        }.map { }.onFailure { error ->
+            rethrowCancellation(error)
+            Timber.w(error, "Failed to delete conversation %s", conversationId)
+        }
+    }
+
+    suspend fun insertSealedLetterForMessage(
+        messageId: String,
+        conversationId: String,
+        content: String,
+        unlockAtEpochMs: Long,
+    ): Result<Unit> {
+        val client = supabaseClient ?: return Result.success(Unit)
+        val myId = currentUserId() ?: return Result.success(Unit)
+        return runCatching {
+            val members =
+                client.postgrest
+                    .from(TABLE_CONVERSATION_MEMBERS)
+                    .select {
+                        filter { eq(COL_CONVERSATION_ID, conversationId) }
+                    }.decodeList<MemberRow>()
+            val recipientId = members.firstOrNull { it.userId != myId }?.userId
+            if (recipientId != null) {
+                client.postgrest.from(TABLE_SEALED_LETTERS).insert(
+                    buildJsonObject {
+                        put(COL_MESSAGE_ID, messageId)
+                        put("sender_id", myId)
+                        put("recipient_id", recipientId)
+                        put("unlock_at", Instant.ofEpochMilli(unlockAtEpochMs).toString())
+                        put("sealed_content", content)
+                        put("is_opened", false)
+                    },
+                )
+            }
+        }.map { }.onFailure { error ->
+            rethrowCancellation(error)
+            Timber.w(error, "Failed to insert sealed_letter for message %s", messageId)
+        }
+    }
+
     suspend fun markConversationRead(conversationId: String) {
         val client = supabaseClient ?: return
         val myId = currentUserId() ?: return
@@ -367,7 +495,7 @@ class ChatSupabaseService(
                 ) {
                     filter {
                         eq(COL_CONVERSATION_ID, conversationId)
-                        eq("user_id", myId)
+                        eq(COL_USER_ID, myId)
                     }
                 }
         }.onFailure(::rethrowCancellation)
@@ -383,7 +511,7 @@ class ChatSupabaseService(
                 message =
                 buildJsonObject {
                     put(COL_CONVERSATION_ID, conversationId)
-                    put("user_id", myId)
+                    put(COL_USER_ID, myId)
                 },
             )
         }.onFailure(::rethrowCancellation)
@@ -518,10 +646,14 @@ class ChatSupabaseService(
 
     private companion object {
         const val COL_CONVERSATION_ID = "conversation_id"
+        const val COL_USER_ID = "user_id"
+        const val COL_MESSAGE_ID = "message_id"
         const val TABLE_CONVERSATIONS = "conversations"
         const val TABLE_CONVERSATION_MEMBERS = "conversation_members"
         const val TABLE_USER_PROFILES = "user_profiles"
         const val TABLE_MESSAGES = "messages"
+        const val TABLE_STARRED_MESSAGES = "starred_messages"
+        const val TABLE_SEALED_LETTERS = "sealed_letters"
         const val BUCKET_CHAT_MEDIA = "chat-media"
         const val SCHEMA_PUBLIC = "public"
         const val CHANNEL_GLOBAL_SYNC = "diu_global_sync"
@@ -529,6 +661,7 @@ class ChatSupabaseService(
         const val EVENT_NEW_MESSAGE = "new_message"
         const val EVENT_PROFILE_UPDATED = "profile_updated"
         const val EVENT_CONVERSATION_READ = "conversation_read"
+        const val EVENT_CONVERSATION_DELETED = "conversation_deleted"
         const val EVENT_TYPING = "typing"
         const val SIGNED_URL_EXPIRY_DAYS = 30
 

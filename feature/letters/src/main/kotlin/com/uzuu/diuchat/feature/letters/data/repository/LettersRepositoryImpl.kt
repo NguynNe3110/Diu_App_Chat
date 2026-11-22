@@ -83,6 +83,8 @@ class LettersRepositoryImpl(
         },
     )
 
+    private val recipientsFlow = MutableStateFlow<List<Pair<String, String>>>(emptyList())
+
     override fun getLetters(): Flow<List<SealedLetter>> = lettersFlow
         .asStateFlow()
         .onStart {
@@ -93,9 +95,24 @@ class LettersRepositoryImpl(
             }
         }
 
+    override fun getRecipients(): Flow<List<Pair<String, String>>> = recipientsFlow
+        .asStateFlow()
+        .onStart {
+            if (supabaseService.isRemoteEnabled) {
+                supabaseService.fetchAvailableRecipients().onSuccess { recipients ->
+                    recipientsFlow.value = recipients
+                }
+            }
+        }
+
     override suspend fun sendSealedLetter(letter: SealedLetter) {
         lettersFlow.update { current -> listOf(letter) + current }
-        supabaseService.upsertLetter(letterMapper.domainToDto(letter))
+        val result = supabaseService.createLetter(letterMapper.domainToDto(letter))
+        if (supabaseService.isRemoteEnabled && result.isSuccess) {
+            supabaseService.fetchLetters().onSuccess { response ->
+                lettersFlow.value = response.letters.map(letterMapper::dtoToDomain)
+            }
+        }
     }
 
     override suspend fun updateSealedLetter(letter: SealedLetter) {
@@ -104,7 +121,7 @@ class LettersRepositoryImpl(
                 if (existing.id == letter.id) letter else existing
             }
         }
-        supabaseService.upsertLetter(letterMapper.domainToDto(letter))
+        supabaseService.updateLetter(letterMapper.domainToDto(letter))
     }
 
     override suspend fun openSealedLetter(letterId: String) {
@@ -126,7 +143,7 @@ class LettersRepositoryImpl(
                 if (letter.id == letterId) updatedLetter else letter
             }
         }
-        supabaseService.upsertLetter(letterMapper.domainToDto(updatedLetter))
+        supabaseService.openLetter(letterId)
     }
 
     override suspend fun cancelSealedLetter(letterId: String) {
@@ -137,19 +154,18 @@ class LettersRepositoryImpl(
     }
 
     override suspend fun sendLetterImmediately(letterId: String) {
-        var updatedLetter: SealedLetter? = null
         lettersFlow.update { current ->
             current.map { letter ->
                 if (letter.id == letterId) {
                     letter.copy(
                         status = LetterStatus.READY_TO_OPEN,
                         scheduledUnlockFormatted = "Gửi ngay (Sẵn sàng mở)",
-                    ).also { updatedLetter = it }
+                    )
                 } else {
                     letter
                 }
             }
         }
-        updatedLetter?.let { supabaseService.upsertLetter(letterMapper.domainToDto(it)) }
+        supabaseService.sendLetterImmediately(letterId)
     }
 }

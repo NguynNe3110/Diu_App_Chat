@@ -1,7 +1,9 @@
 package com.uzuu.diuchat.feature.base.presentation.compose.composable
 
 import android.content.res.Configuration
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -19,6 +21,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.uzuu.diuchat.feature.base.common.res.AppTheme
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun DiuPersonRow(
     name: String,
@@ -29,14 +32,24 @@ fun DiuPersonRow(
     avatarUrl: String? = null,
     subtitle: String? = null,
     timestamp: String? = null,
+    onLongClick: (() -> Unit)? = null,
     trailing: (@Composable () -> Unit)? = null,
 ) {
     val colors = AppTheme.colors
+    val clickModifier = if (onLongClick != null) {
+        Modifier.combinedClickable(
+            role = Role.Button,
+            onClick = onClick,
+            onLongClick = onLongClick,
+        )
+    } else {
+        Modifier.clickable(role = Role.Button, onClick = onClick)
+    }
     Row(
         modifier =
         modifier
             .fillMaxWidth()
-            .clickable(role = Role.Button, onClick = onClick)
+            .then(clickModifier)
             .padding(horizontal = 20.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(14.dp),

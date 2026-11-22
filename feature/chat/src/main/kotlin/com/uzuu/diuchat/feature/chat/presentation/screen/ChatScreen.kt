@@ -24,6 +24,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -31,13 +34,18 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TimePicker
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -82,6 +90,12 @@ import com.uzuu.diuchat.feature.chat.presentation.composable.ReplyQuoteBar
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 import java.text.SimpleDateFormat
+import java.time.Instant
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.LocalTime
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import java.util.Date
 import java.util.Locale
 
@@ -92,12 +106,22 @@ fun ChatScreen(
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier,
     conversationId: String = "",
+    pendingReplyMessageId: String? = null,
+    onConsumePendingReply: () -> Unit = {},
     onStartVoiceCall: (peerId: String, peerName: String, peerMoodHex: String) -> Unit = { _, _, _ -> },
     onStartVideoCall: (peerId: String, peerName: String, peerMoodHex: String) -> Unit = { _, _, _ -> },
     onOpenPhotoClick: (ChatMessage) -> Unit = {},
-    onOpenPhotoViewer: (caption: String, moodName: String, senderName: String, timestamp: String) -> Unit = { _, _, _, _ -> },
+    onOpenPhotoViewer: (
+        imageUrl: String,
+        messageId: String,
+        conversationId: String,
+        caption: String,
+        moodName: String,
+        senderName: String,
+        timestamp: String,
+    ) -> Unit = { _, _, _, _, _, _, _ -> },
     onAttachLocationClick: () -> Unit = {},
-    onSendDelayedLetterClick: () -> Unit = {},
+    @Suppress("UnusedParameter") onSendDelayedLetterClick: () -> Unit = {},
     onSearchInChatClick: () -> Unit = {},
     onOpenSharedMediaClick: () -> Unit = {},
     onOpenPendingLettersClick: () -> Unit = {},
@@ -108,6 +132,14 @@ fun ChatScreen(
     }
 
     val state by viewModel.uiStateFlow.collectAsStateWithLifecycle()
+    val currentOnConsumePendingReply by rememberUpdatedState(onConsumePendingReply)
+
+    LaunchedEffect(pendingReplyMessageId, state.messages) {
+        if (!pendingReplyMessageId.isNullOrBlank() && state.messages.any { it.id == pendingReplyMessageId }) {
+            viewModel.onReplyToMessageById(pendingReplyMessageId)
+            currentOnConsumePendingReply()
+        }
+    }
     var showMediaSourceSheet by remember { mutableStateOf(false) }
 
     val mediaPickerController = rememberMediaPickerController(
@@ -130,6 +162,9 @@ fun ChatScreen(
         onOpenPhotoClick(message)
         val timeText = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(message.createdAtEpochMs))
         onOpenPhotoViewer(
+            message.mediaUri.orEmpty(),
+            message.id,
+            message.conversationId,
             message.caption ?: message.content,
             message.mood.displayName,
             message.senderName,
@@ -157,6 +192,11 @@ fun ChatScreen(
                         viewModel.onOpenChatInfo(false)
                         onBackClick()
                     },
+                )
+            },
+            onDeleteConversation = {
+                viewModel.onDeleteConversation(
+                    onSuccess = onBackClick,
                 )
             },
             onUpdateNickname = viewModel::onUpdateNickname,
@@ -276,14 +316,21 @@ fun ChatScreen(
             selectedSchedule = state.slowSendScheduleLabel,
             moodColor = Color(state.selectedMood.colorHex),
             onDraftChange = { newText ->
-                viewModel.onUpdateSlowSendDraft(content = newText, scheduleLabel = state.slowSendScheduleLabel)
+                viewModel.onUpdateSlowSendDraft(
+                    content = newText,
+                    scheduleLabel = state.slowSendScheduleLabel,
+                    unlockEpochMs = state.slowSendUnlockEpochMs,
+                )
             },
-            onScheduleSelect = { schedule ->
-                viewModel.onUpdateSlowSendDraft(content = state.slowSendDraftContent, scheduleLabel = schedule)
+            onScheduleSelect = { schedule, unlockEpochMs ->
+                viewModel.onUpdateSlowSendDraft(
+                    content = state.slowSendDraftContent,
+                    scheduleLabel = schedule,
+                    unlockEpochMs = unlockEpochMs,
+                )
             },
             onSealAndSchedule = {
                 viewModel.onSealSlowSendMessage()
-                onSendDelayedLetterClick()
             },
             onDismiss = { viewModel.onOpenSlowSendSheet(false) },
         )
@@ -889,20 +936,39 @@ private fun ChatSlowSendSheet(
     selectedSchedule: String,
     moodColor: Color,
     onDraftChange: (String) -> Unit,
-    onScheduleSelect: (String) -> Unit,
+    onScheduleSelect: (label: String, unlockEpochMs: Long) -> Unit,
     onSealAndSchedule: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val colors = AppTheme.colors
-    val scheduleOptions = remember(partnerName) {
+    var showDatePicker by remember { mutableStateOf(false) }
+    var showTimePicker by remember { mutableStateOf(false) }
+    var pickedDateMillis by remember { mutableStateOf<Long?>(null) }
+
+    val customOptionLabel = "Tuỳ chọn ngày giờ…"
+    val presetOptions = remember {
+        val zone = ZoneId.systemDefault()
+        val now = LocalDateTime.now(zone)
+        val in1Hour = now.plusHours(1).atZone(zone).toInstant().toEpochMilli()
+        val tonight22 = LocalDateTime.of(LocalDate.now(zone), LocalTime.of(22, 0))
+            .let { if (it.isAfter(now)) it else it.plusDays(1) }
+            .atZone(zone)
+            .toInstant()
+            .toEpochMilli()
+        val tomorrow7 = LocalDateTime.of(LocalDate.now(zone).plusDays(1), LocalTime.of(7, 0))
+            .atZone(zone)
+            .toInstant()
+            .toEpochMilli()
         listOf(
-            "Khi $partnerName thức dậy",
-            "Sáng mai 7:00",
-            "Tối nay 22:00",
-            "Ngày kỷ niệm 12/10",
+            "Sau 1 giờ" to in1Hour,
+            "Tối nay 22:00" to tonight22,
+            "Sáng mai 07:00" to tomorrow7,
+            customOptionLabel to 0L,
         )
     }
+    val presetLabels = remember(presetOptions) { presetOptions.map { it.first }.toSet() }
+    val isCustomSelected = selectedSchedule.isNotBlank() && selectedSchedule !in presetLabels
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -974,20 +1040,28 @@ private fun ChatSlowSendSheet(
                 )
             }
 
-            // 2x2 schedule options grid
+            // 2x2 schedule options grid (3 quick presets + 1 custom date/time picker)
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                scheduleOptions.chunked(2).forEach { rowItems ->
+                presetOptions.chunked(2).forEach { rowItems ->
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        rowItems.forEach { option ->
-                            val isSelected = option == selectedSchedule
+                        rowItems.forEach { (option, epochMs) ->
+                            val isCustomTile = option == customOptionLabel
+                            val isSelected = if (isCustomTile) isCustomSelected else option == selectedSchedule
+                            val displayLabel = if (isCustomTile && isCustomSelected) selectedSchedule else option
                             Surface(
                                 modifier = Modifier
                                     .weight(1f)
                                     .clip(RoundedCornerShape(16.dp))
-                                    .clickable { onScheduleSelect(option) },
+                                    .clickable {
+                                        if (isCustomTile) {
+                                            showDatePicker = true
+                                        } else {
+                                            onScheduleSelect(option, epochMs)
+                                        }
+                                    },
                                 shape = RoundedCornerShape(16.dp),
                                 color = if (isSelected) moodColor.copy(alpha = 0.28f) else colors.surface,
                                 border = BorderStroke(
@@ -996,7 +1070,7 @@ private fun ChatSlowSendSheet(
                                 ),
                             ) {
                                 Text(
-                                    text = option,
+                                    text = displayLabel,
                                     style = AppTheme.typography.labelMedium.copy(
                                         fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
                                     ),
@@ -1017,6 +1091,81 @@ private fun ChatSlowSendSheet(
                 Text("Niêm phong & hẹn gửi")
             }
         }
+    }
+
+    if (showDatePicker) {
+        val datePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = System.currentTimeMillis(),
+        )
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        pickedDateMillis = datePickerState.selectedDateMillis
+                        showDatePicker = false
+                        showTimePicker = true
+                    },
+                ) {
+                    Text("Chọn giờ", color = colors.accent)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) {
+                    Text("Hủy", color = colors.inkSecondary)
+                }
+            },
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
+
+    if (showTimePicker) {
+        val nextHour = LocalTime.now().plusHours(1)
+        val timePickerState = rememberTimePickerState(
+            initialHour = nextHour.hour,
+            initialMinute = nextHour.minute,
+            is24Hour = true,
+        )
+        AlertDialog(
+            onDismissRequest = { showTimePicker = false },
+            title = {
+                Text(
+                    text = "Chọn giờ mở lời nhắn",
+                    style = AppTheme.typography.titleMedium,
+                    color = colors.ink,
+                )
+            },
+            text = {
+                TimePicker(state = timePickerState)
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val baseDate = Instant.ofEpochMilli(
+                            pickedDateMillis ?: System.currentTimeMillis(),
+                        ).atZone(ZoneId.of("UTC")).toLocalDate()
+                        val selectedDateTime = LocalDateTime.of(
+                            baseDate,
+                            LocalTime.of(timePickerState.hour, timePickerState.minute),
+                        )
+                        val epochMs = selectedDateTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+                        val formatted = selectedDateTime.format(
+                            DateTimeFormatter.ofPattern("HH:mm · dd/MM/yyyy", Locale.forLanguageTag("vi-VN")),
+                        )
+                        showTimePicker = false
+                        onScheduleSelect(formatted, epochMs)
+                    },
+                ) {
+                    Text("Xác nhận", color = colors.accent, fontWeight = FontWeight.SemiBold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showTimePicker = false }) {
+                    Text("Hủy", color = colors.inkSecondary)
+                }
+            },
+        )
     }
 }
 

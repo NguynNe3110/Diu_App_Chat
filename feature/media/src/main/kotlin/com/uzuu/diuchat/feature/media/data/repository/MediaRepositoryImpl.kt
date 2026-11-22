@@ -53,9 +53,12 @@ class MediaRepositoryImpl(
         .asStateFlow()
         .onStart {
             supabaseService.fetchVaultMedia(conversationId).onSuccess { response ->
-                if (response.items.isNotEmpty()) {
-                    val mapped = response.items.map(mediaMapper::dtoToDomain)
+                val mapped = response.items.map(mediaMapper::dtoToDomain)
+                if (conversationId.isBlank() || conversationId == "all") {
                     mediaItemsFlow.value = mapped
+                } else {
+                    val others = mediaItemsFlow.value.filterNot { it.conversationId == conversationId }
+                    mediaItemsFlow.value = mapped + others
                 }
             }
         }.map { items ->

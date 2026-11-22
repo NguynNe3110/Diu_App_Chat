@@ -1,5 +1,6 @@
 package com.uzuu.diuchat.app.presentation
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
@@ -18,8 +19,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -41,8 +44,13 @@ import com.uzuu.diuchat.feature.calls.presentation.screen.CallHistoryScreen
 import com.uzuu.diuchat.feature.calls.presentation.screen.CallHistoryViewModel
 import com.uzuu.diuchat.feature.calls.presentation.screen.CallScreen
 import com.uzuu.diuchat.feature.calls.presentation.screen.CallViewModel
+import com.uzuu.diuchat.feature.chat.domain.model.MoodType
+import com.uzuu.diuchat.feature.chat.domain.usecase.DeleteMessageUseCase
+import com.uzuu.diuchat.feature.chat.domain.usecase.StarMessageUseCase
+import com.uzuu.diuchat.feature.chat.domain.usecase.ToggleReactionUseCase
 import com.uzuu.diuchat.feature.chat.presentation.screen.ChatScreen
 import com.uzuu.diuchat.feature.chat.presentation.screen.NewGroupScreen
+import kotlinx.coroutines.launch
 import com.uzuu.diuchat.feature.contacts.domain.usecase.GetContactsUseCase
 import com.uzuu.diuchat.feature.contacts.presentation.screen.ContactsScreen
 import com.uzuu.diuchat.feature.home.presentation.HomeScreen
@@ -213,8 +221,15 @@ fun MainShowcaseScreen(
                         }
                         composable<NavigationRoute.Chat> { backStackEntry ->
                             val args = backStackEntry.toRoute<NavigationRoute.Chat>()
+                            val pendingReplyMessageId by backStackEntry.savedStateHandle
+                                .getStateFlow<String?>("reply_message_id", null)
+                                .collectAsState()
                             ChatScreen(
                                 conversationId = args.conversationId,
+                                pendingReplyMessageId = pendingReplyMessageId,
+                                onConsumePendingReply = {
+                                    backStackEntry.savedStateHandle.remove<String>("reply_message_id")
+                                },
                                 onBackClick = {
                                     navController.popBackStack()
                                 },
@@ -238,9 +253,12 @@ fun MainShowcaseScreen(
                                         ),
                                     )
                                 },
-                                onOpenPhotoViewer = { caption, moodName, senderName, timestamp ->
+                                onOpenPhotoViewer = { imageUrl, messageId, convoId, caption, moodName, senderName, timestamp ->
                                     navController.navigate(
                                         NavigationRoute.PhotoViewer(
+                                            imageUrl = imageUrl,
+                                            messageId = messageId,
+                                            conversationId = convoId,
                                             caption = caption,
                                             moodName = moodName,
                                             senderName = senderName,
@@ -265,14 +283,19 @@ fun MainShowcaseScreen(
                                 },
                             )
                         }
-                        composable<NavigationRoute.Media> {
+                        composable<NavigationRoute.Media> { backStackEntry ->
+                            val args = backStackEntry.toRoute<NavigationRoute.Media>()
                             MediaVaultScreen(
+                                conversationId = args.conversationId,
                                 onBackClick = {
                                     navController.popBackStack()
                                 },
                                 onOpenPhoto = { photo ->
                                     navController.navigate(
                                         NavigationRoute.PhotoViewer(
+                                            imageUrl = photo.url,
+                                            messageId = photo.id,
+                                            conversationId = photo.conversationId,
                                             caption = photo.caption,
                                             moodName = photo.moodName,
                                             senderName = photo.senderName,
@@ -287,7 +310,14 @@ fun MainShowcaseScreen(
                         }
                         composable<NavigationRoute.PhotoViewer> { backStackEntry ->
                             val args = backStackEntry.toRoute<NavigationRoute.PhotoViewer>()
+                            val deleteMessageUseCase: DeleteMessageUseCase = koinInject()
+                            val starMessageUseCase: StarMessageUseCase = koinInject()
+                            val toggleReactionUseCase: ToggleReactionUseCase = koinInject()
+                            val coroutineScope = rememberCoroutineScope()
+                            val context = LocalContext.current
+
                             PhotoViewerScreen(
+                                imageUrl = args.imageUrl,
                                 caption = args.caption,
                                 moodName = args.moodName,
                                 senderName = args.senderName,
@@ -295,7 +325,70 @@ fun MainShowcaseScreen(
                                 onBackClick = {
                                     navController.popBackStack()
                                 },
-                                onShareClick = {},
+                                onShareClick = {
+                                    val shareText = listOf(args.caption, args.imageUrl)
+                                        .filter { it.isNotBlank() }
+                                        .joinToString("\n")
+                                    if (shareText.isNotBlank()) {
+                                        val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                            type = "text/plain"
+                                            putExtra(Intent.EXTRA_TEXT, shareText)
+                                        }
+                                        context.startActivity(Intent.createChooser(shareIntent, "Chia sẻ hình ảnh"))
+                                    }
+                                },
+                                onReactionClick = { moodName ->
+                                    if (args.messageId.isNotBlank()) {
+                                        val mood = when (moodName) {
+                                            "Thương" -> MoodType.THUONG
+                                            "Vui" -> MoodType.VUI
+                                            "Nhớ" -> MoodType.NHO
+                                            "Trầm" -> MoodType.TRAM
+                                            else -> MoodType.BINHYEN
+                                        }
+                                        coroutineScope.launch {
+                                            toggleReactionUseCase(args.messageId, mood)
+                                        }
+                                    }
+                                },
+                                onReplyClick = {
+                                    val prevEntry = navController.previousBackStackEntry
+                                    if (prevEntry?.destination?.hasRoute<NavigationRoute.Chat>() == true) {
+                                        if (args.messageId.isNotBlank()) {
+                                            prevEntry.savedStateHandle["reply_message_id"] = args.messageId
+                                        }
+                                        navController.popBackStack()
+                                    } else if (args.conversationId.isNotBlank()) {
+                                        navController.navigate(NavigationRoute.Chat(args.conversationId)) {
+                                            popUpTo<NavigationRoute.PhotoViewer> { inclusive = true }
+                                        }
+                                        if (args.messageId.isNotBlank()) {
+                                            navController.currentBackStackEntry?.savedStateHandle?.set(
+                                                "reply_message_id",
+                                                args.messageId,
+                                            )
+                                        }
+                                    } else {
+                                        navController.popBackStack()
+                                    }
+                                },
+                                onSaveMemoryClick = {
+                                    if (args.messageId.isNotBlank()) {
+                                        coroutineScope.launch {
+                                            starMessageUseCase(args.messageId)
+                                        }
+                                    }
+                                },
+                                onDeleteClick = {
+                                    if (args.messageId.isNotBlank()) {
+                                        coroutineScope.launch {
+                                            deleteMessageUseCase(args.messageId)
+                                            navController.popBackStack()
+                                        }
+                                    } else {
+                                        navController.popBackStack()
+                                    }
+                                },
                             )
                         }
                         composable<NavigationRoute.Storage> {
