@@ -46,6 +46,11 @@ import com.uzuu.diuchat.feature.base.common.res.AppPalette
 import com.uzuu.diuchat.feature.base.common.res.AppTheme
 import com.uzuu.diuchat.feature.base.common.res.DiuSerif
 
+private const val HEX_RGB_LENGTH = 6
+private const val HEX_ARGB_LENGTH = 8
+private const val HEX_RADIX = 16
+private const val OPAQUE_ALPHA_MASK = 0xFF000000L
+
 fun validateOrbSize(sizeDp: Float) {
     require(sizeDp.isFinite() && sizeDp > 0f) { "Avatar size must be finite and positive" }
 }
@@ -54,19 +59,25 @@ fun parseMoodColorHex(
     hex: String?,
     fallback: Color = AppPalette.MoodThuong,
 ): Color {
-    if (hex.isNullOrBlank()) return fallback
-    val cleaned = hex.trim().removePrefix("#")
-    return when (cleaned.length) {
-        6 -> {
-            val rgb = cleaned.toLongOrNull(16) ?: return fallback
-            Color(0xFF000000L or rgb)
+    val cleaned = hex?.trim()?.removePrefix("#").orEmpty()
+    val parsedColor = when (cleaned.length) {
+        HEX_RGB_LENGTH -> {
+            cleaned.toLongOrNull(HEX_RADIX)?.let { rgb ->
+                Color(OPAQUE_ALPHA_MASK or rgb)
+            }
         }
-        8 -> {
-            val argb = cleaned.toLongOrNull(16) ?: return fallback
-            Color(argb)
+
+        HEX_ARGB_LENGTH -> {
+            cleaned.toLongOrNull(HEX_RADIX)?.let { argb ->
+                Color(argb)
+            }
         }
-        else -> fallback
+
+        else -> {
+            null
+        }
     }
+    return parsedColor ?: fallback
 }
 
 @Composable

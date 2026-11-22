@@ -95,13 +95,12 @@ private val CORE_FIVE_MOODS = listOf(
     ProfileMoodOption("tram", "Trầm", AppPalette.MoodTram),
 )
 
-private fun resolveMoodColor(moodName: String): Color =
-    CORE_FIVE_MOODS.firstOrNull {
-        it.label.equals(moodName.trim(), ignoreCase = true) ||
-            it.id.equals(moodName.trim(), ignoreCase = true)
-    }?.color ?: AppPalette.MoodVui
+private fun resolveMoodColor(moodName: String): Color = CORE_FIVE_MOODS.firstOrNull {
+    it.label.equals(moodName.trim(), ignoreCase = true) ||
+        it.id.equals(moodName.trim(), ignoreCase = true)
+}?.color ?: AppPalette.MoodVui
 
-@Suppress("compose:vm-forwarding-check", "LongParameterList")
+@Suppress("compose:vm-forwarding-check", "LongParameterList", "UnusedParameter")
 @Composable
 fun SettingsScreen(
     modifier: Modifier = Modifier,
@@ -118,13 +117,10 @@ fun SettingsScreen(
     val uiState by viewModel.uiStateFlow.collectAsState()
 
     BackHandler(enabled = uiState.subScreen != SettingsSubScreen.PROFILE_OVERVIEW) {
-        when (uiState.subScreen) {
-            SettingsSubScreen.BLOCKED_CONTACTS -> {
-                viewModel.navigateToSubScreen(SettingsSubScreen.GENERAL_SETTINGS)
-            }
-            else -> {
-                viewModel.navigateBackToOverview()
-            }
+        if (uiState.subScreen == SettingsSubScreen.BLOCKED_CONTACTS) {
+            viewModel.navigateToSubScreen(SettingsSubScreen.GENERAL_SETTINGS)
+        } else {
+            viewModel.navigateBackToOverview()
         }
     }
 
@@ -177,7 +173,7 @@ fun SettingsScreen(
                 QuietHoursSubScreen(
                     schedule = uiState.quietSchedule,
                     onBackClick = viewModel::navigateBackToOverview,
-                    onToggleEnabled = viewModel::toggleQuietHours,
+                    onToggleQuietHours = viewModel::toggleQuietHours,
                     onStepStart = viewModel::stepQuietStartTime,
                     onStepEnd = viewModel::stepQuietEndTime,
                     onToggleRepeatDay = viewModel::toggleQuietRepeatDay,
@@ -884,7 +880,7 @@ private val WEEKDAY_ITEMS = listOf(
 private fun QuietHoursSubScreen(
     schedule: QuietSchedule,
     onBackClick: () -> Unit,
-    onToggleEnabled: (Boolean) -> Unit,
+    onToggleQuietHours: (Boolean) -> Unit,
     onStepStart: (Int) -> Unit,
     onStepEnd: (Int) -> Unit,
     onToggleRepeatDay: (Int) -> Unit,
@@ -906,7 +902,7 @@ private fun QuietHoursSubScreen(
             actions = {
                 DiuSwitch(
                     checked = schedule.enabled,
-                    onCheckedChange = onToggleEnabled,
+                    onCheckedChange = onToggleQuietHours,
                     contentDescription = "Bật giờ yên lặng",
                 )
             },

@@ -24,6 +24,7 @@ import com.uzuu.diuchat.feature.chat.domain.usecase.UpdateGroupInfoUseCase
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
 
+@Suppress("TooManyFunctions")
 class ChatViewModel(
     private val createGroupUseCase: CreateGroupUseCase,
     private val forwardMessageUseCase: ForwardMessageUseCase,

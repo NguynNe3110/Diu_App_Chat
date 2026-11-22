@@ -66,13 +66,12 @@ class CallViewModel(
         )
         val current = uiStateFlow.value.callSession ?: callRepository.currentCallSession.value
         val desiredType = if (isVideo) CallType.VIDEO else CallType.AUDIO
+        val isInactiveSession = current == null ||
+            current.status == CallStatus.IDLE ||
+            current.status == CallStatus.ENDED
 
         if (isIncoming) {
-            if (current == null ||
-                current.status == CallStatus.IDLE ||
-                current.status == CallStatus.ENDED ||
-                !current.isIncoming
-            ) {
+            if (isInactiveSession || !current.isIncoming) {
                 val incomingSession = CallSession(
                     callId = "call_in_$peerId",
                     callerId = peerId,
@@ -87,7 +86,7 @@ class CallViewModel(
                 )
                 sendAction(CallAction.UpdateSession(incomingSession))
             }
-        } else if (current == null || current.status == CallStatus.IDLE || current.status == CallStatus.ENDED) {
+        } else if (isInactiveSession) {
             startOutgoingCall(
                 calleeId = peerId,
                 calleeName = peerName,

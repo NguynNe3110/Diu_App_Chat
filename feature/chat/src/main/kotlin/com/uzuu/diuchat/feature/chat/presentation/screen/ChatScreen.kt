@@ -22,7 +22,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -233,8 +232,8 @@ fun ChatScreen(
         onOpenForwardDialog = viewModel::onOpenForwardDialog,
         onCloseForwardDialog = viewModel::onCloseForwardDialog,
         onConfirmForward = viewModel::onConfirmForward,
-        onToggleRevealSealed = viewModel::onToggleRevealSealedMessage,
-        onCancelSealed = viewModel::onCancelSealedMessage,
+        onToggleSealedReveal = viewModel::onToggleRevealSealedMessage,
+        onCancelScheduledLetter = viewModel::onCancelSealedMessage,
         onPhotoClick = handlePhotoOpen,
         modifier = modifier,
     )
@@ -328,8 +327,8 @@ fun ChatContent(
     onOpenForwardDialog: (ChatMessage) -> Unit = {},
     onCloseForwardDialog: () -> Unit = {},
     onConfirmForward: (List<String>) -> Unit = {},
-    onToggleRevealSealed: (String) -> Unit = {},
-    onCancelSealed: (String) -> Unit = {},
+    onToggleSealedReveal: (String) -> Unit = {},
+    onCancelScheduledLetter: (String) -> Unit = {},
     onPhotoClick: (ChatMessage) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
@@ -584,8 +583,8 @@ fun ChatContent(
                             onViewReactions = onOpenReactionDetail,
                             onPinClick = onTogglePinMessage,
                             onForwardClick = onOpenForwardDialog,
-                            onToggleRevealSealed = onToggleRevealSealed,
-                            onCancelSealed = onCancelSealed,
+                            onToggleSealedReveal = onToggleSealedReveal,
+                            onCancelScheduledLetter = onCancelScheduledLetter,
                             onPhotoClick = onPhotoClick,
                         )
                     }

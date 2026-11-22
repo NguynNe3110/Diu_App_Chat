@@ -450,15 +450,14 @@ private fun DiuOfflineBanner(
     }
 }
 
-private fun resolveContactCallMetadata(peerId: String): Pair<String, String> =
-    when (peerId) {
-        "c1", "minh", "conv_linh_diu" -> "Minh" to "#F7A3A9"
-        "c2", "me" -> "Mẹ" to "#F4CA84"
-        "c3", "vy", "thao" -> "Bảo Vy" to "#A2D7AC"
-        "c4", "ngoai" -> "Bà Ngoại" to "#C5B3EA"
-        "c5", "ba" -> "Ba" to "#95C4E7"
-        else -> peerId.replaceFirstChar { it.uppercase() } to "#F7A3A9"
-    }
+private fun resolveContactCallMetadata(peerId: String): Pair<String, String> = when (peerId) {
+    "c1", "minh", "conv_linh_diu" -> "Minh" to "#F7A3A9"
+    "c2", "me" -> "Mẹ" to "#F4CA84"
+    "c3", "vy", "thao" -> "Bảo Vy" to "#A2D7AC"
+    "c4", "ngoai" -> "Bà Ngoại" to "#C5B3EA"
+    "c5", "ba" -> "Ba" to "#95C4E7"
+    else -> peerId.replaceFirstChar { it.uppercase() } to "#F7A3A9"
+}
 
 // khi chuyển màn thì in ra log
 private fun addOnDestinationChangedListener(navController: NavController) {

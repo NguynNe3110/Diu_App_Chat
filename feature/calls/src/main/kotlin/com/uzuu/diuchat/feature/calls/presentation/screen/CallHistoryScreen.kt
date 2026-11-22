@@ -1,3 +1,5 @@
+@file:Suppress("ktlint:compose:vm-forwarding-check")
+
 package com.uzuu.diuchat.feature.calls.presentation.screen
 
 import androidx.compose.foundation.background
@@ -46,8 +48,8 @@ import com.uzuu.diuchat.feature.calls.domain.model.CallType
 @Composable
 fun CallHistoryScreen(
     viewModel: CallHistoryViewModel,
-    onNavigateBack: () -> Unit = {},
     modifier: Modifier = Modifier,
+    onNavigateBack: () -> Unit = {},
     onStartCall: (peerId: String, peerName: String, peerMoodHex: String, isVideo: Boolean) -> Unit = { _, _, _, _ -> },
     onStartCallWithPeer: ((peerId: String, peerName: String, peerMoodHex: String, isVideo: Boolean) -> Unit)? = null,
 ) {
@@ -94,10 +96,10 @@ fun CallHistoryScreen(
 @Suppress("UnusedParameter")
 fun CallHistoryContent(
     uiState: CallHistoryUiState,
-    onNavigateBack: () -> Unit = {},
     onSetFilter: (CallHistoryFilter) -> Unit,
     onRedial: (CallLog) -> Unit,
     modifier: Modifier = Modifier,
+    onNavigateBack: () -> Unit = {},
     onFavoriteClick: (FavoriteCaller) -> Unit = {},
 ) {
     val colors = AppTheme.colors

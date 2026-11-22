@@ -31,11 +31,15 @@ data class QuietSchedule(
             return if (half) "$hours,5 giờ nghỉ" else "$hours giờ nghỉ"
         }
 
-    fun stepStartMinutes(deltaMinutes: Int): QuietSchedule =
-        copy(startMinuteOfDay = ((startMinuteOfDay + deltaMinutes) % 1440 + 1440) % 1440)
+    fun stepStartMinutes(deltaMinutes: Int): QuietSchedule {
+        val next = ((startMinuteOfDay + deltaMinutes) % MINUTES_PER_DAY + MINUTES_PER_DAY) % MINUTES_PER_DAY
+        return copy(startMinuteOfDay = next)
+    }
 
-    fun stepEndMinutes(deltaMinutes: Int): QuietSchedule =
-        copy(endMinuteOfDay = ((endMinuteOfDay + deltaMinutes) % 1440 + 1440) % 1440)
+    fun stepEndMinutes(deltaMinutes: Int): QuietSchedule {
+        val next = ((endMinuteOfDay + deltaMinutes) % MINUTES_PER_DAY + MINUTES_PER_DAY) % MINUTES_PER_DAY
+        return copy(endMinuteOfDay = next)
+    }
 
     fun isInQuietHours(minuteOfDay: Int): Boolean {
         if (!enabled) return false
@@ -48,6 +52,7 @@ data class QuietSchedule(
     }
 
     companion object {
+        private const val MINUTES_PER_DAY = 1440
         val DEFAULT_REPEAT_DAYS = setOf(1, 2, 3, 4, 5, 6, 7)
     }
 }

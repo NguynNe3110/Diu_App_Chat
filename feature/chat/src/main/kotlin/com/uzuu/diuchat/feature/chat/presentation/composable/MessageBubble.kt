@@ -93,8 +93,8 @@ fun MessageBubble(
     onViewReactions: (ChatMessage) -> Unit = {},
     onPinClick: (ChatMessage) -> Unit = {},
     onForwardClick: (ChatMessage) -> Unit = {},
-    onToggleRevealSealed: (String) -> Unit = {},
-    onCancelSealed: (String) -> Unit = {},
+    onToggleSealedReveal: (String) -> Unit = {},
+    onCancelScheduledLetter: (String) -> Unit = {},
     onPhotoClick: (ChatMessage) -> Unit = {},
 ) {
     var showActionMenu by remember { mutableStateOf(false) }
@@ -196,8 +196,8 @@ fun MessageBubble(
                             message = message,
                             moodColor = moodColor,
                             timeStr = timeStr,
-                            onToggleReveal = { onToggleRevealSealed(message.id) },
-                            onCancelSealed = { onCancelSealed(message.id) },
+                            onToggleReveal = { onToggleSealedReveal(message.id) },
+                            onCancelLetter = { onCancelScheduledLetter(message.id) },
                         )
                     }
 
@@ -427,7 +427,7 @@ fun MessageBubble(
                             label = "Thu hồi",
                             isDanger = true,
                             onClick = {
-                                onCancelSealed(message.id)
+                                onCancelScheduledLetter(message.id)
                                 showActionMenu = false
                             },
                         )
@@ -475,7 +475,7 @@ private fun SealedLetterBubbleContent(
     moodColor: Color,
     timeStr: String,
     onToggleReveal: () -> Unit,
-    onCancelSealed: () -> Unit,
+    onCancelLetter: () -> Unit,
 ) {
     val colors = AppTheme.colors
     val scheduleText = message.scheduledForLabel ?: "7:00 sáng mai"
@@ -551,7 +551,7 @@ private fun SealedLetterBubbleContent(
                     color = colors.danger,
                     modifier = Modifier
                         .clip(RoundedCornerShape(8.dp))
-                        .clickable { onCancelSealed() }
+                        .clickable { onCancelLetter() }
                         .padding(vertical = 2.dp, horizontal = 4.dp),
                 )
                 Text(

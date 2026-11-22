@@ -47,8 +47,8 @@ data class CallHistoryUiState(
             logs.forEachIndexed { index, log ->
                 val ageMs = (newestTimestamp - log.timestampEpochMs).coerceAtLeast(0L)
                 val section = when {
-                    ageMs >= 36 * 3_600_000L -> "THỨ BA"
-                    ageMs >= 12 * 3_600_000L -> "HÔM QUA"
+                    ageMs >= THRESHOLD_TUESDAY_MS -> "THỨ BA"
+                    ageMs >= THRESHOLD_YESTERDAY_MS -> "HÔM QUA"
                     index == 0 -> "HÔM NAY"
                     index == 1 -> "HÔM QUA"
                     else -> "THỨ BA"
@@ -57,4 +57,10 @@ data class CallHistoryUiState(
             }
             return grouped
         }
+
+    companion object {
+        private const val HOUR_MS = 3_600_000L
+        private const val THRESHOLD_YESTERDAY_MS = 12 * HOUR_MS
+        private const val THRESHOLD_TUESDAY_MS = 36 * HOUR_MS
+    }
 }
