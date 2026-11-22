@@ -7,6 +7,7 @@ import com.uzuu.diuchat.feature.chat.data.mapper.ChatMapper
 import com.uzuu.diuchat.feature.chat.data.repository.ChatRepositoryImpl
 import com.uzuu.diuchat.feature.chat.domain.repository.ChatRepository
 import io.github.jan.supabase.SupabaseClient
+import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.dsl.singleOf
 import org.koin.dsl.module
 
@@ -39,6 +40,7 @@ val dataModule = module {
             database = getOrNull<DiuChatDatabase>(),
             chatMapper = get(),
             supabaseService = get(),
+            context = androidContext(),
         )
     }
 }

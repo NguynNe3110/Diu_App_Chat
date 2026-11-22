@@ -37,11 +37,13 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import timber.log.Timber
+import java.time.Instant
 
 @Suppress("TooManyFunctions")
 class ChatSupabaseService(
@@ -76,7 +78,7 @@ class ChatSupabaseService(
                     .from(TABLE_MESSAGES)
                     .select {
                         filter {
-                            eq("conversation_id", conversationId)
+                            eq(COL_CONVERSATION_ID, conversationId)
                         }
                         order("created_at", Order.ASCENDING)
                     }.decodeList<MessageDto>()
@@ -120,7 +122,7 @@ class ChatSupabaseService(
                 channel
                     .postgresChangeFlow<PostgresAction>(schema = SCHEMA_PUBLIC) {
                         table = TABLE_MESSAGES
-                        filter("conversation_id", FilterOperator.EQ, conversationId)
+                        filter(COL_CONVERSATION_ID, FilterOperator.EQ, conversationId)
                     }.mapNotNull { action ->
                         (action as? HasRecord)?.let { record ->
                             runCatching { record.decodeRecordOrNull<MessageDto>() }.getOrNull()
@@ -208,7 +210,7 @@ class ChatSupabaseService(
             client.postgrest
                 .from(TABLE_CONVERSATION_MEMBERS)
                 .select {
-                    filter { isIn("conversation_id", directIds) }
+                    filter { isIn(COL_CONVERSATION_ID, directIds) }
                 }.decodeList<MemberRow>()
         }.getOrDefault(emptyList())
 
@@ -310,14 +312,81 @@ class ChatSupabaseService(
         }
     }
 
+    suspend fun markConversationRead(conversationId: String) {
+        val client = supabaseClient ?: return
+        val myId = currentUserId() ?: return
+        runCatching {
+            client.postgrest
+                .from(TABLE_CONVERSATION_MEMBERS)
+                .update(
+                    buildJsonObject {
+                        put("last_read_at", Instant.now().toString())
+                    },
+                ) {
+                    filter {
+                        eq(COL_CONVERSATION_ID, conversationId)
+                        eq("user_id", myId)
+                    }
+                }
+        }.onFailure(::rethrowCancellation)
+    }
+
+    suspend fun broadcastTyping(
+        conversationId: String,
+        isTyping: Boolean,
+    ) {
+        val client = supabaseClient ?: return
+        val myId = currentUserId() ?: return
+        runCatching {
+            val ch =
+                client.realtime.subscriptions["realtime:${channelName(conversationId)}"]
+                    ?: client.channel(channelName(conversationId))
+            ch.broadcast(
+                event = EVENT_TYPING,
+                message =
+                buildJsonObject {
+                    put("user_id", myId)
+                    put("is_typing", isTyping)
+                },
+            )
+        }.onFailure(::rethrowCancellation)
+    }
+
+    fun observeTypingStatus(conversationId: String): Flow<Boolean> {
+        val client = supabaseClient ?: return emptyFlow()
+        val myId = currentUserId()
+        return channelFlow {
+            val ch =
+                client.realtime.subscriptions["realtime:${channelName(conversationId)}"]
+                    ?: client.channel(channelName(conversationId))
+            val typingFlow =
+                ch.broadcastFlow<JsonObject>(event = EVENT_TYPING).mapNotNull { payload ->
+                    val senderId = payload["user_id"]?.jsonPrimitive?.contentOrNull
+                    if (senderId != null && senderId == myId) {
+                        null
+                    } else {
+                        payload["is_typing"]?.jsonPrimitive?.booleanOrNull
+                    }
+                }
+            launch {
+                typingFlow.collect { send(it) }
+            }
+            if (ch.status.value != RealtimeChannel.Status.SUBSCRIBED) {
+                runCatching { ch.subscribe() }.onFailure(::rethrowCancellation)
+            }
+            awaitClose { }
+        }
+    }
+
     private suspend fun broadcastNewMessage(
         client: SupabaseClient,
         message: MessageDto,
     ) {
         runCatching {
-            client
-                .channel(channelName(message.conversationId))
-                .broadcast(event = EVENT_NEW_MESSAGE, message = message)
+            val ch =
+                client.realtime.subscriptions["realtime:${channelName(message.conversationId)}"]
+                    ?: client.channel(channelName(message.conversationId))
+            ch.broadcast(event = EVENT_NEW_MESSAGE, message = message)
         }.onFailure(::rethrowCancellation)
         runCatching {
             val globalChannel =
@@ -381,6 +450,7 @@ class ChatSupabaseService(
     )
 
     private companion object {
+        const val COL_CONVERSATION_ID = "conversation_id"
         const val TABLE_CONVERSATIONS = "conversations"
         const val TABLE_CONVERSATION_MEMBERS = "conversation_members"
         const val TABLE_USER_PROFILES = "user_profiles"
@@ -391,6 +461,7 @@ class ChatSupabaseService(
         const val CHANNEL_CHAT_PROFILE_UPDATES = "chat_profile_updates"
         const val EVENT_NEW_MESSAGE = "new_message"
         const val EVENT_PROFILE_UPDATED = "profile_updated"
+        const val EVENT_TYPING = "typing"
 
         fun channelName(conversationId: String): String = "chat_messages_$conversationId"
     }

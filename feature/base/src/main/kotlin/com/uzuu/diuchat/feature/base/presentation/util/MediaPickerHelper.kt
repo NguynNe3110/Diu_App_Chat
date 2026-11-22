@@ -1,6 +1,8 @@
 package com.uzuu.diuchat.feature.base.presentation.util
 
+import android.Manifest
 import android.content.Context
+import android.content.pm.PackageManager
 import android.net.Uri
 import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -15,6 +17,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import java.io.File
 
@@ -47,6 +50,7 @@ class MediaPickerController(
     private val context: Context,
     private val photoPickerLauncher: ManagedActivityResultLauncher<PickVisualMediaRequest, Uri?>,
     private val cameraLauncher: ManagedActivityResultLauncher<Uri, Boolean>,
+    private val cameraPermissionLauncher: ManagedActivityResultLauncher<String, Boolean>,
     private val onPrepareCameraUri: (Uri) -> Unit,
     private val onError: ((Throwable) -> Unit)?,
 ) {
@@ -61,6 +65,21 @@ class MediaPickerController(
     }
 
     fun launchCamera() {
+        val granted =
+            ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) ==
+                PackageManager.PERMISSION_GRANTED
+        if (granted) {
+            launchCameraDirect()
+        } else {
+            runCatching {
+                cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+            }.onFailure { throwable ->
+                onError?.invoke(throwable)
+            }
+        }
+    }
+
+    internal fun launchCameraDirect() {
         runCatching {
             val uri = MediaFileProvider.createCameraImageUri(context)
             onPrepareCameraUri(uri)
@@ -102,11 +121,27 @@ fun rememberMediaPickerController(
             }
         }
 
-    return remember(context, photoPickerLauncher, cameraLauncher) {
+    val cameraPermissionLauncher =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.RequestPermission(),
+        ) { granted: Boolean ->
+            if (granted) {
+                runCatching {
+                    val uri = MediaFileProvider.createCameraImageUri(context)
+                    pendingCameraUri = uri
+                    cameraLauncher.launch(uri)
+                }.onFailure { throwable ->
+                    currentOnError?.invoke(throwable)
+                }
+            }
+        }
+
+    return remember(context, photoPickerLauncher, cameraLauncher, cameraPermissionLauncher) {
         MediaPickerController(
             context = context,
             photoPickerLauncher = photoPickerLauncher,
             cameraLauncher = cameraLauncher,
+            cameraPermissionLauncher = cameraPermissionLauncher,
             onPrepareCameraUri = { uri -> pendingCameraUri = uri },
             onError = currentOnError,
         )

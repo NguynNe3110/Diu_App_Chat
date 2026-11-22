@@ -17,15 +17,21 @@ import com.uzuu.diuchat.feature.chat.domain.usecase.GetConversationsUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.GetMessagesUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.LeaveGroupUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.ManageGroupMemberUseCase
+import com.uzuu.diuchat.feature.chat.domain.usecase.ObserveTypingStatusUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.SendMessageUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.SendPhotoMessageUseCase
+import com.uzuu.diuchat.feature.chat.domain.usecase.SendTypingStatusUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.SendVoiceMessageUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.TogglePinMessageUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.ToggleReactionUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.UpdateGroupInfoUseCase
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
+
+private const val TYPING_IDLE_TIMEOUT_MS = 2_500L
+private const val TYPING_REMOTE_CLEAR_MS = 3_500L
 
 @Suppress("TooManyFunctions", "LongParameterList")
 class ChatViewModel(
@@ -36,8 +42,10 @@ class ChatViewModel(
     private val getMessagesUseCase: GetMessagesUseCase,
     private val leaveGroupUseCase: LeaveGroupUseCase,
     private val manageGroupMemberUseCase: ManageGroupMemberUseCase,
+    private val observeTypingStatusUseCase: ObserveTypingStatusUseCase,
     private val sendMessageUseCase: SendMessageUseCase,
     private val sendPhotoMessageUseCase: SendPhotoMessageUseCase,
+    private val sendTypingStatusUseCase: SendTypingStatusUseCase,
     private val sendVoiceMessageUseCase: SendVoiceMessageUseCase,
     private val togglePinMessageUseCase: TogglePinMessageUseCase,
     private val toggleReactionUseCase: ToggleReactionUseCase,
@@ -45,6 +53,9 @@ class ChatViewModel(
 ) : BaseViewModel<ChatUiState, ChatAction>(ChatUiState()) {
     private var messagesJob: Job? = null
     private var conversationJob: Job? = null
+    private var typingObserveJob: Job? = null
+    private var typingClearJob: Job? = null
+    private var localTypingStopJob: Job? = null
 
     init {
         observeAvailableConversations()
@@ -87,10 +98,41 @@ class ChatViewModel(
                     }
                 }
         }
+        typingObserveJob?.cancel()
+        typingObserveJob = viewModelScope.launch {
+            observeTypingStatusUseCase(conversationId)
+                .catch { /* ignore typing errors */ }
+                .collect { isTyping ->
+                    sendAction(ChatAction.SetPartnerTyping(isTyping))
+                    typingClearJob?.cancel()
+                    if (isTyping) {
+                        typingClearJob = viewModelScope.launch {
+                            delay(TYPING_REMOTE_CLEAR_MS)
+                            sendAction(ChatAction.SetPartnerTyping(false))
+                        }
+                    }
+                }
+        }
     }
 
     fun onInputChanged(content: String) {
         sendAction(ChatAction.UpdateInput(content))
+        val convoId = uiStateFlow.value.conversationId
+        if (convoId.isBlank()) return
+        localTypingStopJob?.cancel()
+        if (content.isNotBlank()) {
+            viewModelScope.launch {
+                runCatching { sendTypingStatusUseCase(convoId, true) }
+            }
+            localTypingStopJob = viewModelScope.launch {
+                delay(TYPING_IDLE_TIMEOUT_MS)
+                runCatching { sendTypingStatusUseCase(convoId, false) }
+            }
+        } else {
+            viewModelScope.launch {
+                runCatching { sendTypingStatusUseCase(convoId, false) }
+            }
+        }
     }
 
     fun onSelectMood(mood: MoodType) {
@@ -258,14 +300,16 @@ class ChatViewModel(
     }
 
     fun onTogglePinMessage(message: ChatMessage) {
-        val currentConvoId = uiStateFlow.value.conversationId
+        val currentState = uiStateFlow.value
+        val currentConvoId = currentState.conversationId
+        val willPin = currentState.currentConversation?.pinnedMessageId != message.id
         viewModelScope.launch {
             togglePinMessageUseCase(currentConvoId, message.id)
-            val updatedSnippet = if (uiStateFlow.value.pinnedSnippet == null) message.content.take(60) else null
+            val updatedSnippet = if (willPin) message.content.take(60) else null
             sendAction(
                 ChatAction.SetConversation(
                     uiStateFlow.value.currentConversation?.copy(
-                        pinnedMessageId = updatedSnippet?.let { message.id },
+                        pinnedMessageId = if (willPin) message.id else null,
                         pinnedMessageSnippet = updatedSnippet,
                     ),
                 ),

@@ -11,7 +11,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -21,16 +23,16 @@ class HomeRepositoryImpl(
     private val homeMapper: HomeMapper,
     coroutineScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
 ) : HomeRepository {
-    private val starsState = MutableStateFlow(
-        if (homeSupabaseService.isConfigured()) emptyList() else seedStars(),
-    )
-    private val recentChatsState = MutableStateFlow(
-        if (homeSupabaseService.isConfigured()) emptyList() else seedRecentChats(),
-    )
+    private val starsFlow = MutableSharedFlow<List<StarPerson>>(replay = 1)
+    private val recentChatsFlow = MutableSharedFlow<List<RecentChat>>(replay = 1)
     private val userDisplayNameState = MutableStateFlow("")
     private val ioScope = coroutineScope
 
     init {
+        if (!homeSupabaseService.isConfigured()) {
+            starsFlow.tryEmit(seedStars())
+            recentChatsFlow.tryEmit(seedRecentChats())
+        }
         ioScope.launch {
             syncFromRemote()
         }
@@ -44,17 +46,17 @@ class HomeRepositoryImpl(
     }
 
     override fun getStars(isQuiet: Boolean): Flow<List<StarPerson>> {
-        if (starsState.value.isEmpty() && homeSupabaseService.isAuthenticated()) {
+        if (starsFlow.replayCache.isEmpty() && homeSupabaseService.isAuthenticated()) {
             ioScope.launch { syncFromRemote() }
         }
-        return starsState.map { stars ->
+        return starsFlow.asSharedFlow().map { stars ->
             stars.map { star ->
                 if (star.id == "minh") star.copy(isQuiet = isQuiet) else star
             }
         }
     }
 
-    override fun getRecentChats(): Flow<List<RecentChat>> = recentChatsState.asStateFlow()
+    override fun getRecentChats(): Flow<List<RecentChat>> = recentChatsFlow.asSharedFlow()
 
     override fun getUserDisplayName(): Flow<String> = userDisplayNameState.asStateFlow()
 
@@ -64,24 +66,31 @@ class HomeRepositoryImpl(
 
     override suspend fun clearLocalData() {
         if (homeSupabaseService.isConfigured()) {
-            starsState.value = emptyList()
-            recentChatsState.value = emptyList()
+            starsFlow.tryEmit(emptyList())
+            recentChatsFlow.tryEmit(emptyList())
             userDisplayNameState.value = ""
         }
     }
 
     suspend fun syncFromRemote() {
-        val overview = homeSupabaseService.fetchOverview() ?: return
+        val overview = homeSupabaseService.fetchOverview()
+        if (overview == null) {
+            if (homeSupabaseService.isConfigured() && starsFlow.replayCache.isEmpty()) {
+                starsFlow.tryEmit(emptyList())
+                recentChatsFlow.tryEmit(emptyList())
+            }
+            return
+        }
         overview.userDisplayName?.let { userDisplayNameState.value = it }
         if (homeSupabaseService.isAuthenticated()) {
-            starsState.value = overview.stars.map(homeMapper::toDomain)
-            recentChatsState.value = overview.recentChats.map(homeMapper::toDomain)
+            starsFlow.tryEmit(overview.stars.map(homeMapper::toDomain))
+            recentChatsFlow.tryEmit(overview.recentChats.map(homeMapper::toDomain))
         } else {
             if (overview.stars.isNotEmpty()) {
-                starsState.value = overview.stars.map(homeMapper::toDomain)
+                starsFlow.tryEmit(overview.stars.map(homeMapper::toDomain))
             }
             if (overview.recentChats.isNotEmpty()) {
-                recentChatsState.value = overview.recentChats.map(homeMapper::toDomain)
+                recentChatsFlow.tryEmit(overview.recentChats.map(homeMapper::toDomain))
             }
         }
     }

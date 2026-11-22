@@ -15,8 +15,10 @@ import com.uzuu.diuchat.feature.chat.domain.usecase.GetConversationsUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.GetMessagesUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.LeaveGroupUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.ManageGroupMemberUseCase
+import com.uzuu.diuchat.feature.chat.domain.usecase.ObserveTypingStatusUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.SendMessageUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.SendPhotoMessageUseCase
+import com.uzuu.diuchat.feature.chat.domain.usecase.SendTypingStatusUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.SendVoiceMessageUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.TogglePinMessageUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.ToggleReactionUseCase
@@ -50,8 +52,10 @@ class ChatViewModelTest {
     private val mockGetMessagesUseCase: GetMessagesUseCase = mockk()
     private val mockLeaveGroupUseCase: LeaveGroupUseCase = mockk()
     private val mockManageGroupMemberUseCase: ManageGroupMemberUseCase = mockk()
+    private val mockObserveTypingStatusUseCase: ObserveTypingStatusUseCase = mockk()
     private val mockSendMessageUseCase: SendMessageUseCase = mockk()
     private val mockSendPhotoMessageUseCase: SendPhotoMessageUseCase = mockk()
+    private val mockSendTypingStatusUseCase: SendTypingStatusUseCase = mockk(relaxed = true)
     private val mockSendVoiceMessageUseCase: SendVoiceMessageUseCase = mockk()
     private val mockTogglePinMessageUseCase: TogglePinMessageUseCase = mockk()
     private val mockToggleReactionUseCase: ToggleReactionUseCase = mockk()
@@ -85,6 +89,7 @@ class ChatViewModelTest {
             ),
         )
         every { mockGetConversationsUseCase() } returns flowOf(emptyList())
+        every { mockObserveTypingStatusUseCase(any()) } returns flowOf(false)
         sut = ChatViewModel(
             createGroupUseCase = mockCreateGroupUseCase,
             forwardMessageUseCase = mockForwardMessageUseCase,
@@ -93,8 +98,10 @@ class ChatViewModelTest {
             getMessagesUseCase = mockGetMessagesUseCase,
             leaveGroupUseCase = mockLeaveGroupUseCase,
             manageGroupMemberUseCase = mockManageGroupMemberUseCase,
+            observeTypingStatusUseCase = mockObserveTypingStatusUseCase,
             sendMessageUseCase = mockSendMessageUseCase,
             sendPhotoMessageUseCase = mockSendPhotoMessageUseCase,
+            sendTypingStatusUseCase = mockSendTypingStatusUseCase,
             sendVoiceMessageUseCase = mockSendVoiceMessageUseCase,
             togglePinMessageUseCase = mockTogglePinMessageUseCase,
             toggleReactionUseCase = mockToggleReactionUseCase,

@@ -5,6 +5,7 @@ import com.uzuu.diuchat.feature.chat.domain.model.Conversation
 import com.uzuu.diuchat.feature.chat.domain.model.GroupRole
 import com.uzuu.diuchat.feature.chat.domain.model.MoodType
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
 
 interface ChatRepository {
     fun observeMessages(conversationId: String): Flow<List<ChatMessage>>
@@ -75,4 +76,10 @@ interface ChatRepository {
     suspend fun retryFailedMessage(messageId: String)
 
     suspend fun markAsRead(conversationId: String)
+
+    suspend fun sendTypingStatus(conversationId: String, isTyping: Boolean) {
+        // Default no-op for test doubles
+    }
+
+    fun observeTypingStatus(conversationId: String): Flow<Boolean> = emptyFlow()
 }
