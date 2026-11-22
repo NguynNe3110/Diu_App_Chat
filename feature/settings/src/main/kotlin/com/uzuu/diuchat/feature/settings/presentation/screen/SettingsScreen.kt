@@ -34,6 +34,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -635,6 +636,7 @@ private fun QuietOverviewCard(
                 text = "Chỉnh lịch & ngoại lệ →",
                 fontSize = 14.sp,
                 color = colors.inkSecondary,
+                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
                 modifier = Modifier
                     .padding(top = 8.dp)
                     .clip(RoundedCornerShape(8.dp))

@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.uzuu.diuchat.feature.base.common.res.AppTheme
 
 @Composable
@@ -28,7 +29,7 @@ fun DiuFilterChip(
     FilterChip(
         selected = selected,
         onClick = onClick,
-        label = { Text(text) },
+        label = { Text(text, fontSize = 14.sp) },
         modifier = modifier,
         enabled = enabled,
         shape = RoundedCornerShape(18.dp),
