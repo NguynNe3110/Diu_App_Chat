@@ -222,10 +222,13 @@ class ChatSupabaseService(
             val resolvedTitle = peer?.customNickname?.takeIf { it.isNotBlank() }
                 ?: profile?.displayName?.takeIf { it.isNotBlank() }
                 ?: convo.title
+            val safeAvatar = (convo.avatarUrl ?: profile?.avatarUrl)?.takeUnless { url ->
+                url.contains("googleusercontent.com", ignoreCase = true)
+            }
             convo.copy(
                 title = resolvedTitle,
                 moodId = profile?.currentMood ?: convo.moodId,
-                avatarUrl = convo.avatarUrl ?: profile?.avatarUrl,
+                avatarUrl = safeAvatar,
             )
         }
     }

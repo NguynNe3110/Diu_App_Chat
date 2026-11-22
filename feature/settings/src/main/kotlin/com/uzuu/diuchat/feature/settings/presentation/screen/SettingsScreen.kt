@@ -870,11 +870,7 @@ private data class EmergencyContactItem(
     val moodColor: Color,
 )
 
-private val EMERGENCY_CONTACTS = listOf(
-    EmergencyContactItem("minh", "Minh", AppPalette.MoodThuong),
-    EmergencyContactItem("me", "Mẹ", AppPalette.MoodVui),
-    EmergencyContactItem("thao", "Thảo", AppPalette.MoodNho),
-)
+private val EMERGENCY_CONTACTS: List<EmergencyContactItem> = emptyList()
 
 private val WEEKDAY_ITEMS = listOf(
     1 to "T2",
@@ -1010,34 +1006,44 @@ private fun QuietHoursSubScreen(
                         .padding(horizontal = 20.dp),
                     contentPadding = PaddingValues(0.dp),
                 ) {
-                    EMERGENCY_CONTACTS.forEachIndexed { index, contact ->
-                        if (index > 0) {
-                            HorizontalDivider(thickness = 1.dp, color = colors.line)
-                        }
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .heightIn(min = 56.dp)
-                                .padding(horizontal = 16.dp, vertical = 10.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        ) {
-                            DiuOrbAvatar(
-                                initials = contact.name.take(1),
-                                moodColor = contact.moodColor,
-                                size = 34.dp,
-                            )
-                            Text(
-                                text = contact.name,
-                                fontSize = 15.sp,
-                                color = colors.ink,
-                                modifier = Modifier.weight(1f),
-                            )
-                            DiuSwitch(
-                                checked = contact.id in schedule.allowedEmergencyContactIds,
-                                onCheckedChange = { onToggleEmergencyContact(contact.id) },
-                                contentDescription = "Cho phép ${contact.name} gọi khẩn",
-                            )
+                    if (EMERGENCY_CONTACTS.isEmpty()) {
+                        Text(
+                            text = "Chưa có liên hệ khẩn cấp nào. " +
+                                "Thêm người thân trong Vòng thân để cho phép gọi xuyên giờ yên lặng.",
+                            style = AppTheme.typography.bodySmall,
+                            color = colors.inkSecondary,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+                        )
+                    } else {
+                        EMERGENCY_CONTACTS.forEachIndexed { index, contact ->
+                            if (index > 0) {
+                                HorizontalDivider(thickness = 1.dp, color = colors.line)
+                            }
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .heightIn(min = 56.dp)
+                                    .padding(horizontal = 16.dp, vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            ) {
+                                DiuOrbAvatar(
+                                    initials = contact.name.take(1),
+                                    moodColor = contact.moodColor,
+                                    size = 34.dp,
+                                )
+                                Text(
+                                    text = contact.name,
+                                    fontSize = 15.sp,
+                                    color = colors.ink,
+                                    modifier = Modifier.weight(1f),
+                                )
+                                DiuSwitch(
+                                    checked = contact.id in schedule.allowedEmergencyContactIds,
+                                    onCheckedChange = { onToggleEmergencyContact(contact.id) },
+                                    contentDescription = "Cho phép ${contact.name} gọi khẩn",
+                                )
+                            }
                         }
                     }
                 }
@@ -1145,7 +1151,7 @@ private val LOCKSCREEN_STYLES = listOf(
     LockscreenPreviewStyle(
         privacy = NotificationPrivacy.SENDER_NAME,
         title = "Tên người gửi",
-        previewText = "Minh gửi cho bạn một lời nhắn",
+        previewText = "Người thương gửi cho bạn một lời nhắn",
     ),
     LockscreenPreviewStyle(
         privacy = NotificationPrivacy.FULL_CONTENT,

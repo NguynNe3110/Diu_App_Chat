@@ -54,8 +54,7 @@ class SettingsPreferencesDataSource(
             startMinuteOfDay = preferences[KEY_QUIET_HOURS_START_MINUTE] ?: (22 * 60 + 30),
             endMinuteOfDay = preferences[KEY_QUIET_HOURS_END_MINUTE] ?: (6 * 60),
             timeZoneId = preferences[KEY_QUIET_HOURS_TIMEZONE] ?: "Asia/Ho_Chi_Minh",
-            allowedEmergencyContactIds = preferences[KEY_QUIET_HOURS_ALLOWED_CONTACTS]
-                ?: setOf("emergency_contact_linh"),
+            allowedEmergencyContactIds = preferences[KEY_QUIET_HOURS_ALLOWED_CONTACTS] ?: emptySet(),
             repeatDays = repeatDays,
         )
     }
@@ -76,7 +75,7 @@ class SettingsPreferencesDataSource(
     val blockedContactsFlow: Flow<List<BlockedContact>> = dataStore.data.map { preferences ->
         val raw = preferences[KEY_BLOCKED_CONTACTS_CSV]
         if (raw.isNullOrBlank()) {
-            defaultBlockedContacts()
+            emptyList()
         } else {
             raw.split(";").mapNotNull { entry ->
                 val tokens = entry.split("|")
