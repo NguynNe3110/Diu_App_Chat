@@ -144,19 +144,20 @@ class HomeSupabaseService(
         val allMembers = fetchMembersForConversations(client, convoIds)
         val peerUserIds = allMembers.map { it.userId }.filter { it != currentUserId }.distinct()
         val profilesById = fetchProfilesById(client, peerUserIds)
-        val latestMessagesByConvo = fetchLatestMessages(client, convoIds)
+        val recentMessagesByConvo = fetchRecentMessages(client, convoIds)
 
         val myMemberByConvo = myMemberships.associateBy { it.conversationId }
         val membersByConvo = allMembers.groupBy { it.conversationId }
 
         val recentChats = conversations.map { convo ->
+            val convoMessages = recentMessagesByConvo[convo.id].orEmpty()
             buildRecentChatDto(
                 convo = convo,
                 currentUserId = currentUserId,
                 members = membersByConvo[convo.id].orEmpty(),
                 myMember = myMemberByConvo[convo.id],
                 profilesById = profilesById,
-                latestMsg = latestMessagesByConvo[convo.id],
+                convoMessages = convoMessages,
             )
         }
         val stars = buildStars(recentChats, conversations, membersByConvo)
@@ -211,10 +212,10 @@ class HomeSupabaseService(
             .associateBy { it.id }
     }
 
-    private suspend fun fetchLatestMessages(
+    private suspend fun fetchRecentMessages(
         client: SupabaseClient,
         convoIds: List<String>,
-    ): Map<String, MessageSummaryRow?> = runCatching {
+    ): Map<String, List<MessageSummaryRow>> = runCatching {
         client.postgrest
             .from(TABLE_MESSAGES)
             .select {
@@ -224,7 +225,6 @@ class HomeSupabaseService(
             }.decodeList<MessageSummaryRow>()
             .filter { it.deletedAt == null }
             .groupBy { it.conversationId }
-            .mapValues { (_, msgs) -> msgs.firstOrNull() }
     }.getOrDefault(emptyMap())
 
     @Suppress("LongParameterList")
@@ -234,12 +234,14 @@ class HomeSupabaseService(
         members: List<MemberRow>,
         myMember: MemberRow?,
         profilesById: Map<String, ProfileRow>,
-        latestMsg: MessageSummaryRow?,
+        convoMessages: List<MessageSummaryRow>,
     ): RecentChatDto {
         val peerMember = members.firstOrNull { it.userId != currentUserId }
         val peerProfile = peerMember?.userId?.let { profilesById[it] }
         val displayName = resolveDisplayName(convo, peerMember, peerProfile)
-        val preview = resolveMessagePreview(latestMsg)
+        val latestMsg = convoMessages.firstOrNull()
+        val preview = resolveMessagePreviewWithSender(latestMsg, currentUserId, profilesById)
+        val unreadCount = computeUnreadCount(convoMessages, currentUserId, myMember?.lastReadAt)
         val moodHex = moodToHex(peerProfile?.currentMood ?: convo.moodId)
         val safeAvatar = peerProfile?.avatarUrl?.takeUnless { url ->
             url.contains("googleusercontent.com", ignoreCase = true)
@@ -251,11 +253,44 @@ class HomeSupabaseService(
             moodColorHex = moodHex,
             lastMessage = preview,
             timestamp = formatTimestamp(latestMsg?.createdAt ?: convo.updatedAt),
-            unreadCount = 0,
+            unreadCount = unreadCount,
             isPendingLetter = latestMsg?.type == "sealed_letter",
             isQuiet = myMember?.isMuted == true,
             avatarUrl = safeAvatar,
         )
+    }
+
+    private fun resolveMessagePreviewWithSender(
+        latestMsg: MessageSummaryRow?,
+        currentUserId: String,
+        profilesById: Map<String, ProfileRow>,
+    ): String {
+        val body = resolveMessagePreview(latestMsg)
+        if (latestMsg == null) return body
+        val senderPrefix = when {
+            latestMsg.senderId == currentUserId -> "Bạn"
+            !latestMsg.senderId.isNullOrBlank() -> profilesById[latestMsg.senderId]?.displayName
+            else -> null
+        }
+        return if (!senderPrefix.isNullOrBlank()) "$senderPrefix: $body" else body
+    }
+
+    private fun computeUnreadCount(
+        convoMessages: List<MessageSummaryRow>,
+        currentUserId: String,
+        lastReadAtIso: String?,
+    ): Int {
+        val lastReadInstant = lastReadAtIso?.let { runCatching { Instant.parse(it) }.getOrNull() }
+        return convoMessages.count { msg ->
+            if (msg.senderId == currentUserId) {
+                false
+            } else if (lastReadInstant == null) {
+                true
+            } else {
+                val msgInstant = msg.createdAt?.let { runCatching { Instant.parse(it) }.getOrNull() }
+                msgInstant != null && msgInstant.isAfter(lastReadInstant)
+            }
+        }
     }
 
     private fun resolveDisplayName(
@@ -329,6 +364,8 @@ class HomeSupabaseService(
         val customNickname: String? = null,
         @SerialName("is_muted")
         val isMuted: Boolean = false,
+        @SerialName("last_read_at")
+        val lastReadAt: String? = null,
         @SerialName("left_at")
         val leftAt: String? = null,
     )
@@ -377,6 +414,8 @@ class HomeSupabaseService(
     private data class MessageSummaryRow(
         @SerialName("conversation_id")
         val conversationId: String,
+        @SerialName("sender_id")
+        val senderId: String? = null,
         @SerialName("type")
         val type: String = "text",
         @SerialName("content")

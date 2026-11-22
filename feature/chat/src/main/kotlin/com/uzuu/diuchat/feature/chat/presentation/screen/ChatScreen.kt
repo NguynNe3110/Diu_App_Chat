@@ -145,11 +145,11 @@ fun ChatScreen(
             mood = state.partnerMood,
             lastMessage = "",
             lastMessageTimeEpochMs = 0L,
-            daysTogether = 712,
-            anniversaryDate = "12/10",
+            daysTogether = 1,
         )
         ChatInfoScreen(
             conversation = currentConvo,
+            messages = state.messages,
             onBackClick = { viewModel.onOpenChatInfo(false) },
             onLeaveGroup = {
                 viewModel.onLeaveGroup(
@@ -400,7 +400,25 @@ fun ChatContent(
                                         ),
                                         color = colors.ink,
                                     )
-                                    if (state.isPartnerInQuietHours) {
+                                    if (state.isPartnerTyping) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(5.dp),
+                                        ) {
+                                            DiuMoodDot(
+                                                color = partnerMoodColor,
+                                                size = 7.dp,
+                                            )
+                                            Text(
+                                                text = "đang nhập…",
+                                                style = AppTheme.typography.bodySmall.copy(
+                                                    fontSize = 12.sp,
+                                                    fontWeight = FontWeight.Medium,
+                                                ),
+                                                color = colors.accent,
+                                            )
+                                        }
+                                    } else if (state.isPartnerInQuietHours) {
                                         Row(
                                             verticalAlignment = Alignment.CenterVertically,
                                             horizontalArrangement = Arrangement.spacedBy(4.dp),

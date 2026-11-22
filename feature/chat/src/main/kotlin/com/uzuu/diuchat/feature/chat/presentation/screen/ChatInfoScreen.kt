@@ -41,12 +41,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import com.uzuu.diuchat.feature.base.common.res.AppIcons
 import com.uzuu.diuchat.feature.base.common.res.AppPalette
 import com.uzuu.diuchat.feature.base.common.res.AppTheme
@@ -57,9 +59,11 @@ import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuConfirma
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuIconButton
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuOrbAvatar
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuSettingsRow
+import com.uzuu.diuchat.feature.chat.domain.model.ChatMessage
 import com.uzuu.diuchat.feature.chat.domain.model.Conversation
 import com.uzuu.diuchat.feature.chat.domain.model.GroupMember
 import com.uzuu.diuchat.feature.chat.domain.model.GroupRole
+import com.uzuu.diuchat.feature.chat.domain.model.MessageMediaType
 import com.uzuu.diuchat.feature.chat.domain.model.MoodType
 
 private val CORE_GROUP_MOODS = listOf(
@@ -68,12 +72,6 @@ private val CORE_GROUP_MOODS = listOf(
     MoodType.BINHYEN,
     MoodType.NHO,
     MoodType.TRAM,
-)
-
-private data class SharedMediaThumb(
-    val caption: String,
-    val mood: MoodType,
-    val timestamp: String,
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -98,6 +96,7 @@ fun ChatInfoScreen(
     onOpenGroupEditSheet: (Boolean) -> Unit = {},
     onUpdateGroupTitleAndMood: (String, MoodType) -> Unit = { _, _ -> },
     onOpenNewGroup: () -> Unit = {},
+    messages: List<ChatMessage> = emptyList(),
 ) {
     var isMuted by remember(conversation.isMuted) { mutableStateOf(conversation.isMuted) }
     var showNicknameDialog by remember { mutableStateOf(false) }
@@ -116,7 +115,15 @@ fun ChatInfoScreen(
     val otherAdminsCount = conversation.members.count { (it.isFromMe || it.userId == "me").not() && it.role == GroupRole.ADMIN }
     val isLastAdmin = callerIsAdmin && otherAdminsCount == 0 && conversation.members.size > 1
 
-    val mediaThumbs = remember { emptyList<SharedMediaThumb>() }
+    val mediaPhotos = remember(messages) {
+        messages
+            .filter { it.mediaType == MessageMediaType.PHOTO && !it.mediaUri.isNullOrBlank() }
+            .takeLast(4)
+            .reversed()
+    }
+    val mediaCount = remember(messages) {
+        messages.count { it.mediaType == MessageMediaType.PHOTO || it.mediaType == MessageMediaType.VOICE }
+    }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -182,11 +189,12 @@ fun ChatInfoScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     DiuOrbAvatar(
-                        initials = displayTitle.take(1).ifEmpty { "D" },
+                        initials = displayTitle.take(1).uppercase().ifEmpty { "D" },
                         moodColor = moodColor,
                         size = 104.dp,
+                        avatarUrl = conversation.avatarUrl,
                         isPulsing = true,
-                        badgeText = if (conversation.isGroup) "${conversation.members.size.coerceAtLeast(4)}" else null,
+                        badgeText = if (conversation.isGroup && conversation.members.isNotEmpty()) "${conversation.members.size}" else null,
                     )
                     Spacer(modifier = Modifier.height(14.dp))
                     Text(
@@ -198,9 +206,9 @@ fun ChatInfoScreen(
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = if (conversation.isGroup) {
-                            "${conversation.members.size.coerceAtLeast(4)} người · tạo từ tháng 3"
+                            "${conversation.members.size} thành viên · ${conversation.mood.displayName}"
                         } else {
-                            "Người thương · bên nhau 2 năm"
+                            "Đang thấy ${conversation.mood.displayName.lowercase()}"
                         },
                         style = AppTheme.typography.bodySmall,
                         color = colors.inkSecondary,
@@ -241,27 +249,27 @@ fun ChatInfoScreen(
                 }
             }
 
-            // 3-column Anniversary stats card (.anniv) for 1-1 chat
+            // 3-column real stats card for 1-1 chat
             if (!conversation.isGroup) {
                 item {
-                    val daysCount = (conversation.daysTogether ?: 712).let { if (it == 120) 712 else it }
+                    val daysCount = (conversation.daysTogether ?: 1).coerceAtLeast(1)
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
                         AnniversaryStatCard(
                             value = "$daysCount",
-                            label = "ngày nhắn cho nhau",
+                            label = "ngày kết nối",
                             modifier = Modifier.weight(1f),
                         )
                         AnniversaryStatCard(
-                            value = "12/10",
-                            label = "kỷ niệm 2 năm",
+                            value = "${messages.size}",
+                            label = "tin nhắn",
                             modifier = Modifier.weight(1f),
                         )
                         AnniversaryStatCard(
-                            value = "3",
-                            label = "thư hẹn đã gửi",
+                            value = "$mediaCount",
+                            label = "ảnh & thoại",
                             modifier = Modifier.weight(1f),
                         )
                     }
@@ -292,35 +300,42 @@ fun ChatInfoScreen(
                         )
                     }
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    ) {
-                        mediaThumbs.forEach { thumb ->
-                            val thumbColor = Color(thumb.mood.colorHex)
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .aspectRatio(1f)
-                                    .clip(RoundedCornerShape(16.dp))
-                                    .background(thumbColor.copy(alpha = 0.42f))
-                                    .border(1.dp, colors.line, RoundedCornerShape(16.dp))
-                                    .clickable {
-                                        onOpenPhotoViewer(
-                                            thumb.caption,
-                                            thumb.mood.displayName,
-                                            displayTitle,
-                                            thumb.timestamp,
-                                        )
-                                    },
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Icon(
-                                    painter = painterResource(AppIcons.Image),
-                                    contentDescription = thumb.caption,
-                                    tint = colors.ink.copy(alpha = 0.7f),
-                                    modifier = Modifier.size(20.dp),
-                                )
+                    if (mediaPhotos.isEmpty()) {
+                        Text(
+                            text = "Chưa có ảnh nào được chia sẻ trong cuộc trò chuyện này.",
+                            style = AppTheme.typography.bodySmall,
+                            color = colors.inkTertiary,
+                        )
+                    } else {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            mediaPhotos.forEach { photoMsg ->
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .aspectRatio(1f)
+                                        .clip(RoundedCornerShape(16.dp))
+                                        .background(colors.surface)
+                                        .border(1.dp, colors.line, RoundedCornerShape(16.dp))
+                                        .clickable {
+                                            onOpenPhotoViewer(
+                                                photoMsg.caption ?: photoMsg.content,
+                                                photoMsg.mood.displayName,
+                                                photoMsg.senderName,
+                                                "",
+                                            )
+                                        },
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    AsyncImage(
+                                        model = photoMsg.mediaUri,
+                                        contentDescription = photoMsg.caption ?: "Ảnh đã chia sẻ",
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier.fillMaxSize(),
+                                    )
+                                }
                             }
                         }
                     }

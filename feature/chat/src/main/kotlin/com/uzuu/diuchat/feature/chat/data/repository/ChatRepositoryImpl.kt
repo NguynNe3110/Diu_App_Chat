@@ -1,5 +1,7 @@
 package com.uzuu.diuchat.feature.chat.data.repository
 
+import android.content.Context
+import android.net.Uri
 import androidx.room.withTransaction
 import com.uzuu.diuchat.feature.chat.data.datasource.api.model.MessageDto
 import com.uzuu.diuchat.feature.chat.data.datasource.api.service.ChatSupabaseService
@@ -35,6 +37,7 @@ class ChatRepositoryImpl(
     private val database: DiuChatDatabase? = null,
     private val chatMapper: ChatMapper = ChatMapper(),
     private val supabaseService: ChatSupabaseService = ChatSupabaseService(null),
+    private val context: Context? = null,
 ) : ChatRepository {
     override fun observeMessages(
         conversationId: String,
@@ -151,9 +154,41 @@ class ChatRepositoryImpl(
 
         val outboxEntity = createOutboxEntity(operationId, conversationId, messageId, now)
         persistMessageWithOutbox(messageEntity, outboxEntity, mood)
-        val syncedEntity = syncMessageWithOutboxAck(messageEntity, operationId)
+
+        val uploadedUrl = uploadLocalPhotoIfNeeded(conversationId, messageId, photoUri)
+        val entityForSync =
+            if (!uploadedUrl.isNullOrBlank()) {
+                val updated = messageEntity.copy(mediaUri = uploadedUrl)
+                messageDao.insert(updated)
+                updated
+            } else {
+                messageEntity
+            }
+        val syncedEntity = syncMessageWithOutboxAck(entityForSync, operationId)
 
         return chatMapper.messageEntityToDomain(syncedEntity)
+    }
+
+    private suspend fun uploadLocalPhotoIfNeeded(
+        conversationId: String,
+        messageId: String,
+        photoUri: String,
+    ): String? {
+        val isLocalUri = photoUri.startsWith("content://") || photoUri.startsWith("file://")
+        val bytes =
+            if (isLocalUri) {
+                runCatching {
+                    context?.contentResolver?.openInputStream(Uri.parse(photoUri))?.use { it.readBytes() }
+                }.getOrNull()
+            } else {
+                null
+            }
+        return bytes?.let { data ->
+            supabaseService
+                .uploadMedia(bucketPath = "$conversationId/$messageId.jpg", bytes = data)
+                .getOrNull()
+                ?.takeIf { it.isNotBlank() }
+        }
     }
 
     override suspend fun sendVoiceMessage(
@@ -353,6 +388,14 @@ class ChatRepositoryImpl(
                 convo.copy(pinnedMessageId = null, pinnedMessageSnippet = null) to
                     message.copy(isPinned = false)
             } else {
+                val previousPinnedId = convo.pinnedMessageId
+                if (previousPinnedId != null && previousPinnedId != messageId) {
+                    messageDao.getMessage(previousPinnedId)?.let { prevMsg ->
+                        val unpinnedPrev = prevMsg.copy(isPinned = false)
+                        messageDao.insert(unpinnedPrev)
+                        supabaseService.upsertMessage(chatMapper.messageEntityToDto(unpinnedPrev))
+                    }
+                }
                 convo.copy(
                     pinnedMessageId = messageId,
                     pinnedMessageSnippet = message.content.take(PIN_SNIPPET_LENGTH),
@@ -427,7 +470,17 @@ class ChatRepositoryImpl(
             conversationDao.upsert(updated)
             supabaseService.upsertConversation(chatMapper.conversationEntityToDto(updated))
         }
+        supabaseService.markConversationRead(conversationId)
     }
+
+    override suspend fun sendTypingStatus(
+        conversationId: String,
+        isTyping: Boolean,
+    ) {
+        supabaseService.broadcastTyping(conversationId, isTyping)
+    }
+
+    override fun observeTypingStatus(conversationId: String): Flow<Boolean> = supabaseService.observeTypingStatus(conversationId)
 
     private fun currentUserId(): String = supabaseService.currentUserId() ?: ME_USER_ID
 
@@ -442,6 +495,7 @@ class ChatRepositoryImpl(
         response.messages.forEach { dto ->
             messageDao.insert(chatMapper.messageDtoToEntity(dto, activeUserId))
         }
+        supabaseService.markConversationRead(conversationId)
     }
 
     private suspend fun upsertIncomingMessage(dto: MessageDto) {
@@ -454,6 +508,9 @@ class ChatRepositoryImpl(
             mood = MoodType.fromId(entity.mood),
             now = entity.createdAtEpochMs,
         )
+        if (!entity.isFromMe) {
+            supabaseService.markConversationRead(entity.conversationId)
+        }
     }
 
     private suspend fun syncMessageWithOutboxAck(
