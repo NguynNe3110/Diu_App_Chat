@@ -517,6 +517,7 @@ class ChatRepositoryImpl(
                 createdAtEpochMs = now,
                 isFromMe = true,
                 mediaType = MessageMediaType.SEALED_LETTER.name,
+                audioDurationMs = unlockAtEpochMs,
                 caption = scheduledLabel,
             )
         val outbox = createOutboxEntity(operationId, conversationId, messageId, now)
@@ -530,6 +531,7 @@ class ChatRepositoryImpl(
         )
         return chatMapper.messageEntityToDomain(syncedEntity).copy(
             scheduledForLabel = scheduledLabel,
+            unlockAtEpochMs = unlockAtEpochMs,
             isSealedRevealed = false,
         )
     }
@@ -604,10 +606,15 @@ class ChatRepositoryImpl(
         mood: MoodType,
     ) {
         suspend fun persist() {
+            val summaryText = if (messageEntity.mediaType == MessageMediaType.SEALED_LETTER.name) {
+                "✉️ Thư hẹn · mở vào ${messageEntity.caption ?: "đúng giờ"}"
+            } else {
+                messageEntity.content
+            }
             messageDao.insertMessageWithOutbox(messageEntity, outboxEntity)
             updateConversationSummary(
                 conversationId = messageEntity.conversationId,
-                lastMessage = messageEntity.content,
+                lastMessage = summaryText,
                 mood = mood,
                 now = messageEntity.createdAtEpochMs,
             )

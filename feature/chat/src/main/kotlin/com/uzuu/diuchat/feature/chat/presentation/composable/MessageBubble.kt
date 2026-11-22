@@ -485,6 +485,9 @@ private fun SealedLetterBubbleContent(
 ) {
     val colors = AppTheme.colors
     val scheduleText = message.scheduledForLabel ?: "7:00 sáng mai"
+    val unlockAt = message.unlockAtEpochMs
+    val isUnlocked = unlockAt == null || System.currentTimeMillis() >= unlockAt
+    val canReveal = isUnlocked || message.isFromMe
 
     Box(
         modifier = Modifier
@@ -515,7 +518,7 @@ private fun SealedLetterBubbleContent(
                     ),
                 )
             }
-            .clickable { onToggleReveal() }
+            .clickable(enabled = canReveal) { onToggleReveal() }
             .padding(14.dp),
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -524,42 +527,64 @@ private fun SealedLetterBubbleContent(
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 Icon(
-                    painter = painterResource(AppIcons.Envelope),
+                    painter = painterResource(if (isUnlocked) AppIcons.Envelope else AppIcons.Lock),
                     contentDescription = "Thư hẹn",
                     tint = colors.inkSecondary,
                     modifier = Modifier.size(15.dp),
                 )
                 Text(
-                    text = "Thư hẹn · đến $scheduleText",
+                    text = if (isUnlocked) {
+                        "Thư hẹn · đã đến giờ mở"
+                    } else {
+                        "Đang niêm phong · mở vào $scheduleText"
+                    },
                     style = AppTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
                     color = colors.inkSecondary,
                 )
             }
 
-            Text(
-                text = message.content,
-                style = AppTheme.typography.bodyMedium.copy(
-                    fontFamily = DiuSerif,
-                    fontStyle = FontStyle.Italic,
-                ),
-                color = colors.ink,
-                modifier = Modifier.alpha(if (message.isSealedRevealed) 1f else 0.28f),
-            )
+            if (message.isSealedRevealed && canReveal) {
+                Text(
+                    text = message.content,
+                    style = AppTheme.typography.bodyMedium.copy(
+                        fontFamily = DiuSerif,
+                        fontStyle = FontStyle.Italic,
+                    ),
+                    color = colors.ink,
+                )
+            } else {
+                Text(
+                    text = when {
+                        isUnlocked -> "Chạm để mở niêm phong lá thư…"
+                        message.isFromMe -> "Lời nhắn đã niêm phong (chạm để xem lại)…"
+                        else -> "Nội dung sẽ tự mở khóa khi đến giờ hẹn."
+                    },
+                    style = AppTheme.typography.bodySmall.copy(
+                        fontFamily = DiuSerif,
+                        fontStyle = FontStyle.Italic,
+                    ),
+                    color = colors.inkSecondary,
+                )
+            }
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(
-                    text = "Huỷ thư hẹn",
-                    style = AppTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
-                    color = colors.danger,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .clickable { onCancelLetter() }
-                        .padding(vertical = 2.dp, horizontal = 4.dp),
-                )
+                if (message.isFromMe && !isUnlocked) {
+                    Text(
+                        text = "Huỷ thư hẹn",
+                        style = AppTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+                        color = colors.danger,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable { onCancelLetter() }
+                            .padding(vertical = 2.dp, horizontal = 4.dp),
+                    )
+                } else {
+                    Spacer(modifier = Modifier.width(1.dp))
+                }
                 Text(
                     text = timeStr,
                     fontSize = 11.sp,

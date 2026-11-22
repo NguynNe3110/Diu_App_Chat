@@ -22,12 +22,14 @@ sealed interface HomeAction : BaseAction<HomeUiState> {
         val recentChats: List<RecentChat>,
         val isQuietModeActive: Boolean,
         val userName: String = "",
+        val quietBannerText: String = "",
     ) : HomeAction {
         override fun reduce(state: HomeUiState): HomeUiState = state.copy(
             isLoading = false,
             stars = stars,
             recentChats = recentChats,
             isQuietModeActive = isQuietModeActive,
+            quietBannerText = quietBannerText.ifBlank { state.quietBannerText },
             userName = userName.ifBlank { state.userName },
             greeting = computeGreeting(),
         )

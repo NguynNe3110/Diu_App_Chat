@@ -9,6 +9,33 @@ import com.uzuu.diuchat.feature.settings.domain.model.QuietSchedule
 import com.uzuu.diuchat.feature.settings.domain.model.UserProfile
 
 sealed class SettingsAction : BaseAction<SettingsUiState> {
+    data class SetLoadedSettings(
+        val userProfile: UserProfile,
+        val quietSchedule: QuietSchedule,
+        val notificationPrivacy: NotificationPrivacy,
+        val notificationSound: NotificationSound,
+        val blockedContacts: List<BlockedContact>,
+        val readReceiptsEnabled: Boolean,
+        val softSendAnimationEnabled: Boolean,
+        val vibrateOnceEnabled: Boolean,
+        val eveningGroupDigestEnabled: Boolean,
+        val themeMode: String,
+    ) : SettingsAction() {
+        override fun reduce(state: SettingsUiState): SettingsUiState = state.copy(
+            isLoaded = true,
+            userProfile = userProfile,
+            quietSchedule = quietSchedule,
+            notificationPrivacy = notificationPrivacy,
+            notificationSound = notificationSound,
+            blockedContacts = blockedContacts,
+            readReceiptsEnabled = readReceiptsEnabled,
+            softSendAnimationEnabled = softSendAnimationEnabled,
+            vibrateOnceEnabled = vibrateOnceEnabled,
+            eveningGroupDigestEnabled = eveningGroupDigestEnabled,
+            themeMode = themeMode,
+        )
+    }
+
     data class SetUserProfile(val userProfile: UserProfile) : SettingsAction() {
         override fun reduce(state: SettingsUiState): SettingsUiState = state.copy(userProfile = userProfile)
     }

@@ -73,6 +73,7 @@ import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuEmptySta
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuIconButton
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuMediaSourceSheet
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuOrbAvatar
+import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuPersonListSkeleton
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuSectionHeader
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuSwitch
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuTopBar
@@ -147,95 +148,105 @@ fun SettingsScreen(
             .fillMaxSize()
             .background(Color.Transparent),
     ) {
-        when (uiState.subScreen) {
-            SettingsSubScreen.PROFILE_OVERVIEW -> {
-                ProfileOverviewContent(
-                    uiState = uiState,
-                    onOpenEditProfile = { viewModel.navigateToSubScreen(SettingsSubScreen.EDIT_PROFILE) },
-                    onSelectMood = viewModel::updatePrimaryMoodQuickly,
-                    onToggleQuietHours = viewModel::toggleQuietHours,
-                    onOpenQuietHours = { viewModel.navigateToSubScreen(SettingsSubScreen.QUIET_HOURS) },
-                    onToggleDarkMode = { enabled ->
-                        viewModel.setThemeMode(if (enabled) "DARK" else "LIGHT")
-                    },
-                    onToggleSoftSendAnimation = viewModel::toggleSoftSendAnimation,
-                    onNavigateToJournal = onNavigateToJournal,
-                    onOpenNotifications = { viewModel.navigateToSubScreen(SettingsSubScreen.NOTIFICATIONS) },
-                    onToggleReadReceipts = viewModel::toggleReadReceipts,
-                    onNavigateToLetters = onNavigateToLetters,
-                    onNavigateToContacts = onNavigateToContacts,
-                    onNavigateToFavourites = onNavigateToFavourites,
-                    onOpenGeneralSettings = { viewModel.navigateToSubScreen(SettingsSubScreen.GENERAL_SETTINGS) },
-                    pendingLettersCount = pendingLettersCount,
-                    closeCircleCount = closeCircleCount,
-                )
-            }
+        if (!uiState.isLoaded) {
+            DiuPersonListSkeleton(
+                itemCount = 5,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .statusBarsPadding()
+                    .padding(top = 24.dp),
+            )
+        } else {
+            when (uiState.subScreen) {
+                SettingsSubScreen.PROFILE_OVERVIEW -> {
+                    ProfileOverviewContent(
+                        uiState = uiState,
+                        onOpenEditProfile = { viewModel.navigateToSubScreen(SettingsSubScreen.EDIT_PROFILE) },
+                        onSelectMood = viewModel::updatePrimaryMoodQuickly,
+                        onToggleQuietHours = viewModel::toggleQuietHours,
+                        onOpenQuietHours = { viewModel.navigateToSubScreen(SettingsSubScreen.QUIET_HOURS) },
+                        onToggleDarkMode = { enabled ->
+                            viewModel.setThemeMode(if (enabled) "DARK" else "LIGHT")
+                        },
+                        onToggleSoftSendAnimation = viewModel::toggleSoftSendAnimation,
+                        onNavigateToJournal = onNavigateToJournal,
+                        onOpenNotifications = { viewModel.navigateToSubScreen(SettingsSubScreen.NOTIFICATIONS) },
+                        onToggleReadReceipts = viewModel::toggleReadReceipts,
+                        onNavigateToLetters = onNavigateToLetters,
+                        onNavigateToContacts = onNavigateToContacts,
+                        onNavigateToFavourites = onNavigateToFavourites,
+                        onOpenGeneralSettings = { viewModel.navigateToSubScreen(SettingsSubScreen.GENERAL_SETTINGS) },
+                        pendingLettersCount = pendingLettersCount,
+                        closeCircleCount = closeCircleCount,
+                    )
+                }
 
-            SettingsSubScreen.EDIT_PROFILE -> {
-                EditProfileSubScreen(
-                    profile = uiState.userProfile,
-                    onBackClick = viewModel::navigateBackToOverview,
-                    onSave = { name, bio, birthday, mood, avatarUrl ->
-                        viewModel.updateProfile(
-                            displayName = name,
-                            bio = bio,
-                            birthday = birthday,
-                            primaryMood = mood,
-                            avatarUrl = avatarUrl,
-                        )
-                    },
-                )
-            }
+                SettingsSubScreen.EDIT_PROFILE -> {
+                    EditProfileSubScreen(
+                        profile = uiState.userProfile,
+                        onBackClick = viewModel::navigateBackToOverview,
+                        onSave = { name, bio, birthday, mood, avatarUrl ->
+                            viewModel.updateProfile(
+                                displayName = name,
+                                bio = bio,
+                                birthday = birthday,
+                                primaryMood = mood,
+                                avatarUrl = avatarUrl,
+                            )
+                        },
+                    )
+                }
 
-            SettingsSubScreen.QUIET_HOURS -> {
-                QuietHoursSubScreen(
-                    schedule = uiState.quietSchedule,
-                    onBackClick = viewModel::navigateBackToOverview,
-                    onToggleQuietHours = viewModel::toggleQuietHours,
-                    onStepStart = viewModel::stepQuietStartTime,
-                    onStepEnd = viewModel::stepQuietEndTime,
-                    onToggleRepeatDay = viewModel::toggleQuietRepeatDay,
-                    onToggleEmergencyContact = viewModel::toggleEmergencyContact,
-                )
-            }
+                SettingsSubScreen.QUIET_HOURS -> {
+                    QuietHoursSubScreen(
+                        schedule = uiState.quietSchedule,
+                        onBackClick = viewModel::navigateBackToOverview,
+                        onToggleQuietHours = viewModel::toggleQuietHours,
+                        onStepStart = viewModel::stepQuietStartTime,
+                        onStepEnd = viewModel::stepQuietEndTime,
+                        onToggleRepeatDay = viewModel::toggleQuietRepeatDay,
+                        onToggleEmergencyContact = viewModel::toggleEmergencyContact,
+                    )
+                }
 
-            SettingsSubScreen.NOTIFICATIONS -> {
-                NotificationsSubScreen(
-                    privacy = uiState.notificationPrivacy,
-                    sound = uiState.notificationSound,
-                    vibrateOnce = uiState.vibrateOnceEnabled,
-                    eveningDigest = uiState.eveningGroupDigestEnabled,
-                    onBackClick = viewModel::navigateBackToOverview,
-                    onSelectPrivacy = viewModel::setNotificationPrivacy,
-                    onSelectSound = viewModel::setNotificationSound,
-                    onToggleVibrateOnce = viewModel::toggleVibrateOnce,
-                    onToggleEveningDigest = viewModel::toggleEveningGroupDigest,
-                )
-            }
+                SettingsSubScreen.NOTIFICATIONS -> {
+                    NotificationsSubScreen(
+                        privacy = uiState.notificationPrivacy,
+                        sound = uiState.notificationSound,
+                        vibrateOnce = uiState.vibrateOnceEnabled,
+                        eveningDigest = uiState.eveningGroupDigestEnabled,
+                        onBackClick = viewModel::navigateBackToOverview,
+                        onSelectPrivacy = viewModel::setNotificationPrivacy,
+                        onSelectSound = viewModel::setNotificationSound,
+                        onToggleVibrateOnce = viewModel::toggleVibrateOnce,
+                        onToggleEveningDigest = viewModel::toggleEveningGroupDigest,
+                    )
+                }
 
-            SettingsSubScreen.GENERAL_SETTINGS -> {
-                GeneralSettingsSubScreen(
-                    uiState = uiState,
-                    onBackClick = viewModel::navigateBackToOverview,
-                    onOpenEditProfile = { viewModel.navigateToSubScreen(SettingsSubScreen.EDIT_PROFILE) },
-                    onOpenBlockedContacts = { viewModel.navigateToSubScreen(SettingsSubScreen.BLOCKED_CONTACTS) },
-                    onOpenNotifications = { viewModel.navigateToSubScreen(SettingsSubScreen.NOTIFICATIONS) },
-                    onOpenQuietHours = { viewModel.navigateToSubScreen(SettingsSubScreen.QUIET_HOURS) },
-                    onNavigateToStorage = onNavigateToStorage,
-                    onToggleDarkMode = { enabled ->
-                        viewModel.setThemeMode(if (enabled) "DARK" else "LIGHT")
-                    },
-                    onShowLogoutConfirm = { viewModel.showLogoutConfirm(true) },
-                    onShowDeleteAccount = { viewModel.showDeleteAccount(true) },
-                )
-            }
+                SettingsSubScreen.GENERAL_SETTINGS -> {
+                    GeneralSettingsSubScreen(
+                        uiState = uiState,
+                        onBackClick = viewModel::navigateBackToOverview,
+                        onOpenEditProfile = { viewModel.navigateToSubScreen(SettingsSubScreen.EDIT_PROFILE) },
+                        onOpenBlockedContacts = { viewModel.navigateToSubScreen(SettingsSubScreen.BLOCKED_CONTACTS) },
+                        onOpenNotifications = { viewModel.navigateToSubScreen(SettingsSubScreen.NOTIFICATIONS) },
+                        onOpenQuietHours = { viewModel.navigateToSubScreen(SettingsSubScreen.QUIET_HOURS) },
+                        onNavigateToStorage = onNavigateToStorage,
+                        onToggleDarkMode = { enabled ->
+                            viewModel.setThemeMode(if (enabled) "DARK" else "LIGHT")
+                        },
+                        onShowLogoutConfirm = { viewModel.showLogoutConfirm(true) },
+                        onShowDeleteAccount = { viewModel.showDeleteAccount(true) },
+                    )
+                }
 
-            SettingsSubScreen.BLOCKED_CONTACTS -> {
-                BlockedContactsContent(
-                    uiState = uiState,
-                    onBackClick = { viewModel.navigateToSubScreen(SettingsSubScreen.GENERAL_SETTINGS) },
-                    onUnblock = viewModel::unblockContact,
-                )
+                SettingsSubScreen.BLOCKED_CONTACTS -> {
+                    BlockedContactsContent(
+                        uiState = uiState,
+                        onBackClick = { viewModel.navigateToSubScreen(SettingsSubScreen.GENERAL_SETTINGS) },
+                        onUnblock = viewModel::unblockContact,
+                    )
+                }
             }
         }
 

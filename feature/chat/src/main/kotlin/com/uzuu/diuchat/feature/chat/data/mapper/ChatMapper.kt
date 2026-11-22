@@ -20,47 +20,56 @@ import kotlinx.serialization.json.put
 import java.time.Instant
 
 class ChatMapper {
-    fun messageEntityToDomain(entity: MessageEntity): ChatMessage = ChatMessage(
-        id = entity.id,
-        conversationId = entity.conversationId,
-        senderId = entity.senderId,
-        senderName = entity.senderName,
-        content = entity.content,
-        mood = MoodType.fromId(entity.mood),
-        status = MessageStatus.fromValue(entity.status),
-        replyToId = entity.replyToId,
-        replyQuote = entity.replyQuote,
-        createdAtEpochMs = entity.createdAtEpochMs,
-        isFromMe = entity.isFromMe,
-        mediaType = runCatching { MessageMediaType.valueOf(entity.mediaType) }.getOrDefault(MessageMediaType.TEXT),
-        mediaUri = entity.mediaUri,
-        audioDurationMs = entity.audioDurationMs,
-        audioWaveform = parseWaveform(entity.audioWaveformCsv),
-        caption = entity.caption,
-        isPinned = entity.isPinned,
-        reactions = parseReactions(entity.reactionsCsv, entity.id),
-    )
+    fun messageEntityToDomain(entity: MessageEntity): ChatMessage {
+        val mediaType = runCatching { MessageMediaType.valueOf(entity.mediaType) }.getOrDefault(MessageMediaType.TEXT)
+        val isSealed = mediaType == MessageMediaType.SEALED_LETTER
+        return ChatMessage(
+            id = entity.id,
+            conversationId = entity.conversationId,
+            senderId = entity.senderId,
+            senderName = entity.senderName,
+            content = entity.content,
+            mood = MoodType.fromId(entity.mood),
+            status = MessageStatus.fromValue(entity.status),
+            replyToId = entity.replyToId,
+            replyQuote = entity.replyQuote,
+            createdAtEpochMs = entity.createdAtEpochMs,
+            isFromMe = entity.isFromMe,
+            mediaType = mediaType,
+            mediaUri = entity.mediaUri,
+            audioDurationMs = if (isSealed) null else entity.audioDurationMs,
+            audioWaveform = parseWaveform(entity.audioWaveformCsv),
+            caption = entity.caption,
+            isPinned = entity.isPinned,
+            reactions = parseReactions(entity.reactionsCsv, entity.id),
+            scheduledForLabel = if (isSealed) entity.caption else null,
+            unlockAtEpochMs = if (isSealed) entity.audioDurationMs else null,
+        )
+    }
 
-    fun messageDomainToEntity(domain: ChatMessage): MessageEntity = MessageEntity(
-        id = domain.id,
-        conversationId = domain.conversationId,
-        senderId = domain.senderId,
-        senderName = domain.senderName,
-        content = domain.content,
-        mood = domain.mood.id,
-        status = domain.status.value,
-        replyToId = domain.replyToId,
-        replyQuote = domain.replyQuote,
-        createdAtEpochMs = domain.createdAtEpochMs,
-        isFromMe = domain.isFromMe,
-        mediaType = domain.mediaType.name,
-        mediaUri = domain.mediaUri,
-        audioDurationMs = domain.audioDurationMs,
-        audioWaveformCsv = domain.audioWaveform.joinToString(","),
-        caption = domain.caption,
-        isPinned = domain.isPinned,
-        reactionsCsv = serializeReactions(domain.reactions),
-    )
+    fun messageDomainToEntity(domain: ChatMessage): MessageEntity {
+        val isSealed = domain.mediaType == MessageMediaType.SEALED_LETTER
+        return MessageEntity(
+            id = domain.id,
+            conversationId = domain.conversationId,
+            senderId = domain.senderId,
+            senderName = domain.senderName,
+            content = domain.content,
+            mood = domain.mood.id,
+            status = domain.status.value,
+            replyToId = domain.replyToId,
+            replyQuote = domain.replyQuote,
+            createdAtEpochMs = domain.createdAtEpochMs,
+            isFromMe = domain.isFromMe,
+            mediaType = domain.mediaType.name,
+            mediaUri = domain.mediaUri,
+            audioDurationMs = if (isSealed) domain.unlockAtEpochMs else domain.audioDurationMs,
+            audioWaveformCsv = domain.audioWaveform.joinToString(","),
+            caption = if (isSealed) (domain.scheduledForLabel ?: domain.caption) else domain.caption,
+            isPinned = domain.isPinned,
+            reactionsCsv = serializeReactions(domain.reactions),
+        )
+    }
 
     fun messageDtoToEntity(
         dto: MessageDto,
@@ -69,18 +78,21 @@ class ChatMapper {
         val meta = dto.metadata
         val senderName = meta["sender_name"]?.jsonPrimitive?.contentOrNull ?: "Bạn"
         val replyQuote = meta["reply_quote"]?.jsonPrimitive?.contentOrNull
-        val audioDurationMs = meta["audio_duration_ms"]?.jsonPrimitive?.longOrNull
         val audioWaveformCsv = meta["audio_waveform_csv"]?.jsonPrimitive?.contentOrNull ?: ""
-        val caption = meta["caption"]?.jsonPrimitive?.contentOrNull
         val reactionsCsv = meta["reactions_csv"]?.jsonPrimitive?.contentOrNull ?: ""
-        val createdAtMs = dto.createdAt?.let {
-            runCatching { Instant.parse(it).toEpochMilli() }.getOrNull()
-        } ?: System.currentTimeMillis()
-        val mediaType = when (dto.type.lowercase()) {
-            "photo" -> MessageMediaType.PHOTO.name
-            "voice" -> MessageMediaType.VOICE.name
-            "location" -> MessageMediaType.LOCATION.name
-            else -> MessageMediaType.TEXT.name
+        val createdAtMs = parseIsoEpochMs(dto.createdAt) ?: System.currentTimeMillis()
+        val mediaType = parseDtoMediaType(dto.type)
+        val isSealed = mediaType == MessageMediaType.SEALED_LETTER.name
+        val audioDurationMs = if (isSealed) {
+            parseUnlockAtEpochMs(meta)
+        } else {
+            meta["audio_duration_ms"]?.jsonPrimitive?.longOrNull
+        }
+        val caption = if (isSealed) {
+            meta["scheduled_label"]?.jsonPrimitive?.contentOrNull
+                ?: meta["caption"]?.jsonPrimitive?.contentOrNull
+        } else {
+            meta["caption"]?.jsonPrimitive?.contentOrNull
         }
         return MessageEntity(
             id = dto.id,
@@ -105,19 +117,13 @@ class ChatMapper {
     }
 
     fun messageEntityToDto(entity: MessageEntity): MessageDto {
-        val dbType = when (entity.mediaType.uppercase()) {
-            MessageMediaType.PHOTO.name -> "photo"
-            MessageMediaType.VOICE.name -> "voice"
-            MessageMediaType.LOCATION.name -> "location"
-            else -> "text"
-        }
-        val meta = buildJsonObject {
-            put("sender_name", entity.senderName)
-            entity.replyQuote?.let { put("reply_quote", it) }
-            entity.audioDurationMs?.let { put("audio_duration_ms", it) }
-            entity.audioWaveformCsv?.takeIf { it.isNotBlank() }?.let { put("audio_waveform_csv", it) }
-            entity.caption?.let { put("caption", it) }
-            entity.reactionsCsv?.takeIf { it.isNotBlank() }?.let { put("reactions_csv", it) }
+        val dbType = mapEntityMediaTypeToDbType(entity.mediaType)
+        val isSealed = dbType == "sealed_letter"
+        val meta = buildMessageMetadata(entity, isSealed)
+        val remoteContent = if (isSealed) {
+            "✉️ Thư hẹn · mở vào ${entity.caption ?: "đúng giờ"}"
+        } else {
+            entity.content
         }
         return MessageDto(
             id = entity.id,
@@ -125,13 +131,58 @@ class ChatMapper {
             senderId = entity.senderId,
             replyToId = entity.replyToId,
             type = dbType,
-            content = entity.content,
+            content = remoteContent,
             mediaUrl = entity.mediaUri,
             moodId = normalizeMoodId(entity.mood),
             metadata = meta,
             isPinned = entity.isPinned,
             createdAt = Instant.ofEpochMilli(entity.createdAtEpochMs).toString(),
         )
+    }
+
+    private fun parseDtoMediaType(rawType: String): String = when (rawType.lowercase()) {
+        "photo" -> MessageMediaType.PHOTO.name
+        "voice" -> MessageMediaType.VOICE.name
+        "location" -> MessageMediaType.LOCATION.name
+        "sealed_letter" -> MessageMediaType.SEALED_LETTER.name
+        else -> MessageMediaType.TEXT.name
+    }
+
+    private fun mapEntityMediaTypeToDbType(mediaType: String): String = when (mediaType.uppercase()) {
+        MessageMediaType.PHOTO.name -> "photo"
+        MessageMediaType.VOICE.name -> "voice"
+        MessageMediaType.LOCATION.name -> "location"
+        MessageMediaType.SEALED_LETTER.name -> "sealed_letter"
+        else -> "text"
+    }
+
+    private fun parseIsoEpochMs(iso: String?): Long? = iso?.let {
+        runCatching { Instant.parse(it).toEpochMilli() }.getOrNull()
+    }
+
+    private fun parseUnlockAtEpochMs(meta: kotlinx.serialization.json.JsonObject): Long? {
+        val epochMs = meta["unlock_at_epoch_ms"]?.jsonPrimitive?.longOrNull
+        return epochMs ?: parseIsoEpochMs(meta["unlock_at"]?.jsonPrimitive?.contentOrNull)
+    }
+
+    private fun buildMessageMetadata(
+        entity: MessageEntity,
+        isSealed: Boolean,
+    ) = buildJsonObject {
+        put("sender_name", entity.senderName)
+        entity.replyQuote?.let { put("reply_quote", it) }
+        if (isSealed) {
+            entity.caption?.let { put("scheduled_label", it) }
+            entity.audioDurationMs?.let { unlockMs ->
+                put("unlock_at_epoch_ms", unlockMs)
+                put("unlock_at", Instant.ofEpochMilli(unlockMs).toString())
+            }
+        } else {
+            entity.audioDurationMs?.let { put("audio_duration_ms", it) }
+            entity.caption?.let { put("caption", it) }
+        }
+        entity.audioWaveformCsv?.takeIf { it.isNotBlank() }?.let { put("audio_waveform_csv", it) }
+        entity.reactionsCsv?.takeIf { it.isNotBlank() }?.let { put("reactions_csv", it) }
     }
 
     fun messageDtoToDomain(

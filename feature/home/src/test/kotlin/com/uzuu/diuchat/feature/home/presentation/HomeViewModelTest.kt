@@ -1,9 +1,11 @@
 package com.uzuu.diuchat.feature.home.presentation
 
 import androidx.compose.ui.graphics.Color
+import com.uzuu.diuchat.feature.base.domain.repository.QuietHoursStatus
 import com.uzuu.diuchat.feature.home.domain.model.RecentChat
 import com.uzuu.diuchat.feature.home.domain.model.StarPerson
 import com.uzuu.diuchat.feature.home.domain.usecase.DeleteHomeConversationUseCase
+import com.uzuu.diuchat.feature.home.domain.usecase.GetHomeQuietHoursUseCase
 import com.uzuu.diuchat.feature.home.domain.usecase.GetHomeStarsUseCase
 import com.uzuu.diuchat.feature.home.domain.usecase.GetRecentChatsUseCase
 import com.uzuu.diuchat.library.testutils.CoroutinesTestDispatcherExtension
@@ -27,6 +29,7 @@ import org.junit.jupiter.api.extension.ExtendWith
 @ExtendWith(InstantTaskExecutorExtension::class, CoroutinesTestDispatcherExtension::class)
 class HomeViewModelTest {
     private val deleteHomeConversationUseCase: DeleteHomeConversationUseCase = mockk(relaxed = true)
+    private val getHomeQuietHoursUseCase: GetHomeQuietHoursUseCase = mockk()
     private val getHomeStarsUseCase: GetHomeStarsUseCase = mockk()
     private val getRecentChatsUseCase: GetRecentChatsUseCase = mockk()
 
@@ -44,10 +47,16 @@ class HomeViewModelTest {
 
     @BeforeEach
     fun setUp() {
+        every { getHomeQuietHoursUseCase() } returns flowOf(QuietHoursStatus(isActive = false))
         every { getHomeStarsUseCase(any()) } returns flowOf(defaultStars)
         every { getRecentChatsUseCase() } returns flowOf(defaultChats)
 
-        sut = HomeViewModel(deleteHomeConversationUseCase, getHomeStarsUseCase, getRecentChatsUseCase)
+        sut = HomeViewModel(
+            deleteHomeConversationUseCase = deleteHomeConversationUseCase,
+            getHomeQuietHoursUseCase = getHomeQuietHoursUseCase,
+            getHomeStarsUseCase = getHomeStarsUseCase,
+            getRecentChatsUseCase = getRecentChatsUseCase,
+        )
     }
 
     @Test

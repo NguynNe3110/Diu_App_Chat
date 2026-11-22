@@ -100,7 +100,8 @@ class ChatSupabaseService(
                 rawConversation
             }
             val enrichedMessages = enrichSenderNames(client, rawMessages)
-            val resolvedMessages = signPrivateMediaUrls(client, enrichedMessages)
+            val sealedEnriched = enrichSealedLetters(client, enrichedMessages)
+            val resolvedMessages = signPrivateMediaUrls(client, sealedEnriched)
 
             ChatMessagesResponse(
                 conversationId = conversationId,
@@ -200,6 +201,45 @@ class ChatSupabaseService(
                 bucket.publicUrl(bucketPath)
             }
         }.onFailure(::rethrowCancellation)
+    }
+
+    private suspend fun enrichSealedLetters(
+        client: SupabaseClient,
+        messages: List<MessageDto>,
+    ): List<MessageDto> {
+        val sealedIds = messages
+            .filter { it.type.equals("sealed_letter", ignoreCase = true) }
+            .map { it.id }
+            .distinct()
+        if (sealedIds.isEmpty()) return messages
+
+        val unlockedLetters = runCatching {
+            client.postgrest
+                .from(TABLE_SEALED_LETTERS)
+                .select {
+                    filter { isIn(COL_MESSAGE_ID, sealedIds) }
+                }.decodeList<SealedLetterContentRow>()
+                .associateBy { it.messageId }
+        }.getOrDefault(emptyMap())
+
+        return messages.map { msg ->
+            if (!msg.type.equals("sealed_letter", ignoreCase = true)) {
+                msg
+            } else {
+                val letterRow = unlockedLetters[msg.id]
+                if (letterRow != null) {
+                    val unlockMs = runCatching { Instant.parse(letterRow.unlockAt).toEpochMilli() }.getOrNull()
+                    val updatedMeta = buildJsonObject {
+                        msg.metadata.forEach { (k, v) -> put(k, v) }
+                        if (unlockMs != null) put("unlock_at_epoch_ms", unlockMs)
+                        put("unlock_at", letterRow.unlockAt)
+                    }
+                    msg.copy(content = letterRow.sealedContent, metadata = updatedMeta)
+                } else {
+                    msg
+                }
+            }
+        }
     }
 
     private suspend fun signPrivateMediaUrls(
@@ -357,6 +397,13 @@ class ChatSupabaseService(
     suspend fun deleteMessage(messageId: String): Result<Unit> {
         val client = supabaseClient ?: return Result.success(Unit)
         return runCatching {
+            runCatching {
+                client.postgrest
+                    .from(TABLE_SEALED_LETTERS)
+                    .delete {
+                        filter { eq(COL_MESSAGE_ID, messageId) }
+                    }
+            }
             client.postgrest
                 .from(TABLE_MESSAGES)
                 .update(
@@ -630,6 +677,16 @@ class ChatSupabaseService(
         val userId: String,
         @SerialName("role")
         val role: String,
+    )
+
+    @Serializable
+    private data class SealedLetterContentRow(
+        @SerialName("message_id")
+        val messageId: String,
+        @SerialName("unlock_at")
+        val unlockAt: String,
+        @SerialName("sealed_content")
+        val sealedContent: String,
     )
 
     @Serializable

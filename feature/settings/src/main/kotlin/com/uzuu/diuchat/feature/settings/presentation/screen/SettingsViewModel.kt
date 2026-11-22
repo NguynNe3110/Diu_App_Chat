@@ -27,6 +27,7 @@ import com.uzuu.diuchat.feature.settings.domain.usecase.UpdateReadReceiptsEnable
 import com.uzuu.diuchat.feature.settings.domain.usecase.UpdateSoftSendAnimationEnabledUseCase
 import com.uzuu.diuchat.feature.settings.domain.usecase.UpdateThemeModeUseCase
 import com.uzuu.diuchat.feature.settings.domain.usecase.UpdateVibrateOnceEnabledUseCase
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
@@ -62,46 +63,58 @@ class SettingsViewModel(
     }
 
     private fun observeSettings() {
-        getProfileUseCase()
-            .onEach { sendAction(SettingsAction.SetUserProfile(it)) }
-            .launchIn(viewModelScope)
+        val coreFlow = combine(
+            getProfileUseCase(),
+            getQuietScheduleUseCase(),
+            getNotificationPrivacyUseCase(),
+            getNotificationSoundUseCase(),
+            getBlockedContactsUseCase(),
+        ) { profile, quiet, privacy, sound, blocked ->
+            CoreSettingsBundle(profile, quiet, privacy, sound, blocked)
+        }
+        val togglesFlow = combine(
+            getReadReceiptsEnabledUseCase(),
+            getSoftSendAnimationEnabledUseCase(),
+            getVibrateOnceEnabledUseCase(),
+            getEveningGroupDigestEnabledUseCase(),
+            getThemeModeUseCase(),
+        ) { readReceipts, softSend, vibrateOnce, groupDigest, themeMode ->
+            ToggleSettingsBundle(readReceipts, softSend, vibrateOnce, groupDigest, themeMode)
+        }
 
-        getQuietScheduleUseCase()
-            .onEach { sendAction(SettingsAction.SetQuietSchedule(it)) }
-            .launchIn(viewModelScope)
-
-        getNotificationPrivacyUseCase()
-            .onEach { sendAction(SettingsAction.SetNotificationPrivacy(it)) }
-            .launchIn(viewModelScope)
-
-        getBlockedContactsUseCase()
-            .onEach { sendAction(SettingsAction.SetBlockedContacts(it)) }
-            .launchIn(viewModelScope)
-
-        getReadReceiptsEnabledUseCase()
-            .onEach { sendAction(SettingsAction.ToggleReadReceipts(it)) }
-            .launchIn(viewModelScope)
-
-        getThemeModeUseCase()
-            .onEach { sendAction(SettingsAction.SetThemeMode(it)) }
-            .launchIn(viewModelScope)
-
-        getSoftSendAnimationEnabledUseCase()
-            .onEach { sendAction(SettingsAction.ToggleSoftSendAnimation(it)) }
-            .launchIn(viewModelScope)
-
-        getNotificationSoundUseCase()
-            .onEach { sendAction(SettingsAction.SetNotificationSound(it)) }
-            .launchIn(viewModelScope)
-
-        getVibrateOnceEnabledUseCase()
-            .onEach { sendAction(SettingsAction.ToggleVibrateOnce(it)) }
-            .launchIn(viewModelScope)
-
-        getEveningGroupDigestEnabledUseCase()
-            .onEach { sendAction(SettingsAction.ToggleEveningGroupDigest(it)) }
-            .launchIn(viewModelScope)
+        combine(coreFlow, togglesFlow) { core, toggles ->
+            SettingsAction.SetLoadedSettings(
+                userProfile = core.profile,
+                quietSchedule = core.quietSchedule,
+                notificationPrivacy = core.notificationPrivacy,
+                notificationSound = core.notificationSound,
+                blockedContacts = core.blockedContacts,
+                readReceiptsEnabled = toggles.readReceiptsEnabled,
+                softSendAnimationEnabled = toggles.softSendAnimationEnabled,
+                vibrateOnceEnabled = toggles.vibrateOnceEnabled,
+                eveningGroupDigestEnabled = toggles.eveningGroupDigestEnabled,
+                themeMode = toggles.themeMode,
+            )
+        }.onEach { action ->
+            sendAction(action)
+        }.launchIn(viewModelScope)
     }
+
+    private data class CoreSettingsBundle(
+        val profile: com.uzuu.diuchat.feature.settings.domain.model.UserProfile,
+        val quietSchedule: com.uzuu.diuchat.feature.settings.domain.model.QuietSchedule,
+        val notificationPrivacy: NotificationPrivacy,
+        val notificationSound: NotificationSound,
+        val blockedContacts: List<com.uzuu.diuchat.feature.settings.domain.model.BlockedContact>,
+    )
+
+    private data class ToggleSettingsBundle(
+        val readReceiptsEnabled: Boolean,
+        val softSendAnimationEnabled: Boolean,
+        val vibrateOnceEnabled: Boolean,
+        val eveningGroupDigestEnabled: Boolean,
+        val themeMode: String,
+    )
 
     fun toggleQuietHours(enabled: Boolean) {
         val current = uiStateFlow.value.quietSchedule
