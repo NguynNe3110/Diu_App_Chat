@@ -3,6 +3,7 @@ package com.uzuu.diuchat.feature.contacts.presentation.screen
 import com.uzuu.diuchat.feature.contacts.domain.model.ConnectionRequest
 import com.uzuu.diuchat.feature.contacts.domain.model.Contact
 import com.uzuu.diuchat.feature.contacts.domain.model.ContactCircle
+import com.uzuu.diuchat.feature.contacts.domain.repository.ContactsRepository
 import com.uzuu.diuchat.feature.contacts.domain.usecase.GetContactsUseCase
 import com.uzuu.diuchat.feature.contacts.domain.usecase.GetPendingRequestsUseCase
 import com.uzuu.diuchat.feature.contacts.domain.usecase.RespondConnectionRequestUseCase
@@ -27,6 +28,7 @@ class ContactsViewModelTest {
     private val mockGetContactsUseCase: GetContactsUseCase = mockk()
     private val mockGetPendingRequestsUseCase: GetPendingRequestsUseCase = mockk()
     private val mockRespondConnectionRequestUseCase: RespondConnectionRequestUseCase = mockk()
+    private val mockContactsRepository: ContactsRepository = mockk()
 
     private val testContacts =
         listOf(
@@ -69,12 +71,14 @@ class ContactsViewModelTest {
     fun setUp() {
         every { mockGetContactsUseCase() } returns flowOf(testContacts)
         every { mockGetPendingRequestsUseCase() } returns flowOf(testRequests)
+        coEvery { mockContactsRepository.refreshFromRemote() } returns Unit
 
         sut =
             ContactsViewModel(
                 mockGetContactsUseCase,
                 mockGetPendingRequestsUseCase,
                 mockRespondConnectionRequestUseCase,
+                mockContactsRepository,
             )
     }
 
@@ -167,14 +171,16 @@ class ContactsViewModelTest {
         advanceUntilIdle()
 
         sut.onSubmitInviteCode("   ")
-        sut.uiStateFlow.value.scanResultMessage shouldBeEqualTo "Vui lòng nhập mã kết nối"
+        sut.uiStateFlow.value.scanResultMessage shouldBeEqualTo "Vui lòng nhập @username, số điện thoại hoặc mã QR"
 
+        coEvery { mockContactsRepository.connectByInviteCode("diu.vn/minh/8X3K2P") } returns Result.success(testContacts.first())
         sut.onInviteCodeInputChange("diu.vn/minh/8X3K2P")
         sut.onSubmitInviteCode()
+        advanceUntilIdle()
 
         val state = sut.uiStateFlow.value
         state.inviteCodeInput shouldBeEqualTo ""
-        state.scanResultMessage shouldBeEqualTo "Đã gửi lời mời kết nối tới diu.vn/minh/8X3K2P"
+        state.scanResultMessage shouldBeEqualTo "Đã kết nối với Minh An"
     }
 
     @Test

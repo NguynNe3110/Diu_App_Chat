@@ -63,6 +63,7 @@ class ContactsRepositoryImplTest {
 
     @BeforeEach
     fun setUp() {
+        every { contactsSupabaseService.isConfigured() } returns false
         coEvery { contactDao.getCount() } returns 1
         coEvery { contactDao.getRequestCount() } returns 1
         coEvery { contactsSupabaseService.syncContacts() } returns null
@@ -105,7 +106,7 @@ class ContactsRepositoryImplTest {
 
         result.isSuccess.shouldBeTrue()
         coVerify(exactly = 1) {
-            contactsSupabaseService.respondToRequest("req_1", true, "LOVE")
+            contactsSupabaseService.respondToRequest("req_1", true, "LOVE", "u_hoang")
             contactDao.acceptConnectionRequest(
                 "req_1",
                 match {
@@ -123,7 +124,7 @@ class ContactsRepositoryImplTest {
 
         result.isSuccess.shouldBeTrue()
         coVerify(exactly = 1) {
-            contactsSupabaseService.respondToRequest("req_1", false, "FRIENDS")
+            contactsSupabaseService.respondToRequest("req_1", false, "FRIENDS", "u_hoang")
             contactDao.deleteRequest("req_1")
         }
     }
@@ -201,8 +202,10 @@ class ContactsRepositoryImplTest {
         sut.syncOrSeedInitialData()
 
         coVerify(exactly = 1) {
-            contactDao.insertAll(match { it.size == 1 && it.first().id == "c_remote" })
-            contactDao.insertAllRequests(match { it.size == 1 && it.first().id == "req_remote" })
+            contactDao.replaceAll(
+                contacts = match { it.size == 1 && it.first().id == "c_remote" },
+                requests = match { it.size == 1 && it.first().id == "req_remote" },
+            )
         }
     }
 

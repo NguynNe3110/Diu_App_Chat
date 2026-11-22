@@ -20,6 +20,10 @@ interface SettingsRepository {
     suspend fun logout()
     suspend fun deleteAccount(confirmPhone: String)
 
+    fun getOnboardingCompleted(): Flow<Boolean>
+    suspend fun setOnboardingCompleted(completed: Boolean)
+    suspend fun refreshFromRemote()
+
     fun getThemeMode(): Flow<String>
     suspend fun updateThemeMode(themeMode: String)
     fun getReadReceiptsEnabled(): Flow<Boolean>

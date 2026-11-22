@@ -8,4 +8,10 @@ interface HomeRepository {
     fun getStars(isQuiet: Boolean): Flow<List<StarPerson>>
 
     fun getRecentChats(): Flow<List<RecentChat>>
+
+    fun getUserDisplayName(): Flow<String> = kotlinx.coroutines.flow.flowOf("")
+
+    suspend fun refreshFromRemote() {}
+
+    suspend fun clearLocalData() {}
 }

@@ -1,6 +1,10 @@
 package com.uzuu.diuchat.app.di
 
+import com.uzuu.diuchat.app.data.supabase.SupabaseSessionChecker
 import com.uzuu.diuchat.app.data.supabase.supabaseModule
+import com.uzuu.diuchat.app.presentation.AppSessionViewModel
+import org.koin.core.module.dsl.singleOf
+import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 
 /**
@@ -12,4 +16,6 @@ import org.koin.dsl.module
 val appModule =
     module {
         includes(supabaseModule)
+        singleOf(::SupabaseSessionChecker)
+        viewModelOf(::AppSessionViewModel)
     }

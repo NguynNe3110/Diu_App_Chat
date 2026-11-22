@@ -64,7 +64,7 @@ class ChatRepositoryImplTest {
                 match { it.status == MessageStatus.PENDING.value && it.content == "Chào buổi sáng" },
                 match { it.status == MessageStatus.PENDING.value },
             )
-            supabaseService.upsertMessage(match { it.id == result.id && it.status == MessageStatus.SENT.value })
+            supabaseService.upsertMessage(match { it.id == result.id && it.content == "Chào buổi sáng" })
             messageDao.updateStatus(result.id, MessageStatus.SENT.value)
             outboxDao.delete(any())
         }
@@ -139,7 +139,7 @@ class ChatRepositoryImplTest {
                 MessageStatus.PENDING.value,
                 match { it.status == MessageStatus.PENDING.value },
             )
-            supabaseService.upsertMessage(match { it.id == "msg_1" && it.status == MessageStatus.SENT.value })
+            supabaseService.upsertMessage(match { it.id == "msg_1" && it.content == "Thử lại" })
             messageDao.updateStatus("msg_1", MessageStatus.SENT.value)
             outboxDao.delete(any())
         }
@@ -157,14 +157,14 @@ class ChatRepositoryImplTest {
                         conversationId = "conv_1",
                         senderId = "user_me",
                         content = "Chào bạn",
-                        createdAtEpochMs = 1000L,
+                        createdAt = "2026-11-22T10:00:01Z",
                     ),
                     MessageDto(
                         id = "m2",
                         conversationId = "conv_1",
                         senderId = "user_other",
                         content = "Chào lại",
-                        createdAtEpochMs = 2000L,
+                        createdAt = "2026-11-22T10:00:02Z",
                     ),
                 ),
                 conversation = ConversationDto(
@@ -179,7 +179,7 @@ class ChatRepositoryImplTest {
                 conversationId = "conv_1",
                 senderId = "user_other",
                 content = "Tin realtime",
-                createdAtEpochMs = 3000L,
+                createdAt = "2026-11-22T10:00:03Z",
             ),
         )
         every { messageDao.observeMessages("conv_1") } returns flowOf(emptyList())

@@ -44,6 +44,23 @@ interface ContactDao {
     @Query("DELETE FROM connection_requests WHERE id = :id")
     suspend fun deleteRequest(id: String)
 
+    @Query("DELETE FROM contacts")
+    suspend fun deleteAllContacts()
+
+    @Query("DELETE FROM connection_requests")
+    suspend fun deleteAllRequests()
+
+    @Transaction
+    suspend fun replaceAll(
+        contacts: List<ContactEntity>,
+        requests: List<ConnectionRequestEntity>,
+    ) {
+        deleteAllContacts()
+        deleteAllRequests()
+        if (contacts.isNotEmpty()) insertAll(contacts)
+        if (requests.isNotEmpty()) insertAllRequests(requests)
+    }
+
     @Query("SELECT COUNT(*) FROM connection_requests")
     suspend fun getRequestCount(): Int
 

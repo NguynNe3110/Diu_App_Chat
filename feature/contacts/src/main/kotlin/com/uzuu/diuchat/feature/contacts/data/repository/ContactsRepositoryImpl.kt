@@ -52,6 +52,7 @@ class ContactsRepositoryImpl(
             requestId = requestId,
             accept = accept,
             circle = circle.name,
+            senderId = request.senderId,
         )
 
         if (accept) {
@@ -84,23 +85,49 @@ class ContactsRepositoryImpl(
         localMatch ?: contactsSupabaseService.searchUserByPhone(clean)?.let(contactMapper::toDomain)
     }
 
+    override suspend fun connectByInviteCode(code: String): Result<Contact> = runCatching {
+        val dto = contactsSupabaseService.connectByQuery(code).getOrThrow()
+        val entity = contactMapper.toEntity(dto)
+        contactDao.insertAll(listOf(entity))
+        contactMapper.toDomain(entity)
+    }
+
+    override suspend fun openDirectChat(contactId: String): Result<String> = runCatching {
+        contactsSupabaseService.getOrCreateDirectConversation(contactId)
+            ?: contactId
+    }
+
     override fun getMyInviteLink(): Flow<String> = flow {
         val remoteUrl = contactsSupabaseService.fetchMyInviteLink()?.url
         emit(remoteUrl ?: DEFAULT_INVITE_LINK)
     }
 
+    override suspend fun refreshFromRemote() {
+        syncOrSeedInitialData()
+    }
+
+    override suspend fun clearLocalData() {
+        if (contactsSupabaseService.isConfigured()) {
+            contactDao.deleteAllContacts()
+            contactDao.deleteAllRequests()
+        }
+    }
+
     suspend fun syncOrSeedInitialData() {
         val remoteSync = contactsSupabaseService.syncContacts()
         if (remoteSync != null) {
-            if (remoteSync.contacts.isNotEmpty()) {
-                contactDao.insertAll(remoteSync.contacts.map(contactMapper::toEntity))
-            }
-            if (remoteSync.pendingRequests.isNotEmpty()) {
-                contactDao.insertAllRequests(remoteSync.pendingRequests.map(connectionRequestMapper::toEntity))
-            }
+            contactDao.replaceAll(
+                contacts = remoteSync.contacts.map(contactMapper::toEntity),
+                requests = remoteSync.pendingRequests.map(connectionRequestMapper::toEntity),
+            )
             return
         }
-        seedInitialDataIfNeeded()
+        if (!contactsSupabaseService.isConfigured()) {
+            seedInitialDataIfNeeded()
+        } else {
+            contactDao.deleteAllContacts()
+            contactDao.deleteAllRequests()
+        }
     }
 
     private suspend fun seedInitialDataIfNeeded() {

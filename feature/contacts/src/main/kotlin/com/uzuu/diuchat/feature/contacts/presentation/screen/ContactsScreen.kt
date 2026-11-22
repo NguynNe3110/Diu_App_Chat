@@ -80,6 +80,7 @@ import com.uzuu.diuchat.feature.base.presentation.compose.composable.parseMoodCo
 import com.uzuu.diuchat.feature.contacts.domain.model.ConnectionRequest
 import com.uzuu.diuchat.feature.contacts.domain.model.Contact
 import com.uzuu.diuchat.feature.contacts.domain.model.ContactCircle
+import com.uzuu.diuchat.feature.contacts.presentation.composable.QrCameraScannerPreview
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
@@ -93,13 +94,21 @@ fun ContactsScreen(
 
     ContactsScreenContent(
         uiState = uiState,
-        onNavigateToChat = onNavigateToChat,
+        onNavigateToChat = { contactId ->
+            viewModel.onOpenContactChat(contactId, onNavigateToChat)
+        },
         onStartCall = onStartCall,
         onShowQrSheet = viewModel::onShowQrSheet,
         onDismissQrSheet = viewModel::onDismissQrSheet,
         onSelectQrTab = viewModel::onSelectQrTab,
         onInviteCodeInputChange = viewModel::onInviteCodeInputChange,
-        onSubmitInviteCode = { viewModel.onSubmitInviteCode() },
+        onSubmitInviteCode = { code ->
+            if (code != null) {
+                viewModel.onSubmitInviteCode(code)
+            } else {
+                viewModel.onSubmitInviteCode()
+            }
+        },
         onSearchQueryChange = viewModel::onSearchQueryChange,
         onClearSearch = viewModel::onClearSearch,
         onSelectCircle = viewModel::onSelectCircle,
@@ -125,7 +134,7 @@ fun ContactsScreenContent(
     onDismissQrSheet: () -> Unit = {},
     onSelectQrTab: (QrSheetTab) -> Unit = {},
     onInviteCodeInputChange: (String) -> Unit = {},
-    onSubmitInviteCode: () -> Unit = {},
+    onSubmitInviteCode: (String?) -> Unit = {},
     onSearchQueryChange: (String) -> Unit = {},
     onClearSearch: () -> Unit = {},
     onSelectCircle: (ContactCircle) -> Unit = {},
@@ -463,30 +472,43 @@ fun ContactsScreenContent(
                         modifier =
                         Modifier
                             .fillMaxWidth()
-                            .height(168.dp),
+                            .height(210.dp),
                         shape = RoundedCornerShape(20.dp),
                         color = colors.surface,
                     ) {
-                        Column(
-                            modifier = Modifier.fillMaxSize().padding(16.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center,
-                        ) {
-                            Icon(
-                                painter = painterResource(AppIcons.Camera),
-                                contentDescription = null,
-                                tint = colors.accent,
-                                modifier = Modifier.size(32.dp),
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            if (hasCameraPermission) {
-                                Text(
-                                    text = "Camera sẵn sàng · Đưa mã QR vào khung hình",
-                                    style = AppTheme.typography.bodyMedium,
-                                    color = colors.ink,
-                                    textAlign = TextAlign.Center,
+                        if (hasCameraPermission) {
+                            Box(modifier = Modifier.fillMaxSize()) {
+                                QrCameraScannerPreview(
+                                    onDetectCode = { detectedCode ->
+                                        onInviteCodeInputChange(detectedCode)
+                                        onSubmitInviteCode(detectedCode)
+                                    },
+                                    modifier = Modifier.fillMaxSize(),
                                 )
-                            } else {
+                                Box(
+                                    modifier = Modifier
+                                        .align(Alignment.Center)
+                                        .size(132.dp)
+                                        .border(
+                                            width = 2.dp,
+                                            color = colors.accent.copy(alpha = 0.85f),
+                                            shape = RoundedCornerShape(16.dp),
+                                        ),
+                                )
+                            }
+                        } else {
+                            Column(
+                                modifier = Modifier.fillMaxSize().padding(16.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center,
+                            ) {
+                                Icon(
+                                    painter = painterResource(AppIcons.Camera),
+                                    contentDescription = null,
+                                    tint = colors.accent,
+                                    modifier = Modifier.size(32.dp),
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
                                 Text(
                                     text = "Cần quyền Camera để quét mã QR trực tiếp",
                                     style = AppTheme.typography.bodySmall,
@@ -526,7 +548,7 @@ fun ContactsScreenContent(
                     Spacer(modifier = Modifier.height(12.dp))
 
                     DiuButton(
-                        onClick = onSubmitInviteCode,
+                        onClick = { onSubmitInviteCode(null) },
                         modifier = Modifier.fillMaxWidth(),
                     ) {
                         Text("Kết nối bằng mã")

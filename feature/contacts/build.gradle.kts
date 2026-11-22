@@ -9,4 +9,6 @@ android {
 dependencies {
     implementation(platform(libs.supabase.bom))
     implementation(libs.bundles.supabase)
+    implementation(libs.bundles.camerax)
+    implementation(libs.zxing.core)
 }

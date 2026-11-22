@@ -9,7 +9,7 @@ import com.uzuu.diuchat.feature.home.domain.model.StarPerson
 data class HomeUiState(
     val isLoading: Boolean = false,
     val greeting: String = "Chào buổi tối",
-    val userName: String = "Lan",
+    val userName: String = "",
     val isQuietModeActive: Boolean = false,
     val quietBannerText: String = "Giờ yên lặng đang bật · đến 6:00",
     val stars: List<StarPerson> = emptyList(),
