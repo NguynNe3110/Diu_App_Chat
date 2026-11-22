@@ -129,7 +129,10 @@ class SupabasePushRegistration(
 
             if (userId != null) {
                 val installationId = installationStore.getOrCreate()
-
+                android.util.Log.d(
+                    "DEBUG-TESTING",
+                    "Bản cài hiện tại: $installationId",
+                )
                 supabase.postgrest.from(TABLE_PUSH_TOKENS).delete {
                     filter {
                         eq(COL_USER_ID, userId)
