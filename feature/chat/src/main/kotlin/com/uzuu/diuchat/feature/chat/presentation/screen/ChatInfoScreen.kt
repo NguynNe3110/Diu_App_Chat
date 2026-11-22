@@ -116,14 +116,7 @@ fun ChatInfoScreen(
     val otherAdminsCount = conversation.members.count { (it.isFromMe || it.userId == "me").not() && it.role == GroupRole.ADMIN }
     val isLastAdmin = callerIsAdmin && otherAdminsCount == 0 && conversation.members.size > 1
 
-    val mediaThumbs = remember {
-        listOf(
-            SharedMediaThumb("Chiều hoàng hôn bên hồ", MoodType.THUONG, "Hôm qua · 17:45"),
-            SharedMediaThumb("Tách trà hoa cúc ấm", MoodType.VUI, "Thứ Tư · 08:20"),
-            SharedMediaThumb("Góc ban công ngày mưa", MoodType.BINHYEN, "12/10 · 19:10"),
-            SharedMediaThumb("Con đường lá vàng", MoodType.NHO, "05/10 · 16:05"),
-        )
-    }
+    val mediaThumbs = remember { emptyList<SharedMediaThumb>() }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -132,6 +125,7 @@ fun ChatInfoScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .background(Color.Transparent)
                     .padding(horizontal = 8.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -170,11 +164,13 @@ fun ChatInfoScreen(
         },
     ) { paddingValues ->
         LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(horizontal = 18.dp),
-            contentPadding = PaddingValues(bottom = 32.dp),
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(
+                start = 18.dp,
+                end = 18.dp,
+                top = paddingValues.calculateTopPadding() + 12.dp,
+                bottom = paddingValues.calculateBottomPadding() + 32.dp,
+            ),
             verticalArrangement = Arrangement.spacedBy(18.dp),
         ) {
             // Center hero: DiuOrbAvatar(104.dp, isPulsing = true), DiuSerif 34.sp title, subtitle, 4 square .qa buttons

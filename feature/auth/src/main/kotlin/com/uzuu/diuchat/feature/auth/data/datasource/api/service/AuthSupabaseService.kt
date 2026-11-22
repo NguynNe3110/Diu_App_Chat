@@ -83,15 +83,12 @@ class AuthSupabaseService(
                     ?: (user.userMetadata?.get("full_name") as? JsonPrimitive)?.contentOrNull
                     ?: (user.userMetadata?.get("name") as? JsonPrimitive)?.contentOrNull
                     ?: DEFAULT_DISPLAY_NAME
-            val resolvedAvatar = (user.userMetadata?.get("avatar_url") as? JsonPrimitive)?.contentOrNull
-
             client.postgrest.rpc(
                 function = BOOTSTRAP_PROFILE_RPC,
                 parameters =
                 buildJsonObject {
                     put("p_username", username)
                     put("p_display_name", resolvedName)
-                    resolvedAvatar?.let { put("p_avatar_url", it) }
                 },
             )
         }.map {}.onFailure(::rethrowCancellation)

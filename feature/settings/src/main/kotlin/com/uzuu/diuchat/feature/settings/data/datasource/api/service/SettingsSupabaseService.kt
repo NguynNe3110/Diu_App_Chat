@@ -26,15 +26,13 @@ internal class SettingsSupabaseService(
 
         val googleName = (user.userMetadata?.get("full_name") as? JsonPrimitive)?.contentOrNull
             ?: (user.userMetadata?.get("name") as? JsonPrimitive)?.contentOrNull
-        val googleAvatar = (user.userMetadata?.get("avatar_url") as? JsonPrimitive)?.contentOrNull
-            ?: (user.userMetadata?.get("picture") as? JsonPrimitive)?.contentOrNull
 
         return if (remote == null) {
             googleName?.let { name ->
                 UserProfileDto(
                     id = user.id,
                     displayName = name,
-                    avatarUrl = googleAvatar,
+                    avatarUrl = null,
                 )
             }
         } else {
@@ -43,9 +41,12 @@ internal class SettingsSupabaseService(
             } else {
                 remote.displayName
             }
+            val appAvatar = remote.avatarUrl?.takeUnless { url ->
+                url.contains("googleusercontent.com", ignoreCase = true)
+            }
             remote.copy(
                 displayName = resolvedName,
-                avatarUrl = remote.avatarUrl ?: googleAvatar,
+                avatarUrl = appAvatar,
             )
         }
     }
