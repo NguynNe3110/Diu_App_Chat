@@ -34,12 +34,14 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.uzuu.diuchat.feature.base.common.res.AppIcons
 import com.uzuu.diuchat.feature.base.common.res.AppTheme
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuCard
+import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuCardSkeleton
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuEmptyState
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuFilterChip
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuIconButton
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuMoodDot
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuSearchField
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuSectionHeader
+import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuShimmerContainer
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuTopBar
 import com.uzuu.diuchat.feature.journal.domain.model.JournalMoodType
 import com.uzuu.diuchat.feature.journal.domain.model.SearchResultItem
@@ -153,8 +155,20 @@ fun SearchContent(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Results List or Empty State
-            if (state.results.isEmpty() && state.query.isNotBlank()) {
+            // Results List, Loading Skeleton, or Empty State
+            if (state.isLoading) {
+                DiuShimmerContainer(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 20.dp),
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        repeat(4) {
+                            DiuCardSkeleton(lineCount = 2)
+                        }
+                    }
+                }
+            } else if (state.results.isEmpty() && state.query.isNotBlank()) {
                 DiuEmptyState(
                     title = "Không tìm thấy kết quả",
                     description = "Thử tìm bằng từ khóa hoặc bộ lọc màu cảm xúc khác nhé.",

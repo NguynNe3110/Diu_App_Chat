@@ -38,6 +38,7 @@ import com.uzuu.diuchat.feature.base.common.res.AppIcons
 import com.uzuu.diuchat.feature.base.common.res.AppTheme
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuIconButton
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuOrbAvatar
+import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuPersonListSkeleton
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuSectionHeader
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuTabHeader
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.parseMoodColorHex
@@ -162,7 +163,13 @@ fun CallHistoryContent(
             }
         }
 
-        if (uiState.filteredLogs.isEmpty()) {
+        if (uiState.isLoading && uiState.filteredLogs.isEmpty()) {
+            DiuPersonListSkeleton(
+                itemCount = 6,
+                showTimestamp = false,
+                modifier = Modifier.padding(top = 8.dp),
+            )
+        } else if (uiState.filteredLogs.isEmpty()) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()

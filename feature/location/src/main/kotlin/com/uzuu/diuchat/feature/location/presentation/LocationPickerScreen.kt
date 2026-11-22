@@ -41,6 +41,7 @@ import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuCard
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuIconButton
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuInlineNotice
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuOrbAvatar
+import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuSkeletonLine
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuSwitch
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuTopBar
 import com.uzuu.diuchat.feature.location.domain.model.LiveDuration
@@ -171,12 +172,19 @@ fun LocationPickerContent(
                             tint = colors.accent,
                             modifier = Modifier.size(18.dp),
                         )
-                        Text(
-                            text = uiState.currentLocation?.address ?: "Đang xác định địa chỉ...",
-                            style = AppTheme.typography.bodyMedium,
-                            color = colors.ink,
-                            modifier = Modifier.weight(1f),
-                        )
+                        if (uiState.isLoading && uiState.currentLocation == null) {
+                            DiuSkeletonLine(
+                                modifier = Modifier.weight(1f),
+                                height = 14.dp,
+                            )
+                        } else {
+                            Text(
+                                text = uiState.currentLocation?.address ?: "Đang xác định địa chỉ...",
+                                style = AppTheme.typography.bodyMedium,
+                                color = colors.ink,
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
                     }
                 }
             }

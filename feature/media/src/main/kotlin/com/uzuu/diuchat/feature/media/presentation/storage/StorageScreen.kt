@@ -40,12 +40,14 @@ import com.uzuu.diuchat.feature.base.common.res.AppTheme
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuButton
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuButtonVariant
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuCard
+import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuCardSkeleton
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuConfirmationDialog
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuFilterChip
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuIconButton
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuInlineNotice
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuSectionHeader
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuSettingsRow
+import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuShimmerContainer
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuSwitch
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuTopBar
 import com.uzuu.diuchat.feature.media.domain.model.AutoDownloadPolicy
@@ -109,124 +111,139 @@ fun StorageContent(
                 )
             },
         ) { paddingValues ->
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
-                contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-            ) {
-                // Success message notice
-                if (state.lastClearedMessage != null) {
-                    item {
-                        DiuInlineNotice(
-                            message = state.lastClearedMessage,
-                        )
-                    }
-                }
-
-                // Storage Overview Card
-                item {
-                    StorageOverviewCard(stats = state.stats)
-                }
-
-                // Clear Cache Action Card
-                item {
-                    DiuSectionHeader(title = "DỌN DẸP BỘ NHỚ AN TOÀN")
-                    Spacer(modifier = Modifier.height(4.dp))
-                    DiuCard(modifier = Modifier.fillMaxWidth()) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                        ) {
-                            Text(
-                                text = "Bộ nhớ đệm tạm thời: ${state.stats.formattedCache}",
-                                style = AppTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
-                                color = AppTheme.colors.ink,
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = "Chỉ xóa các hình ảnh và tệp âm thanh xem trước. " +
-                                    "Không xóa tin nhắn chưa gửi hoặc dữ liệu gốc trên máy chủ.",
-                                style = AppTheme.typography.bodySmall,
-                                color = AppTheme.colors.inkSecondary,
-                            )
-                            Spacer(modifier = Modifier.height(14.dp))
-                            DiuButton(
-                                onClick = { onShowClearCacheDialog(true) },
-                                variant = DiuButtonVariant.Outline,
-                                enabled = !state.isClearing && state.stats.cacheBytes > 0L,
-                                modifier = Modifier.fillMaxWidth(),
-                            ) {
-                                Text(if (state.isClearing) "Đang dọn dẹp..." else "Dọn dẹp bộ nhớ đệm")
-                            }
+            if (state.isLoading && state.stats.totalStorageBytes == 0L) {
+                DiuShimmerContainer(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues)
+                        .padding(horizontal = 20.dp, vertical = 12.dp),
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        repeat(3) {
+                            DiuCardSkeleton(lineCount = 2)
                         }
                     }
                 }
-
-                // Auto Download & Quality Options
-                item {
-                    DiuSectionHeader(title = "TỰ ĐỘNG TẢI & CHẤT LƯỢNG")
-                    Spacer(modifier = Modifier.height(4.dp))
-                    DiuCard(modifier = Modifier.fillMaxWidth()) {
-                        Column(modifier = Modifier.fillMaxWidth()) {
-                            DiuSettingsRow(
-                                title = "Chính sách tự động tải",
-                                subtitle = state.autoDownloadPolicy.description,
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues),
+                    contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
+                    // Success message notice
+                    if (state.lastClearedMessage != null) {
+                        item {
+                            DiuInlineNotice(
+                                message = state.lastClearedMessage,
                             )
-                            Row(
+                        }
+                    }
+
+                    // Storage Overview Card
+                    item {
+                        StorageOverviewCard(stats = state.stats)
+                    }
+
+                    // Clear Cache Action Card
+                    item {
+                        DiuSectionHeader(title = "DỌN DẸP BỘ NHỚ AN TOÀN")
+                        Spacer(modifier = Modifier.height(4.dp))
+                        DiuCard(modifier = Modifier.fillMaxWidth()) {
+                            Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 6.dp),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    .padding(16.dp),
                             ) {
-                                AutoDownloadPolicy.entries.forEach { policy ->
-                                    val isSelected = state.autoDownloadPolicy == policy
-                                    DiuFilterChip(
-                                        text = policy.label,
-                                        selected = isSelected,
-                                        onClick = { onSetAutoDownloadPolicy(policy) },
-                                    )
+                                Text(
+                                    text = "Bộ nhớ đệm tạm thời: ${state.stats.formattedCache}",
+                                    style = AppTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
+                                    color = AppTheme.colors.ink,
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "Chỉ xóa các hình ảnh và tệp âm thanh xem trước. " +
+                                        "Không xóa tin nhắn chưa gửi hoặc dữ liệu gốc trên máy chủ.",
+                                    style = AppTheme.typography.bodySmall,
+                                    color = AppTheme.colors.inkSecondary,
+                                )
+                                Spacer(modifier = Modifier.height(14.dp))
+                                DiuButton(
+                                    onClick = { onShowClearCacheDialog(true) },
+                                    variant = DiuButtonVariant.Outline,
+                                    enabled = !state.isClearing && state.stats.cacheBytes > 0L,
+                                    modifier = Modifier.fillMaxWidth(),
+                                ) {
+                                    Text(if (state.isClearing) "Đang dọn dẹp..." else "Dọn dẹp bộ nhớ đệm")
                                 }
                             }
-                            DiuSettingsRow(
-                                title = "Tự động tải lời nhắn thoại",
-                                subtitle = "Luôn tải trước lời nhắn thoại để phát tức thì",
-                                trailing = {
-                                    DiuSwitch(
-                                        checked = state.autoDownloadVoice,
-                                        onCheckedChange = onToggleAutoDownloadVoice,
-                                        contentDescription = "Tự động tải lời nhắn thoại",
-                                    )
-                                },
-                            )
-                            DiuSettingsRow(
-                                title = "Giữ chất lượng ảnh gốc",
-                                subtitle = "Không nén ảnh khi gửi (sử dụng nhiều dung lượng hơn)",
-                                trailing = {
-                                    DiuSwitch(
-                                        checked = state.keepOriginalQuality,
-                                        onCheckedChange = onToggleKeepOriginalQuality,
-                                        contentDescription = "Giữ chất lượng ảnh gốc",
-                                    )
-                                },
-                            )
                         }
                     }
-                }
 
-                // Breakdown by Conversation
-                if (state.stats.conversations.isNotEmpty()) {
+                    // Auto Download & Quality Options
                     item {
-                        DiuSectionHeader(title = "THEO CUỘC TRÒ CHUYỆN")
+                        DiuSectionHeader(title = "TỰ ĐỘNG TẢI & CHẤT LƯỢNG")
+                        Spacer(modifier = Modifier.height(4.dp))
+                        DiuCard(modifier = Modifier.fillMaxWidth()) {
+                            Column(modifier = Modifier.fillMaxWidth()) {
+                                DiuSettingsRow(
+                                    title = "Chính sách tự động tải",
+                                    subtitle = state.autoDownloadPolicy.description,
+                                )
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 16.dp, vertical = 6.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                ) {
+                                    AutoDownloadPolicy.entries.forEach { policy ->
+                                        val isSelected = state.autoDownloadPolicy == policy
+                                        DiuFilterChip(
+                                            text = policy.label,
+                                            selected = isSelected,
+                                            onClick = { onSetAutoDownloadPolicy(policy) },
+                                        )
+                                    }
+                                }
+                                DiuSettingsRow(
+                                    title = "Tự động tải lời nhắn thoại",
+                                    subtitle = "Luôn tải trước lời nhắn thoại để phát tức thì",
+                                    trailing = {
+                                        DiuSwitch(
+                                            checked = state.autoDownloadVoice,
+                                            onCheckedChange = onToggleAutoDownloadVoice,
+                                            contentDescription = "Tự động tải lời nhắn thoại",
+                                        )
+                                    },
+                                )
+                                DiuSettingsRow(
+                                    title = "Giữ chất lượng ảnh gốc",
+                                    subtitle = "Không nén ảnh khi gửi (sử dụng nhiều dung lượng hơn)",
+                                    trailing = {
+                                        DiuSwitch(
+                                            checked = state.keepOriginalQuality,
+                                            onCheckedChange = onToggleKeepOriginalQuality,
+                                            contentDescription = "Giữ chất lượng ảnh gốc",
+                                        )
+                                    },
+                                )
+                            }
+                        }
                     }
 
-                    items(state.stats.conversations, key = { it.conversationId }) { conv ->
-                        ConversationStorageCard(
-                            item = conv,
-                            onClearClick = { onSelectConversationToClear(conv) },
-                        )
+                    // Breakdown by Conversation
+                    if (state.stats.conversations.isNotEmpty()) {
+                        item {
+                            DiuSectionHeader(title = "THEO CUỘC TRÒ CHUYỆN")
+                        }
+
+                        items(state.stats.conversations, key = { it.conversationId }) { conv ->
+                            ConversationStorageCard(
+                                item = conv,
+                                onClearClick = { onSelectConversationToClear(conv) },
+                            )
+                        }
                     }
                 }
             }

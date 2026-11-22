@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -25,8 +26,11 @@ import com.uzuu.diuchat.feature.base.common.res.AppTheme
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuButton
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuButtonVariant
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuCard
+import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuCardSkeleton
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuIconButton
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuInlineNotice
+import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuShimmerContainer
+import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuSkeletonBox
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuTopBar
 import com.uzuu.diuchat.feature.location.domain.model.LiveLocationSession
 import com.uzuu.diuchat.feature.location.domain.model.LocationSnapshot
@@ -91,52 +95,66 @@ fun LiveLocationContent(
                 .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            DiuMapPreview(
-                latitude = uiState.session?.lastKnownLocation?.latitude ?: 21.0285,
-                longitude = uiState.session?.lastKnownLocation?.longitude ?: 105.8542,
-                accuracyMeters = uiState.session?.lastKnownLocation?.accuracyMeters ?: 12f,
-                isLive = uiState.isSharingActive,
-            )
-
-            DiuCard(modifier = Modifier.fillMaxWidth()) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    Icon(
-                        painter = painterResource(AppIcons.Clock),
-                        contentDescription = null,
-                        tint = if (uiState.isSharingActive) colors.accent else colors.inkTertiary,
-                        modifier = Modifier.size(24.dp),
-                    )
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = if (uiState.isSharingActive) {
-                                "Thời gian còn lại: ${uiState.remainingTimeFormatted}"
-                            } else {
-                                "Phiên chia sẻ đã kết thúc"
-                            },
-                            style = AppTheme.typography.titleMedium,
-                            color = colors.ink,
+            if (uiState.isLoading && uiState.session == null) {
+                DiuShimmerContainer(modifier = Modifier.fillMaxWidth()) {
+                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        DiuSkeletonBox(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(220.dp),
+                            shape = RoundedCornerShape(22.dp),
                         )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        AccuracyRadiusIndicator(
-                            accuracyMeters = uiState.session?.lastKnownLocation?.accuracyMeters ?: 12f,
-                            label = uiState.session?.lastKnownLocation?.address ?: "Vị trí thời gian thực",
-                        )
+                        DiuCardSkeleton(lineCount = 2)
                     }
                 }
-            }
-
-            if (uiState.isSharingActive) {
-                DiuInlineNotice(
-                    message = "Đang chia sẻ tọa độ qua tần suất thích ứng để tiết kiệm pin tối đa.",
-                )
             } else {
-                DiuInlineNotice(
-                    message = "Phiên chia sẻ này đã dừng hoặc hết thời gian chỉ định.",
+                DiuMapPreview(
+                    latitude = uiState.session?.lastKnownLocation?.latitude ?: 21.0285,
+                    longitude = uiState.session?.lastKnownLocation?.longitude ?: 105.8542,
+                    accuracyMeters = uiState.session?.lastKnownLocation?.accuracyMeters ?: 12f,
+                    isLive = uiState.isSharingActive,
                 )
+
+                DiuCard(modifier = Modifier.fillMaxWidth()) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        Icon(
+                            painter = painterResource(AppIcons.Clock),
+                            contentDescription = null,
+                            tint = if (uiState.isSharingActive) colors.accent else colors.inkTertiary,
+                            modifier = Modifier.size(24.dp),
+                        )
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = if (uiState.isSharingActive) {
+                                    "Thời gian còn lại: ${uiState.remainingTimeFormatted}"
+                                } else {
+                                    "Phiên chia sẻ đã kết thúc"
+                                },
+                                style = AppTheme.typography.titleMedium,
+                                color = colors.ink,
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            AccuracyRadiusIndicator(
+                                accuracyMeters = uiState.session?.lastKnownLocation?.accuracyMeters ?: 12f,
+                                label = uiState.session?.lastKnownLocation?.address ?: "Vị trí thời gian thực",
+                            )
+                        }
+                    }
+                }
+
+                if (uiState.isSharingActive) {
+                    DiuInlineNotice(
+                        message = "Đang chia sẻ tọa độ qua tần suất thích ứng để tiết kiệm pin tối đa.",
+                    )
+                } else {
+                    DiuInlineNotice(
+                        message = "Phiên chia sẻ này đã dừng hoặc hết thời gian chỉ định.",
+                    )
+                }
             }
         }
 
