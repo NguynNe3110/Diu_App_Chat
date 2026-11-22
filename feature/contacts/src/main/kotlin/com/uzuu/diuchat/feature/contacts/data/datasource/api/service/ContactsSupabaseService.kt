@@ -101,6 +101,9 @@ class ContactsSupabaseService(
                     put("p_circle", circle.toDbCircle())
                 },
             ).decodeList<LookupUserResult>().firstOrNull()
+        }.onFailure { error ->
+            if (error is CancellationException) throw error
+            Timber.w(error, "connect_by_invite_code RPC failed, trying fallback")
         }.getOrNull()
 
         if (rpcConnected != null) {
@@ -396,7 +399,7 @@ class ContactsSupabaseService(
         @SerialName("contact_user_id")
         val contactUserId: String,
         @SerialName("circle")
-        val circle: String = "friends",
+        val circle: String,
     )
 
     @Serializable
@@ -411,6 +414,8 @@ class ContactsSupabaseService(
         val username: String? = null,
         @SerialName("current_mood")
         val currentMood: String? = null,
+        @SerialName("conversation_id")
+        val conversationId: String? = null,
     )
 
     @Serializable
@@ -435,6 +440,8 @@ class ContactsSupabaseService(
         val bio: String? = null,
         @SerialName("current_mood")
         val currentMood: String? = null,
+        @SerialName("conversation_id")
+        val conversationId: String? = null,
     )
 
     @Serializable
