@@ -99,7 +99,7 @@ fun IncomingCallFullScreen(
             Spacer(modifier = Modifier.height(32.dp))
 
             DiuRippleOrb(
-                initials = callerName.take(1),
+                initials = callerName.ifEmpty { "D" }.take(1).uppercase(),
                 moodColor = peerMoodColor,
                 size = 148.dp,
             )
@@ -294,8 +294,8 @@ fun IncomingCallBanner(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 DiuOrbAvatar(
-                    initials = session.callerName.take(1),
-                    moodColor = colors.accent,
+                    initials = session.callerName.ifEmpty { "D" }.take(1).uppercase(),
+                    moodColor = colors.peach,
                     size = 48.dp,
                 )
                 Column {

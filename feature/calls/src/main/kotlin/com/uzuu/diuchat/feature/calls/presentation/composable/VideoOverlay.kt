@@ -92,7 +92,7 @@ fun VideoOverlay(
                     verticalArrangement = Arrangement.Center,
                 ) {
                     DiuOrbAvatar(
-                        initials = "T",
+                        initials = "B",
                         moodColor = colors.peach,
                         size = 42.dp,
                     )

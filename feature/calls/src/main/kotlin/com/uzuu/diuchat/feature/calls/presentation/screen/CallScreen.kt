@@ -39,7 +39,6 @@ import com.uzuu.diuchat.feature.base.common.res.AppTheme
 import com.uzuu.diuchat.feature.base.common.res.DiuSerif
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuAmbientBackground
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuIconButton
-import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuOrbAvatar
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuRippleOrb
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.parseMoodColorHex
 import com.uzuu.diuchat.feature.calls.data.CallMediaEngine
@@ -209,11 +208,10 @@ fun CallContent(
                                 ),
                             contentAlignment = Alignment.Center,
                         ) {
-                            DiuOrbAvatar(
-                                initials = displayPeerName.take(1),
+                            DiuRippleOrb(
+                                initials = displayPeerName.ifEmpty { "D" }.take(1).uppercase(),
                                 moodColor = peerMoodColor,
-                                size = 132.dp,
-                                isPulsing = true,
+                                size = 148.dp,
                             )
                         }
                     }
@@ -321,7 +319,7 @@ fun CallContent(
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
                         DiuRippleOrb(
-                            initials = displayPeerName.take(1),
+                            initials = displayPeerName.ifEmpty { "D" }.take(1).uppercase(),
                             moodColor = peerMoodColor,
                             size = 148.dp,
                         )

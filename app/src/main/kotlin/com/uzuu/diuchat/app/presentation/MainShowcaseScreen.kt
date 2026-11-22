@@ -43,16 +43,20 @@ import com.uzuu.diuchat.feature.calls.presentation.screen.CallScreen
 import com.uzuu.diuchat.feature.calls.presentation.screen.CallViewModel
 import com.uzuu.diuchat.feature.chat.presentation.screen.ChatScreen
 import com.uzuu.diuchat.feature.chat.presentation.screen.NewGroupScreen
+import com.uzuu.diuchat.feature.contacts.domain.usecase.GetContactsUseCase
 import com.uzuu.diuchat.feature.contacts.presentation.screen.ContactsScreen
 import com.uzuu.diuchat.feature.home.presentation.HomeScreen
 import com.uzuu.diuchat.feature.journal.presentation.favourites.FavouritesScreen
 import com.uzuu.diuchat.feature.journal.presentation.journal.JournalScreen
 import com.uzuu.diuchat.feature.journal.presentation.search.SearchScreen
+import com.uzuu.diuchat.feature.letters.domain.model.LetterStatus
+import com.uzuu.diuchat.feature.letters.domain.usecase.GetLettersUseCase
 import com.uzuu.diuchat.feature.letters.presentation.screen.LettersScreen
 import com.uzuu.diuchat.feature.location.presentation.LiveLocationScreen
 import com.uzuu.diuchat.feature.location.presentation.LocationPickerScreen
 import com.uzuu.diuchat.feature.media.presentation.storage.StorageScreen
 import org.koin.androidx.compose.koinViewModel
+import org.koin.compose.koinInject
 import com.uzuu.diuchat.feature.media.presentation.vault.MediaVaultScreen
 import com.uzuu.diuchat.feature.media.presentation.viewer.PhotoViewerScreen
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuAmbientBackground
@@ -293,6 +297,14 @@ fun MainShowcaseScreen(
                             )
                         }
                         composable<NavigationRoute.Settings> {
+                            val getLettersUseCase: GetLettersUseCase = koinInject()
+                            val getContactsUseCase: GetContactsUseCase = koinInject()
+                            val letters by getLettersUseCase().collectAsState(initial = emptyList())
+                            val contacts by getContactsUseCase().collectAsState(initial = emptyList())
+                            val pendingLettersCount =
+                                letters.count {
+                                    it.status == LetterStatus.SEALED_PENDING || it.status == LetterStatus.READY_TO_OPEN
+                                }
                             SettingsScreen(
                                 onBackClick = {
                                     navController.popBackStack()
@@ -325,6 +337,8 @@ fun MainShowcaseScreen(
                                         launchSingleTop = true
                                     }
                                 },
+                                pendingLettersCount = pendingLettersCount,
+                                closeCircleCount = contacts.size,
                             )
                         }
                         composable<NavigationRoute.Letters> {

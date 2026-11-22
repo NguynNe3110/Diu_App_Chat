@@ -1,5 +1,6 @@
 package com.uzuu.diuchat.feature.letters.presentation.screen
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -18,7 +19,6 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -235,7 +235,7 @@ fun LettersContent(
                 }
             }
 
-            // Nút viết thư mới (Floating Action Button)
+            // Nút viết thư mới (Floating Action Button hình vuông bo góc)
             FloatingActionButton(
                 onClick = onStartComposing,
                 modifier = Modifier
@@ -244,7 +244,7 @@ fun LettersContent(
                     .navigationBarsPadding(),
                 containerColor = colors.accent,
                 contentColor = colors.onAccent,
-                shape = CircleShape,
+                shape = RoundedCornerShape(16.dp),
             ) {
                 Icon(
                     imageVector = Icons.Default.Add,
@@ -291,6 +291,40 @@ private fun LettersHeroSection(modifier: Modifier = Modifier) {
             color = AppTheme.colors.inkSecondary,
             textAlign = TextAlign.Center,
         )
+    }
+}
+
+@Composable
+private fun LetterCompactActionButton(
+    text: String,
+    textColor: Color,
+    containerColor: Color,
+    borderColor: Color,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        onClick = onClick,
+        modifier = modifier,
+        shape = RoundedCornerShape(12.dp),
+        color = containerColor,
+        border = BorderStroke(1.dp, borderColor),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 10.dp, vertical = 9.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = text,
+                style = AppTheme.typography.labelMedium,
+                color = textColor,
+                fontWeight = FontWeight.Medium,
+                maxLines = 1,
+                softWrap = false,
+            )
+        }
     }
 }
 
@@ -391,74 +425,75 @@ private fun LetterCard(
             // Hiển thị trạng thái mở thư
             when (letter.status) {
                 LetterStatus.SEALED_PENDING -> {
-                    Row(
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(top = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
                         Row(
+                            modifier = Modifier.fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
                         ) {
-                            Icon(
-                                imageVector = Icons.Outlined.LockClock,
-                                contentDescription = null,
-                                tint = colors.accent,
-                                modifier = Modifier.size(16.dp),
-                            )
-                            Text(
-                                text = "Mở vào: ${letter.scheduledUnlockFormatted}",
-                                style = AppTheme.typography.bodySmall,
-                                color = colors.inkSecondary,
-                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.LockClock,
+                                    contentDescription = null,
+                                    tint = colors.accent,
+                                    modifier = Modifier.size(16.dp),
+                                )
+                                Text(
+                                    text = "Mở vào: ${letter.scheduledUnlockFormatted}",
+                                    style = AppTheme.typography.bodySmall,
+                                    color = colors.inkSecondary,
+                                )
+                            }
+
+                            if (!letter.isSender) {
+                                Text(
+                                    text = "Đang niêm phong 🔒",
+                                    style = AppTheme.typography.labelSmall,
+                                    color = colors.accent,
+                                    fontWeight = FontWeight.Medium,
+                                )
+                            }
                         }
 
                         // Thư của mình cho phép sửa, hủy hoặc gửi ngay trước giờ mở
                         if (letter.isSender) {
-                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                DiuButton(
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                LetterCompactActionButton(
+                                    text = "Sửa",
+                                    textColor = colors.accent,
+                                    containerColor = Color.Transparent,
+                                    borderColor = colors.line,
                                     onClick = onEditLetter,
-                                    variant = DiuButtonVariant.Outline,
-                                    shape = RoundedCornerShape(16.dp),
-                                ) {
-                                    Text(
-                                        text = "Sửa",
-                                        style = AppTheme.typography.labelSmall,
-                                        color = colors.accent,
-                                    )
-                                }
-                                DiuButton(
+                                    modifier = Modifier.weight(1f),
+                                )
+                                LetterCompactActionButton(
+                                    text = "Huỷ",
+                                    textColor = colors.danger,
+                                    containerColor = Color.Transparent,
+                                    borderColor = colors.line,
                                     onClick = onCancelLetter,
-                                    variant = DiuButtonVariant.Outline,
-                                    shape = RoundedCornerShape(16.dp),
-                                ) {
-                                    Text(
-                                        text = "Huỷ",
-                                        style = AppTheme.typography.labelSmall,
-                                        color = colors.danger,
-                                    )
-                                }
-                                DiuButton(
+                                    modifier = Modifier.weight(1f),
+                                )
+                                LetterCompactActionButton(
+                                    text = "Gửi ngay",
+                                    textColor = colors.ink,
+                                    containerColor = colors.surfaceElevated,
+                                    borderColor = colors.line,
                                     onClick = onSendImmediately,
-                                    variant = DiuButtonVariant.Soft,
-                                    shape = RoundedCornerShape(16.dp),
-                                ) {
-                                    Text(
-                                        text = "Gửi ngay",
-                                        style = AppTheme.typography.labelSmall,
-                                        color = colors.ink,
-                                    )
-                                }
+                                    modifier = Modifier.weight(1.2f),
+                                )
                             }
-                        } else {
-                            Text(
-                                text = "Đang niêm phong 🔒",
-                                style = AppTheme.typography.labelSmall,
-                                color = colors.accent,
-                                fontWeight = FontWeight.Medium,
-                            )
                         }
                     }
                 }
