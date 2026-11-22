@@ -2,60 +2,75 @@
 
 package com.uzuu.diuchat.feature.settings.presentation.screen
 
+import android.net.Uri
+import androidx.activity.compose.BackHandler
+import androidx.annotation.DrawableRes
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Block
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Edit
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.uzuu.diuchat.feature.base.common.res.AppIcons
+import com.uzuu.diuchat.feature.base.common.res.AppPalette
 import com.uzuu.diuchat.feature.base.common.res.AppTheme
-import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuButton
-import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuButtonVariant
+import com.uzuu.diuchat.feature.base.common.res.DiuSerif
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuCard
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuEmptyState
-import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuFilterChip
+import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuMediaSourceSheet
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuOrbAvatar
-import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuSettingsRow
+import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuSectionHeader
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuSwitch
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuTopBar
+import com.uzuu.diuchat.feature.base.presentation.util.rememberMediaPickerController
 import com.uzuu.diuchat.feature.settings.domain.model.BlockedContact
 import com.uzuu.diuchat.feature.settings.domain.model.NotificationPrivacy
 import com.uzuu.diuchat.feature.settings.domain.model.NotificationSound
@@ -63,56 +78,435 @@ import com.uzuu.diuchat.feature.settings.domain.model.QuietSchedule
 import com.uzuu.diuchat.feature.settings.domain.model.UserProfile
 import com.uzuu.diuchat.feature.settings.presentation.composable.DeleteAccountDialog
 import com.uzuu.diuchat.feature.settings.presentation.composable.EditProfileSheet
+import com.uzuu.diuchat.feature.settings.presentation.composable.QuietHoursDial
 import org.koin.androidx.compose.koinViewModel
 
-@Suppress("compose:vm-forwarding-check")
+private data class ProfileMoodOption(
+    val id: String,
+    val label: String,
+    val color: Color,
+)
+
+private val CORE_FIVE_MOODS = listOf(
+    ProfileMoodOption("thuong", "Thương", AppPalette.MoodThuong),
+    ProfileMoodOption("vui", "Vui", AppPalette.MoodVui),
+    ProfileMoodOption("binhyen", "Bình yên", AppPalette.MoodBinhYen),
+    ProfileMoodOption("nho", "Nhớ", AppPalette.MoodNho),
+    ProfileMoodOption("tram", "Trầm", AppPalette.MoodTram),
+)
+
+private fun resolveMoodColor(moodName: String): Color =
+    CORE_FIVE_MOODS.firstOrNull {
+        it.label.equals(moodName.trim(), ignoreCase = true) ||
+            it.id.equals(moodName.trim(), ignoreCase = true)
+    }?.color ?: AppPalette.MoodVui
+
+@Suppress("compose:vm-forwarding-check", "LongParameterList")
 @Composable
 fun SettingsScreen(
     modifier: Modifier = Modifier,
     onBackClick: () -> Unit = {},
     onNavigateToStorage: () -> Unit = {},
+    onNavigateToJournal: () -> Unit = {},
+    onNavigateToLetters: () -> Unit = {},
+    onNavigateToContacts: () -> Unit = {},
+    onNavigateToFavourites: () -> Unit = {},
+    onNavigateToOnBoarding: () -> Unit = {},
+    onReplayOnboarding: () -> Unit = onNavigateToOnBoarding,
     viewModel: SettingsViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.uiStateFlow.collectAsState()
 
-    Surface(
-        modifier = modifier.fillMaxSize(),
-        color = AppTheme.colors.background,
+    BackHandler(enabled = uiState.subScreen != SettingsSubScreen.PROFILE_OVERVIEW) {
+        when (uiState.subScreen) {
+            SettingsSubScreen.BLOCKED_CONTACTS -> {
+                viewModel.navigateToSubScreen(SettingsSubScreen.GENERAL_SETTINGS)
+            }
+            else -> {
+                viewModel.navigateBackToOverview()
+            }
+        }
+    }
+
+    // Transparent root container so MainShowcaseScreen's DiuAmbientBackground shines through
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(Color.Transparent),
     ) {
         when (uiState.subScreen) {
-            SettingsSubScreen.OVERVIEW -> {
-                SettingsOverviewContent(
+            SettingsSubScreen.PROFILE_OVERVIEW -> {
+                ProfileOverviewContent(
                     uiState = uiState,
-                    onBackClick = onBackClick,
-                    onNavigateToStorage = onNavigateToStorage,
-                    onShowEditProfileSheet = viewModel::showEditProfile,
+                    onOpenEditProfile = { viewModel.navigateToSubScreen(SettingsSubScreen.EDIT_PROFILE) },
+                    onSelectMood = viewModel::updatePrimaryMoodQuickly,
                     onToggleQuietHours = viewModel::toggleQuietHours,
-                    onShowQuietHoursDialog = viewModel::showQuietHoursDialog,
-                    onShowPrivacyDialog = viewModel::showPrivacyDialog,
-                    onToggleReadReceipts = viewModel::toggleReadReceipts,
+                    onOpenQuietHours = { viewModel.navigateToSubScreen(SettingsSubScreen.QUIET_HOURS) },
                     onToggleDarkMode = { enabled ->
                         viewModel.setThemeMode(if (enabled) "DARK" else "LIGHT")
                     },
                     onToggleSoftSendAnimation = viewModel::toggleSoftSendAnimation,
-                    onNavigateToBlockedContacts = viewModel::navigateToBlockedContacts,
-                    onShowLogoutConfirm = viewModel::showLogoutConfirm,
-                    onShowDeleteAccount = viewModel::showDeleteAccount,
-                    onUpdateQuietTimeRange = viewModel::updateQuietTimeRange,
-                    onToggleQuietRepeatDay = viewModel::toggleQuietRepeatDay,
+                    onNavigateToJournal = onNavigateToJournal,
+                    onOpenNotifications = { viewModel.navigateToSubScreen(SettingsSubScreen.NOTIFICATIONS) },
+                    onToggleReadReceipts = viewModel::toggleReadReceipts,
+                    onNavigateToLetters = onNavigateToLetters,
+                    onNavigateToContacts = onNavigateToContacts,
+                    onNavigateToFavourites = onNavigateToFavourites,
+                    onOpenGeneralSettings = { viewModel.navigateToSubScreen(SettingsSubScreen.GENERAL_SETTINGS) },
+                    onReplayOnboarding = onReplayOnboarding,
+                )
+            }
+
+            SettingsSubScreen.EDIT_PROFILE -> {
+                EditProfileSubScreen(
+                    profile = uiState.userProfile,
+                    onBackClick = viewModel::navigateBackToOverview,
+                    onSave = { name, bio, birthday, mood, avatarUrl ->
+                        viewModel.updateProfile(
+                            displayName = name,
+                            bio = bio,
+                            birthday = birthday,
+                            primaryMood = mood,
+                            avatarUrl = avatarUrl,
+                        )
+                    },
+                )
+            }
+
+            SettingsSubScreen.QUIET_HOURS -> {
+                QuietHoursSubScreen(
+                    schedule = uiState.quietSchedule,
+                    onBackClick = viewModel::navigateBackToOverview,
+                    onToggleEnabled = viewModel::toggleQuietHours,
+                    onStepStart = viewModel::stepQuietStartTime,
+                    onStepEnd = viewModel::stepQuietEndTime,
+                    onToggleRepeatDay = viewModel::toggleQuietRepeatDay,
                     onToggleEmergencyContact = viewModel::toggleEmergencyContact,
-                    onSetNotificationPrivacy = viewModel::setNotificationPrivacy,
-                    onSetNotificationSound = viewModel::setNotificationSound,
-                    onUpdateProfile = viewModel::updateProfile,
-                    onLogout = viewModel::logout,
-                    onDeleteAccount = viewModel::deleteAccount,
+                )
+            }
+
+            SettingsSubScreen.NOTIFICATIONS -> {
+                NotificationsSubScreen(
+                    privacy = uiState.notificationPrivacy,
+                    sound = uiState.notificationSound,
+                    vibrateOnce = uiState.vibrateOnceEnabled,
+                    eveningDigest = uiState.eveningGroupDigestEnabled,
+                    onBackClick = viewModel::navigateBackToOverview,
+                    onSelectPrivacy = viewModel::setNotificationPrivacy,
+                    onSelectSound = viewModel::setNotificationSound,
+                    onToggleVibrateOnce = viewModel::toggleVibrateOnce,
+                    onToggleEveningDigest = viewModel::toggleEveningGroupDigest,
+                )
+            }
+
+            SettingsSubScreen.GENERAL_SETTINGS -> {
+                GeneralSettingsSubScreen(
+                    uiState = uiState,
+                    onBackClick = viewModel::navigateBackToOverview,
+                    onOpenEditProfile = { viewModel.navigateToSubScreen(SettingsSubScreen.EDIT_PROFILE) },
+                    onOpenBlockedContacts = { viewModel.navigateToSubScreen(SettingsSubScreen.BLOCKED_CONTACTS) },
+                    onOpenNotifications = { viewModel.navigateToSubScreen(SettingsSubScreen.NOTIFICATIONS) },
+                    onOpenQuietHours = { viewModel.navigateToSubScreen(SettingsSubScreen.QUIET_HOURS) },
+                    onNavigateToStorage = onNavigateToStorage,
+                    onToggleDarkMode = { enabled ->
+                        viewModel.setThemeMode(if (enabled) "DARK" else "LIGHT")
+                    },
+                    onShowLogoutConfirm = { viewModel.showLogoutConfirm(true) },
+                    onShowDeleteAccount = { viewModel.showDeleteAccount(true) },
                 )
             }
 
             SettingsSubScreen.BLOCKED_CONTACTS -> {
                 BlockedContactsContent(
                     uiState = uiState,
-                    onBackClick = { viewModel.navigateBackToOverview() },
-                    onUnblock = { viewModel.unblockContact(it) },
+                    onBackClick = { viewModel.navigateToSubScreen(SettingsSubScreen.GENERAL_SETTINGS) },
+                    onUnblock = viewModel::unblockContact,
+                )
+            }
+        }
+
+        if (uiState.showEditProfileSheet) {
+            EditProfileSheet(
+                currentProfile = uiState.userProfile,
+                onSave = { name, bio, bday, mood, avatarUrl ->
+                    viewModel.updateProfile(name, bio, bday, mood, avatarUrl)
+                },
+                onDismiss = { viewModel.showEditProfile(false) },
+            )
+        }
+
+        if (uiState.showLogoutConfirmDialog) {
+            val colors = AppTheme.colors
+            AlertDialog(
+                onDismissRequest = { viewModel.showLogoutConfirm(false) },
+                title = {
+                    Text(
+                        text = "Đăng xuất?",
+                        style = AppTheme.typography.titleMedium,
+                        color = colors.ink,
+                    )
+                },
+                text = {
+                    Text(
+                        text = "Bạn có chắc chắn muốn đăng xuất? Dữ liệu lưu cục bộ sẽ được bảo vệ an toàn.",
+                        style = AppTheme.typography.bodySmall,
+                        color = colors.inkSecondary,
+                    )
+                },
+                confirmButton = {
+                    TextButton(onClick = viewModel::logout) {
+                        Text("Đăng xuất", color = colors.danger, fontWeight = FontWeight.SemiBold)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { viewModel.showLogoutConfirm(false) }) {
+                        Text("Huỷ", color = colors.inkSecondary)
+                    }
+                },
+            )
+        }
+
+        if (uiState.showDeleteAccountDialog) {
+            DeleteAccountDialog(
+                userPhone = uiState.userProfile.phone,
+                onConfirmDelete = viewModel::deleteAccount,
+                onDismiss = { viewModel.showDeleteAccount(false) },
+            )
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// #34 — PROFILE_OVERVIEW (Tab "Tôi" — No Back Button)
+// ═══════════════════════════════════════════════════════════════════════
+
+@Suppress("LongParameterList")
+@Composable
+private fun ProfileOverviewContent(
+    uiState: SettingsUiState,
+    onOpenEditProfile: () -> Unit,
+    onSelectMood: (String) -> Unit,
+    onToggleQuietHours: (Boolean) -> Unit,
+    onOpenQuietHours: () -> Unit,
+    onToggleDarkMode: (Boolean) -> Unit,
+    onToggleSoftSendAnimation: (Boolean) -> Unit,
+    onNavigateToJournal: () -> Unit,
+    onOpenNotifications: () -> Unit,
+    onToggleReadReceipts: (Boolean) -> Unit,
+    onNavigateToLetters: () -> Unit,
+    onNavigateToContacts: () -> Unit,
+    onNavigateToFavourites: () -> Unit,
+    onOpenGeneralSettings: () -> Unit,
+    onReplayOnboarding: () -> Unit,
+) {
+    val colors = AppTheme.colors
+    val profile = uiState.userProfile
+    val activeMoodColor = resolveMoodColor(profile.primaryMood)
+
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .statusBarsPadding(),
+        contentPadding = PaddingValues(bottom = 110.dp),
+    ) {
+        // ── .prof-top ──
+        item {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 30.dp, start = 20.dp, end = 20.dp, bottom = 10.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                DiuOrbAvatar(
+                    initials = profile.displayName.ifEmpty { "L" }.take(1).uppercase(),
+                    moodColor = activeMoodColor,
+                    size = 112.dp,
+                    avatarUrl = profile.avatarUrl,
+                    isPulsing = true,
+                )
+
+                Spacer(modifier = Modifier.height(18.dp))
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Text(
+                        text = profile.displayName.ifEmpty { "Lan" },
+                        fontFamily = DiuSerif,
+                        fontSize = 34.sp,
+                        fontWeight = FontWeight.Normal,
+                        color = colors.ink,
+                    )
+                    IconButton(
+                        onClick = onOpenEditProfile,
+                        modifier = Modifier.size(34.dp),
+                    ) {
+                        Icon(
+                            painter = painterResource(AppIcons.Edit),
+                            contentDescription = "Sửa hồ sơ",
+                            tint = colors.inkSecondary,
+                            modifier = Modifier.size(17.dp),
+                        )
+                    }
+                }
+
+                Text(
+                    text = buildAnnotatedString {
+                        append("Đang thấy ")
+                        withStyle(SpanStyle(color = colors.ink, fontWeight = FontWeight.Medium)) {
+                            append(profile.primaryMood.ifEmpty { "vui" }.lowercase())
+                        }
+                    },
+                    fontSize = 14.sp,
+                    color = colors.inkSecondary,
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                MoodDotSelectorRow(
+                    selectedMood = profile.primaryMood,
+                    onSelectMood = onSelectMood,
+                )
+            }
+        }
+
+        // ── .quiet-card ──
+        item {
+            QuietOverviewCard(
+                schedule = uiState.quietSchedule,
+                onToggle = onToggleQuietHours,
+                onOpenQuietHours = onOpenQuietHours,
+            )
+        }
+
+        // ── GIAO DIỆN ──
+        item {
+            Spacer(modifier = Modifier.height(8.dp))
+            DiuSectionHeader(title = "GIAO DIỆN")
+        }
+        item {
+            val isDark = uiState.themeMode == "DARK"
+            SettingsGlassGroupCard(
+                modifier = Modifier.padding(horizontal = 20.dp),
+            ) {
+                PrototypeSettingRow(
+                    iconRes = if (isDark) AppIcons.Moon else AppIcons.Sun,
+                    title = "Chế độ tối",
+                    trailing = {
+                        DiuSwitch(
+                            checked = isDark,
+                            onCheckedChange = onToggleDarkMode,
+                            contentDescription = "Chế độ tối",
+                        )
+                    },
+                )
+                HorizontalDivider(thickness = 1.dp, color = colors.line)
+                PrototypeSettingRow(
+                    iconRes = AppIcons.Chat,
+                    title = "Hoạt ảnh gửi tin mềm",
+                    trailing = {
+                        DiuSwitch(
+                            checked = uiState.softSendAnimationEnabled,
+                            onCheckedChange = onToggleSoftSendAnimation,
+                            contentDescription = "Hoạt ảnh gửi tin mềm",
+                        )
+                    },
+                )
+            }
+        }
+        item {
+            Spacer(modifier = Modifier.height(14.dp))
+            SettingsGlassGroupCard(
+                modifier = Modifier.padding(horizontal = 20.dp),
+            ) {
+                PrototypeSettingRow(
+                    iconRes = AppIcons.Calendar,
+                    title = "Nhật ký màu",
+                    onClick = onNavigateToJournal,
+                    showChevron = true,
+                )
+                HorizontalDivider(thickness = 1.dp, color = colors.line)
+                PrototypeSettingRow(
+                    iconRes = AppIcons.Bell,
+                    title = "Thông báo",
+                    onClick = onOpenNotifications,
+                    showChevron = true,
+                )
+            }
+        }
+
+        // ── RIÊNG TƯ ──
+        item {
+            Spacer(modifier = Modifier.height(8.dp))
+            DiuSectionHeader(title = "RIÊNG TƯ")
+        }
+        item {
+            SettingsGlassGroupCard(
+                modifier = Modifier.padding(horizontal = 20.dp),
+            ) {
+                PrototypeSettingRow(
+                    iconRes = AppIcons.Check,
+                    title = "Cho biết đã xem",
+                    trailing = {
+                        DiuSwitch(
+                            checked = uiState.readReceiptsEnabled,
+                            onCheckedChange = onToggleReadReceipts,
+                            contentDescription = "Cho biết đã xem",
+                        )
+                    },
+                )
+                HorizontalDivider(thickness = 1.dp, color = colors.line)
+                PrototypeSettingRow(
+                    iconRes = AppIcons.Envelope,
+                    title = "Thư hẹn đang chờ",
+                    badgeText = "1",
+                    onClick = onNavigateToLetters,
+                    showChevron = true,
+                )
+                HorizontalDivider(thickness = 1.dp, color = colors.line)
+                PrototypeSettingRow(
+                    iconRes = AppIcons.People,
+                    title = "Vòng thân của tôi",
+                    badgeText = "7",
+                    onClick = onNavigateToContacts,
+                    showChevron = true,
+                )
+                HorizontalDivider(thickness = 1.dp, color = colors.line)
+                PrototypeSettingRow(
+                    iconRes = AppIcons.Heart,
+                    title = "Kỷ niệm đã lưu",
+                    onClick = onNavigateToFavourites,
+                    showChevron = true,
+                )
+            }
+        }
+
+        // ── Bottom links ──
+        item {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 22.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text(
+                    text = "Cài đặt",
+                    color = colors.inkSecondary,
+                    fontSize = 14.sp,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(12.dp))
+                        .clickable(onClick = onOpenGeneralSettings)
+                        .padding(horizontal = 16.dp, vertical = 10.dp),
+                )
+                Text(
+                    text = "Xem lại phần giới thiệu",
+                    color = colors.inkSecondary,
+                    fontSize = 14.sp,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(12.dp))
+                        .clickable(onClick = onReplayOnboarding)
+                        .padding(horizontal = 16.dp, vertical = 10.dp),
                 )
             }
         }
@@ -120,28 +514,381 @@ fun SettingsScreen(
 }
 
 @Composable
-private fun SettingsOverviewContent(
-    uiState: SettingsUiState,
+private fun MoodDotSelectorRow(
+    selectedMood: String,
+    onSelectMood: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val colors = AppTheme.colors
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        CORE_FIVE_MOODS.forEach { mood ->
+            val isSelected = mood.label.equals(selectedMood.trim(), ignoreCase = true) ||
+                mood.id.equals(selectedMood.trim(), ignoreCase = true)
+            val scale by animateFloatAsState(
+                targetValue = if (isSelected) 1.18f else 1f,
+                label = "Mood dot scale",
+            )
+            Box(
+                modifier = Modifier
+                    .size(30.dp)
+                    .scale(scale)
+                    .then(
+                        if (isSelected) {
+                            Modifier
+                                .shadow(8.dp, CircleShape, ambientColor = mood.color, spotColor = mood.color)
+                                .border(2.5.dp, colors.background, CircleShape)
+                                .border(1.5.dp, mood.color, CircleShape)
+                        } else {
+                            Modifier
+                        },
+                    )
+                    .clip(CircleShape)
+                    .background(mood.color)
+                    .clickable { onSelectMood(mood.label) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun QuietOverviewCard(
+    schedule: QuietSchedule,
+    onToggle: (Boolean) -> Unit,
+    onOpenQuietHours: () -> Unit,
+) {
+    val colors = AppTheme.colors
+    val cardBg by animateColorAsState(
+        targetValue = if (schedule.enabled) {
+            AppPalette.QuietPurple.copy(alpha = 0.26f)
+        } else {
+            colors.surface
+        },
+        label = "Quiet card background",
+    )
+
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp)
+            .padding(top = 18.dp),
+        shape = RoundedCornerShape(24.dp),
+        color = cardBg,
+        border = BorderStroke(1.dp, colors.line),
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .clip(CircleShape)
+                        .background(AppPalette.QuietPurple.copy(alpha = 0.40f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        painter = painterResource(AppIcons.Moon),
+                        contentDescription = null,
+                        tint = colors.ink,
+                        modifier = Modifier.size(22.dp),
+                    )
+                }
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Giờ yên lặng",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = colors.ink,
+                    )
+                    Text(
+                        text = if (schedule.enabled) {
+                            "Đang nghỉ ngơi · đến ${schedule.endTimeFormatted}"
+                        } else {
+                            "Tự động ${schedule.startTimeFormatted} – ${schedule.endTimeFormatted}"
+                        },
+                        fontSize = 13.sp,
+                        color = colors.inkSecondary,
+                    )
+                }
+
+                DiuSwitch(
+                    checked = schedule.enabled,
+                    onCheckedChange = onToggle,
+                    contentDescription = "Giờ yên lặng",
+                )
+            }
+
+            Text(
+                text = "Chỉnh lịch & ngoại lệ →",
+                fontSize = 14.sp,
+                color = colors.inkSecondary,
+                modifier = Modifier
+                    .padding(top = 8.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable(onClick = onOpenQuietHours)
+                    .padding(vertical = 4.dp),
+            )
+
+            Text(
+                text = "Người thân sẽ thấy bạn đang nghỉ. Tin nhắn vẫn đến, nhưng lặng lẽ — không rung, không đèn.",
+                fontSize = 13.sp,
+                lineHeight = 18.sp,
+                color = colors.inkSecondary,
+                modifier = Modifier.padding(top = 8.dp),
+            )
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// #35 — EDIT_PROFILE (Màn "Sửa hồ sơ" toàn màn hình)
+// ═══════════════════════════════════════════════════════════════════════
+
+@Composable
+private fun EditProfileSubScreen(
+    profile: UserProfile,
     onBackClick: () -> Unit,
-    onNavigateToStorage: () -> Unit = {},
-    onShowEditProfileSheet: (Boolean) -> Unit = {},
-    onToggleQuietHours: (Boolean) -> Unit = {},
-    onShowQuietHoursDialog: (Boolean) -> Unit = {},
-    onShowPrivacyDialog: (Boolean) -> Unit = {},
-    onToggleReadReceipts: (Boolean) -> Unit = {},
-    onToggleDarkMode: (Boolean) -> Unit = {},
-    onToggleSoftSendAnimation: (Boolean) -> Unit = {},
-    onNavigateToBlockedContacts: () -> Unit = {},
-    onShowLogoutConfirm: (Boolean) -> Unit = {},
-    onShowDeleteAccount: (Boolean) -> Unit = {},
-    onUpdateQuietTimeRange: (Int, Int) -> Unit = { _, _ -> },
-    onToggleQuietRepeatDay: (Int) -> Unit = {},
-    onToggleEmergencyContact: (String) -> Unit = {},
-    onSetNotificationPrivacy: (NotificationPrivacy) -> Unit = {},
-    onSetNotificationSound: (NotificationSound) -> Unit = {},
-    onUpdateProfile: (String, String, String, String, String?) -> Unit = { _, _, _, _, _ -> },
-    onLogout: () -> Unit = {},
-    onDeleteAccount: (String) -> Unit = {},
+    onSave: (displayName: String, bio: String, birthday: String, primaryMood: String, avatarUrl: String?) -> Unit,
+) {
+    val colors = AppTheme.colors
+    var displayName by remember(profile.displayName) { mutableStateOf(profile.displayName) }
+    var bio by remember(profile.bio) { mutableStateOf(profile.bio) }
+    var birthday by remember(profile.birthday) { mutableStateOf(profile.birthday) }
+    var primaryMood by remember(profile.primaryMood) { mutableStateOf(profile.primaryMood) }
+    var avatarUrl by remember(profile.avatarUrl) { mutableStateOf(profile.avatarUrl) }
+    var showMediaSourceSheet by remember { mutableStateOf(false) }
+
+    val mediaPickerController = rememberMediaPickerController(
+        onSelectImage = { uri: Uri ->
+            avatarUrl = uri.toString()
+        },
+    )
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .statusBarsPadding()
+            .navigationBarsPadding(),
+    ) {
+        DiuTopBar(
+            title = "Sửa hồ sơ",
+            navigationIcon = {
+                PrototypeBackButton(onClick = onBackClick)
+            },
+            actions = {
+                Text(
+                    text = "Lưu",
+                    color = colors.ink,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(12.dp))
+                        .clickable(enabled = displayName.isNotBlank()) {
+                            onSave(displayName.trim(), bio.trim(), birthday.trim(), primaryMood, avatarUrl)
+                        }
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                )
+            },
+        )
+
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(bottom = 48.dp),
+        ) {
+            item {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp, start = 20.dp, end = 20.dp, bottom = 10.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Box(contentAlignment = Alignment.BottomEnd) {
+                        DiuOrbAvatar(
+                            initials = displayName.ifEmpty { "?" }.take(1).uppercase(),
+                            moodColor = resolveMoodColor(primaryMood),
+                            size = 112.dp,
+                            avatarUrl = avatarUrl,
+                            isPulsing = true,
+                        )
+                        Surface(
+                            modifier = Modifier
+                                .size(38.dp)
+                                .clickable { showMediaSourceSheet = true },
+                            shape = CircleShape,
+                            color = colors.ink,
+                            border = BorderStroke(3.dp, colors.background),
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    painter = painterResource(AppIcons.Camera),
+                                    contentDescription = "Đổi ảnh đại diện",
+                                    tint = colors.background,
+                                    modifier = Modifier.size(18.dp),
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    MoodDotSelectorRow(
+                        selectedMood = primaryMood,
+                        onSelectMood = { primaryMood = it },
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Text(
+                        text = "Màu quả cầu của bạn",
+                        fontSize = 14.sp,
+                        color = colors.inkSecondary,
+                    )
+                }
+            }
+
+            item {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    ProfileInputCard(
+                        label = "Tên",
+                        value = displayName,
+                        onValueChange = { displayName = it },
+                    )
+                    ProfileInputCard(
+                        label = "Đôi dòng về bạn",
+                        value = bio,
+                        onValueChange = { bio = it },
+                        singleLine = false,
+                    )
+                    ProfileInputCard(
+                        label = "Sinh nhật",
+                        value = birthday,
+                        onValueChange = { birthday = it },
+                    )
+                    ProfileInputCard(
+                        label = "Số điện thoại",
+                        value = profile.phone,
+                        onValueChange = {},
+                        readOnly = true,
+                        trailingIconRes = AppIcons.Lock,
+                    )
+                }
+            }
+        }
+    }
+
+    if (showMediaSourceSheet) {
+        DiuMediaSourceSheet(
+            title = "Đổi ảnh đại diện",
+            onPickFromGallery = mediaPickerController::launchPhotoPicker,
+            onTakePhoto = mediaPickerController::launchCamera,
+            onDismiss = { showMediaSourceSheet = false },
+        )
+    }
+}
+
+@Composable
+private fun ProfileInputCard(
+    label: String,
+    value: String,
+    onValueChange: (String) -> Unit,
+    singleLine: Boolean = true,
+    readOnly: Boolean = false,
+    @DrawableRes trailingIconRes: Int? = null,
+) {
+    val colors = AppTheme.colors
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        color = colors.surface,
+        border = BorderStroke(1.dp, colors.line),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Text(
+                    text = label,
+                    fontSize = 12.sp,
+                    color = colors.inkSecondary,
+                )
+                BasicTextField(
+                    value = value,
+                    onValueChange = onValueChange,
+                    readOnly = readOnly,
+                    singleLine = singleLine,
+                    textStyle = AppTheme.typography.bodyLarge.copy(
+                        color = colors.ink,
+                        fontSize = 16.sp,
+                    ),
+                    cursorBrush = SolidColor(colors.accent),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+            if (trailingIconRes != null) {
+                Icon(
+                    painter = painterResource(trailingIconRes),
+                    contentDescription = null,
+                    tint = colors.inkTertiary,
+                    modifier = Modifier.size(16.dp),
+                )
+            }
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// #37 — QUIET_HOURS (Màn "Giờ yên lặng" với QuietHoursDial)
+// ═══════════════════════════════════════════════════════════════════════
+
+private data class EmergencyContactItem(
+    val id: String,
+    val name: String,
+    val moodColor: Color,
+)
+
+private val EMERGENCY_CONTACTS = listOf(
+    EmergencyContactItem("minh", "Minh", AppPalette.MoodThuong),
+    EmergencyContactItem("me", "Mẹ", AppPalette.MoodVui),
+    EmergencyContactItem("thao", "Thảo", AppPalette.MoodNho),
+)
+
+private val WEEKDAY_ITEMS = listOf(
+    1 to "T2",
+    2 to "T3",
+    3 to "T4",
+    4 to "T5",
+    5 to "T6",
+    6 to "T7",
+    7 to "CN",
+)
+
+@Suppress("LongParameterList")
+@Composable
+private fun QuietHoursSubScreen(
+    schedule: QuietSchedule,
+    onBackClick: () -> Unit,
+    onToggleEnabled: (Boolean) -> Unit,
+    onStepStart: (Int) -> Unit,
+    onStepEnd: (Int) -> Unit,
+    onToggleRepeatDay: (Int) -> Unit,
+    onToggleEmergencyContact: (String) -> Unit,
 ) {
     val colors = AppTheme.colors
 
@@ -152,344 +899,601 @@ private fun SettingsOverviewContent(
             .navigationBarsPadding(),
     ) {
         DiuTopBar(
-            title = "Cài đặt & Riêng tư",
-            subtitle = "Không gian bình yên của bạn",
-            navigationIcon = if (onBackClick != {}) {
-                {
-                    IconButton(onClick = onBackClick) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Quay lại",
-                            tint = colors.ink,
-                        )
-                    }
-                }
-            } else {
-                null
+            title = "Giờ yên lặng",
+            navigationIcon = {
+                PrototypeBackButton(onClick = onBackClick)
+            },
+            actions = {
+                DiuSwitch(
+                    checked = schedule.enabled,
+                    onCheckedChange = onToggleEnabled,
+                    contentDescription = "Bật giờ yên lặng",
+                )
             },
         )
 
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(bottom = 48.dp),
         ) {
-            // ── Hồ sơ cá nhân (Account & Profile) ──
+            // ── 24h Dial ──
             item {
-                SectionHeader(title = "Hồ sơ cá nhân")
-            }
-            item {
-                ProfileHeaderCard(
-                    profile = uiState.userProfile,
-                    onEditClick = { onShowEditProfileSheet(true) },
-                )
-            }
-
-            // ── Khung giờ yên lặng ──
-            item {
-                Spacer(modifier = Modifier.height(8.dp))
-                SectionHeader(title = "Giờ yên lặng")
-            }
-            item {
-                DiuSettingsRow(
-                    title = "Bật chế độ yên lặng",
-                    subtitle = uiState.quietSchedule.timeRangeFormatted,
-                    trailing = {
-                        DiuSwitch(
-                            checked = uiState.quietSchedule.enabled,
-                            onCheckedChange = onToggleQuietHours,
-                            contentDescription = "Bật tắt giờ yên lặng",
-                        )
-                    },
-                )
-            }
-            item {
-                DiuSettingsRow(
-                    title = "Khung giờ nghỉ ngơi",
-                    subtitle = "${uiState.quietSchedule.startTimeFormatted} đến ${uiState.quietSchedule.endTimeFormatted} (Hỗ trợ qua đêm)",
-                    onClick = { onShowQuietHoursDialog(true) },
-                )
-            }
-            item {
-                Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
-                    DiuCard(
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Text(
-                            text = "🌙 Trong giờ yên lặng, các tin nhắn gửi đến sẽ không phát chuông hoặc rung mạnh. " +
-                                "Người thân trong chòm sao sẽ nhìn thấy biểu tượng trăng khuyết bên cạnh tên bạn.",
-                            color = colors.inkSecondary,
-                            style = AppTheme.typography.bodySmall,
-                            lineHeight = 20.sp,
-                        )
-                    }
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    QuietHoursDial(schedule = schedule)
                 }
             }
 
-            // ── Thông báo & Riêng tư (REQ-37) ──
+            // ── Steppers (.qs-steps) ──
             item {
-                Spacer(modifier = Modifier.height(16.dp))
-                SectionHeader(title = "Thông báo & Riêng tư")
-            }
-            item {
-                DiuSettingsRow(
-                    title = "Mức hiển thị thông báo",
-                    subtitle = uiState.notificationPrivacy.label,
-                    onClick = { onShowPrivacyDialog(true) },
-                )
-            }
-            item {
-                Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
-                    Text(
-                        text = uiState.notificationPrivacy.description,
-                        color = colors.inkSecondary,
-                        style = AppTheme.typography.bodySmall,
-                        lineHeight = 18.sp,
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp)
+                        .padding(top = 22.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    QuietTimeStepperCard(
+                        label = "Bắt đầu",
+                        formattedTime = schedule.startTimeFormatted,
+                        onMinus = { onStepStart(-30) },
+                        onPlus = { onStepStart(30) },
+                        modifier = Modifier.weight(1f),
+                    )
+                    QuietTimeStepperCard(
+                        label = "Kết thúc",
+                        formattedTime = schedule.endTimeFormatted,
+                        onMinus = { onStepEnd(-30) },
+                        onPlus = { onStepEnd(30) },
+                        modifier = Modifier.weight(1f),
                     )
                 }
             }
 
-            // ── Bảo mật & Chặn (REQ-40) ──
+            // ── LẶP LẠI (.days) ──
             item {
-                Spacer(modifier = Modifier.height(16.dp))
-                SectionHeader(title = "Bảo mật & Quyền riêng tư")
-            }
-            item {
-                DiuSettingsRow(
-                    title = "Danh sách người bị chặn",
-                    subtitle = if (uiState.blockedContacts.isEmpty()) "Chưa chặn ai" else "${uiState.blockedContacts.size} người bị chặn",
-                    onClick = onNavigateToBlockedContacts,
-                )
-            }
-            item {
-                DiuSettingsRow(
-                    title = "Xác nhận đã đọc (Read receipts)",
-                    subtitle = "Hiển thị trạng thái đã xem cho người gửi",
-                    trailing = {
-                        DiuSwitch(
-                            checked = uiState.readReceiptsEnabled,
-                            onCheckedChange = onToggleReadReceipts,
-                            contentDescription = "Bật tắt xác nhận đã đọc",
-                        )
-                    },
-                )
-            }
-
-            // ── Giao diện & Dữ liệu ──
-            item {
-                Spacer(modifier = Modifier.height(16.dp))
-                SectionHeader(title = "Giao diện")
-            }
-            item {
-                DiuSettingsRow(
-                    title = "Chế độ tối",
-                    subtitle = if (uiState.themeMode == "DARK") "Đang bật" else "Đang tắt",
-                    trailing = {
-                        DiuSwitch(
-                            checked = uiState.themeMode == "DARK",
-                            onCheckedChange = onToggleDarkMode,
-                            contentDescription = "Bật tắt chế độ tối",
-                        )
-                    },
-                )
-            }
-            item {
-                DiuSettingsRow(
-                    title = "Hoạt ảnh gửi tin mềm",
-                    subtitle = "Hiệu ứng chuyển động dịu nhẹ khi gửi tin nhắn",
-                    trailing = {
-                        DiuSwitch(
-                            checked = uiState.softSendAnimationEnabled,
-                            onCheckedChange = onToggleSoftSendAnimation,
-                            contentDescription = "Bật tắt hoạt ảnh gửi tin mềm",
-                        )
-                    },
-                )
-            }
-            item {
-                DiuSettingsRow(
-                    title = "Lưu trữ & dữ liệu",
-                    subtitle = "Quản lý bộ nhớ đệm và tải xuống tự động",
-                    onClick = onNavigateToStorage,
-                )
+                Spacer(modifier = Modifier.height(8.dp))
+                DiuSectionHeader(title = "LẶP LẠI")
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    WEEKDAY_ITEMS.forEach { (dayNum, label) ->
+                        val isSelected = dayNum in schedule.repeatDays
+                        Surface(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(42.dp)
+                                .clip(RoundedCornerShape(14.dp))
+                                .clickable { onToggleRepeatDay(dayNum) },
+                            shape = RoundedCornerShape(14.dp),
+                            color = if (isSelected) {
+                                AppPalette.QuietPurple.copy(alpha = 0.45f)
+                            } else {
+                                Color.Transparent
+                            },
+                            border = if (isSelected) null else BorderStroke(1.dp, colors.line),
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Text(
+                                    text = label,
+                                    fontSize = 13.sp,
+                                    color = if (isSelected) colors.ink else colors.inkSecondary,
+                                    fontWeight = if (isSelected) FontWeight.Medium else FontWeight.Normal,
+                                )
+                            }
+                        }
+                    }
+                }
             }
 
-            // ── Tài khoản & Hành động nguy hiểm ──
+            // ── VẪN CHO PHÉP GỌI KHẨN ──
             item {
-                Spacer(modifier = Modifier.height(16.dp))
-                SectionHeader(title = "Tài khoản")
-            }
-            item {
-                DiuSettingsRow(
-                    title = "Đăng xuất tài khoản",
-                    subtitle = "Xoá phiên đăng nhập hiện tại trên thiết bị",
-                    onClick = { onShowLogoutConfirm(true) },
-                )
-            }
-            item {
-                DiuSettingsRow(
-                    title = "Xoá tài khoản vĩnh viễn",
-                    subtitle = "Xoá toàn bộ hồ sơ và dữ liệu cá nhân",
-                    destructive = true,
-                    onClick = { onShowDeleteAccount(true) },
-                )
+                Spacer(modifier = Modifier.height(8.dp))
+                DiuSectionHeader(title = "VẪN CHO PHÉP GỌI KHẨN")
+                DiuCard(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp),
+                    contentPadding = PaddingValues(0.dp),
+                ) {
+                    EMERGENCY_CONTACTS.forEachIndexed { index, contact ->
+                        if (index > 0) {
+                            HorizontalDivider(thickness = 1.dp, color = colors.line)
+                        }
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(min = 56.dp)
+                                .padding(horizontal = 16.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            DiuOrbAvatar(
+                                initials = contact.name.take(1),
+                                moodColor = contact.moodColor,
+                                size = 34.dp,
+                            )
+                            Text(
+                                text = contact.name,
+                                fontSize = 15.sp,
+                                color = colors.ink,
+                                modifier = Modifier.weight(1f),
+                            )
+                            DiuSwitch(
+                                checked = contact.id in schedule.allowedEmergencyContactIds,
+                                onCheckedChange = { onToggleEmergencyContact(contact.id) },
+                                contentDescription = "Cho phép ${contact.name} gọi khẩn",
+                            )
+                        }
+                    }
+                }
             }
 
-            // ── Thông tin ứng dụng ──
             item {
-                Spacer(modifier = Modifier.height(16.dp))
-                SectionHeader(title = "Hệ thống")
-            }
-            item {
-                DiuSettingsRow(
-                    title = "Phiên bản ứng dụng",
-                    subtitle = "Dịu App Chat v0.0.1 (Release Hardening Build)",
+                Text(
+                    text = "Khi bạn nghỉ, người thân thấy vầng trăng nhỏ cạnh tên bạn. Tin nhắn vẫn đến, lặng lẽ chờ bạn thức dậy.",
+                    fontSize = 13.sp,
+                    lineHeight = 18.sp,
+                    color = colors.inkSecondary,
+                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp),
                 )
-            }
-            item {
-                Spacer(modifier = Modifier.height(32.dp))
             }
         }
-    }
-
-    // Sheet chỉnh sửa hồ sơ
-    if (uiState.showEditProfileSheet) {
-        EditProfileSheet(
-            currentProfile = uiState.userProfile,
-            onSave = { name, bio, bday, mood, avatarUrl ->
-                onUpdateProfile(name, bio, bday, mood, avatarUrl)
-            },
-            onDismiss = { onShowEditProfileSheet(false) },
-        )
-    }
-
-    // Dialog xác nhận đăng xuất
-    if (uiState.showLogoutConfirmDialog) {
-        AlertDialog(
-            onDismissRequest = { onShowLogoutConfirm(false) },
-            title = {
-                Text(
-                    text = "Đăng xuất?",
-                    style = AppTheme.typography.titleMedium,
-                    color = colors.ink,
-                )
-            },
-            text = {
-                Text(
-                    text = "Bạn có chắc chắn muốn đăng xuất? Dữ liệu lưu cục bộ sẽ được bảo vệ an toàn.",
-                    style = AppTheme.typography.bodySmall,
-                    color = colors.inkSecondary,
-                )
-            },
-            confirmButton = {
-                TextButton(onClick = onLogout) {
-                    Text("Đăng xuất", color = colors.danger, fontWeight = FontWeight.SemiBold)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { onShowLogoutConfirm(false) }) {
-                    Text("Hủy", color = colors.inkSecondary)
-                }
-            },
-        )
-    }
-
-    // Dialog xác nhận xoá tài khoản
-    if (uiState.showDeleteAccountDialog) {
-        DeleteAccountDialog(
-            userPhone = uiState.userProfile.phone,
-            onConfirmDelete = onDeleteAccount,
-            onDismiss = { onShowDeleteAccount(false) },
-        )
-    }
-
-    // Dialog chọn mức hiển thị thông báo (REQ-37)
-    if (uiState.showPrivacyDialog) {
-        NotificationPrivacyDialog(
-            currentPrivacy = uiState.notificationPrivacy,
-            currentSound = uiState.notificationSound,
-            onSelectPrivacy = onSetNotificationPrivacy,
-            onSelectSound = onSetNotificationSound,
-            onDismiss = { onShowPrivacyDialog(false) },
-        )
-    }
-
-    // Dialog chọn khung giờ yên lặng
-    if (uiState.showQuietHoursDialog) {
-        QuietHoursPresetDialog(
-            currentSchedule = uiState.quietSchedule,
-            onSelectRange = { start, end ->
-                onUpdateQuietTimeRange(start, end)
-            },
-            onToggleRepeatDay = onToggleQuietRepeatDay,
-            onToggleEmergencyContact = onToggleEmergencyContact,
-            onDismiss = { onShowQuietHoursDialog(false) },
-        )
     }
 }
 
 @Composable
-private fun ProfileHeaderCard(
-    profile: com.uzuu.diuchat.feature.settings.domain.model.UserProfile,
-    onEditClick: () -> Unit,
+private fun QuietTimeStepperCard(
+    label: String,
+    formattedTime: String,
+    onMinus: () -> Unit,
+    onPlus: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val colors = AppTheme.colors
-
-    Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
-        DiuCard(modifier = Modifier.fillMaxWidth()) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(20.dp),
+        color = colors.surface,
+        border = BorderStroke(1.dp, colors.line),
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(
+                text = label,
+                fontSize = 12.sp,
+                color = colors.inkSecondary,
+            )
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(14.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-                DiuOrbAvatar(
-                    initials = profile.displayName.ifEmpty { "L" }.take(1).uppercase(),
-                    moodColor = colors.moods.vui,
-                    size = 54.dp,
-                    avatarUrl = profile.avatarUrl,
-                )
-
-                Column(modifier = Modifier.weight(1f)) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    ) {
-                        Text(
-                            text = profile.displayName,
-                            style = AppTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = colors.ink,
-                        )
-                        Text(
-                            text = "• ${profile.primaryMood}",
-                            style = AppTheme.typography.labelSmall,
-                            color = colors.accent,
-                            fontWeight = FontWeight.Medium,
-                        )
-                    }
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(CircleShape)
+                        .background(colors.ink.copy(alpha = 0.06f))
+                        .clickable(onClick = onMinus),
+                    contentAlignment = Alignment.Center,
+                ) {
                     Text(
-                        text = profile.bio,
-                        style = AppTheme.typography.bodySmall,
-                        color = colors.inkSecondary,
-                        lineHeight = 16.sp,
-                        maxLines = 2,
-                    )
-                    Text(
-                        text = "${profile.phone} • ${profile.birthday}",
-                        style = AppTheme.typography.labelSmall,
-                        color = colors.inkSecondary.copy(alpha = 0.7f),
+                        text = "−",
+                        fontSize = 18.sp,
+                        color = colors.ink,
                     )
                 }
 
-                IconButton(onClick = onEditClick) {
-                    Icon(
-                        imageVector = Icons.Default.Edit,
-                        contentDescription = "Chỉnh sửa hồ sơ",
-                        tint = colors.accent,
+                Text(
+                    text = formattedTime,
+                    fontFamily = DiuSerif,
+                    fontSize = 22.sp,
+                    color = colors.ink,
+                )
+
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(CircleShape)
+                        .background(colors.ink.copy(alpha = 0.06f))
+                        .clickable(onClick = onPlus),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = "+",
+                        fontSize = 18.sp,
+                        color = colors.ink,
                     )
                 }
             }
         }
     }
 }
+
+// ═══════════════════════════════════════════════════════════════════════
+// #38 — NOTIFICATIONS (Màn "Thông báo" với 3 thẻ preview màn hình khóa)
+// ═══════════════════════════════════════════════════════════════════════
+
+private data class LockscreenPreviewStyle(
+    val privacy: NotificationPrivacy,
+    val title: String,
+    val previewText: String,
+)
+
+private val LOCKSCREEN_STYLES = listOf(
+    LockscreenPreviewStyle(
+        privacy = NotificationPrivacy.MOOD_COLOR_ONLY,
+        title = "Chỉ màu",
+        previewText = "Một lời nhắn mang màu Thương",
+    ),
+    LockscreenPreviewStyle(
+        privacy = NotificationPrivacy.SENDER_NAME,
+        title = "Tên người gửi",
+        previewText = "Minh gửi cho bạn một lời nhắn",
+    ),
+    LockscreenPreviewStyle(
+        privacy = NotificationPrivacy.FULL_CONTENT,
+        title = "Toàn bộ",
+        previewText = "Anh tới đầu hẻm rồi nè…",
+    ),
+)
+
+@Suppress("LongParameterList")
+@Composable
+private fun NotificationsSubScreen(
+    privacy: NotificationPrivacy,
+    sound: NotificationSound,
+    vibrateOnce: Boolean,
+    eveningDigest: Boolean,
+    onBackClick: () -> Unit,
+    onSelectPrivacy: (NotificationPrivacy) -> Unit,
+    onSelectSound: (NotificationSound) -> Unit,
+    onToggleVibrateOnce: (Boolean) -> Unit,
+    onToggleEveningDigest: (Boolean) -> Unit,
+) {
+    val colors = AppTheme.colors
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .statusBarsPadding()
+            .navigationBarsPadding(),
+    ) {
+        DiuTopBar(
+            title = "Thông báo",
+            navigationIcon = {
+                PrototypeBackButton(onClick = onBackClick)
+            },
+        )
+
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(bottom = 48.dp),
+        ) {
+            item {
+                DiuSectionHeader(title = "HIỂN THỊ TRÊN MÀN HÌNH KHOÁ")
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    LOCKSCREEN_STYLES.forEach { item ->
+                        val isSelected = privacy == item.privacy
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(22.dp))
+                                .clickable { onSelectPrivacy(item.privacy) },
+                            shape = RoundedCornerShape(22.dp),
+                            color = if (isSelected) colors.surface else Color.Transparent,
+                            border = BorderStroke(
+                                width = 1.5.dp,
+                                color = if (isSelected) colors.accent else colors.line,
+                            ),
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                // .ns-prev
+                                Surface(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(16.dp),
+                                    color = colors.surfaceElevated,
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(26.dp)
+                                                .shadow(
+                                                    elevation = 8.dp,
+                                                    shape = CircleShape,
+                                                    ambientColor = AppPalette.MoodThuong,
+                                                    spotColor = AppPalette.MoodThuong,
+                                                )
+                                                .clip(CircleShape)
+                                                .background(AppPalette.MoodThuong),
+                                        )
+                                        Text(
+                                            text = item.previewText,
+                                            fontSize = 13.sp,
+                                            color = colors.inkSecondary,
+                                        )
+                                    }
+                                }
+
+                                Text(
+                                    text = item.title,
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = colors.ink,
+                                    modifier = Modifier.padding(start = 4.dp),
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            // ── ÂM BÁO ──
+            item {
+                Spacer(modifier = Modifier.height(8.dp))
+                DiuSectionHeader(title = "ÂM BÁO")
+                SettingsGlassGroupCard(
+                    modifier = Modifier.padding(horizontal = 20.dp),
+                ) {
+                    NotificationSound.entries.forEachIndexed { index, soundOption ->
+                        if (index > 0) {
+                            HorizontalDivider(thickness = 1.dp, color = colors.line)
+                        }
+                        val isSelected = sound == soundOption
+                        PrototypeSettingRow(
+                            iconRes = if (soundOption == NotificationSound.SILENT) {
+                                AppIcons.BellOff
+                            } else {
+                                AppIcons.Speaker
+                            },
+                            title = soundOption.label,
+                            onClick = { onSelectSound(soundOption) },
+                            trailing = {
+                                PrototypeRadioIndicator(selected = isSelected)
+                            },
+                        )
+                    }
+                }
+            }
+
+            // ── KHÁC ──
+            item {
+                Spacer(modifier = Modifier.height(8.dp))
+                DiuSectionHeader(title = "KHÁC")
+                SettingsGlassGroupCard(
+                    modifier = Modifier.padding(horizontal = 20.dp),
+                ) {
+                    PrototypeSettingRow(
+                        iconRes = AppIcons.Phone,
+                        title = "Rung nhẹ một lần",
+                        trailing = {
+                            DiuSwitch(
+                                checked = vibrateOnce,
+                                onCheckedChange = onToggleVibrateOnce,
+                                contentDescription = "Rung nhẹ một lần",
+                            )
+                        },
+                    )
+                    HorizontalDivider(thickness = 1.dp, color = colors.line)
+                    PrototypeSettingRow(
+                        iconRes = AppIcons.Calendar,
+                        title = "Gom tin nhóm thành bản tóm tắt buổi tối",
+                        trailing = {
+                            DiuSwitch(
+                                checked = eveningDigest,
+                                onCheckedChange = onToggleEveningDigest,
+                                contentDescription = "Gom tin nhóm thành bản tóm tắt buổi tối",
+                            )
+                        },
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PrototypeRadioIndicator(selected: Boolean) {
+    val colors = AppTheme.colors
+    Box(
+        modifier = Modifier
+            .size(22.dp)
+            .clip(CircleShape)
+            .border(
+                width = if (selected) 7.dp else 1.5.dp,
+                color = if (selected) colors.accent else colors.line,
+                shape = CircleShape,
+            ),
+    )
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// #36 — GENERAL_SETTINGS (Màn "Cài đặt chung")
+// ═══════════════════════════════════════════════════════════════════════
+
+@Suppress("LongParameterList")
+@Composable
+private fun GeneralSettingsSubScreen(
+    uiState: SettingsUiState,
+    onBackClick: () -> Unit,
+    onOpenEditProfile: () -> Unit,
+    onOpenBlockedContacts: () -> Unit,
+    onOpenNotifications: () -> Unit,
+    onOpenQuietHours: () -> Unit,
+    onNavigateToStorage: () -> Unit,
+    onToggleDarkMode: (Boolean) -> Unit,
+    onShowLogoutConfirm: () -> Unit,
+    onShowDeleteAccount: () -> Unit,
+) {
+    val colors = AppTheme.colors
+    val isDark = uiState.themeMode == "DARK"
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .statusBarsPadding()
+            .navigationBarsPadding(),
+    ) {
+        DiuTopBar(
+            title = "Cài đặt",
+            navigationIcon = {
+                PrototypeBackButton(onClick = onBackClick)
+            },
+        )
+
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(bottom = 48.dp),
+        ) {
+            // ── TÀI KHOẢN ──
+            item {
+                DiuSectionHeader(title = "TÀI KHOẢN")
+                SettingsGlassGroupCard(modifier = Modifier.padding(horizontal = 20.dp)) {
+                    PrototypeSettingRow(
+                        iconRes = AppIcons.User,
+                        title = "Hồ sơ cá nhân",
+                        onClick = onOpenEditProfile,
+                        showChevron = true,
+                    )
+                    HorizontalDivider(thickness = 1.dp, color = colors.line)
+                    PrototypeSettingRow(
+                        iconRes = AppIcons.Phone,
+                        title = "Số điện thoại",
+                        valueText = uiState.userProfile.phone,
+                    )
+                }
+            }
+
+            // ── BẢO MẬT ──
+            item {
+                Spacer(modifier = Modifier.height(8.dp))
+                DiuSectionHeader(title = "BẢO MẬT")
+                SettingsGlassGroupCard(modifier = Modifier.padding(horizontal = 20.dp)) {
+                    PrototypeSettingRow(
+                        iconRes = AppIcons.Lock,
+                        title = "Mã hoá hai đầu",
+                        valueText = "Đã bật",
+                    )
+                    HorizontalDivider(thickness = 1.dp, color = colors.line)
+                    PrototypeSettingRow(
+                        iconRes = AppIcons.Block,
+                        title = "Đã tạm ngừng liên lạc",
+                        onClick = onOpenBlockedContacts,
+                        showChevron = true,
+                    )
+                }
+            }
+
+            // ── ỨNG DỤNG ──
+            item {
+                Spacer(modifier = Modifier.height(8.dp))
+                DiuSectionHeader(title = "ỨNG DỤNG")
+                SettingsGlassGroupCard(modifier = Modifier.padding(horizontal = 20.dp)) {
+                    PrototypeSettingRow(
+                        iconRes = AppIcons.Bell,
+                        title = "Thông báo",
+                        onClick = onOpenNotifications,
+                        showChevron = true,
+                    )
+                    HorizontalDivider(thickness = 1.dp, color = colors.line)
+                    PrototypeSettingRow(
+                        iconRes = AppIcons.Moon,
+                        title = "Giờ yên lặng",
+                        onClick = onOpenQuietHours,
+                        showChevron = true,
+                    )
+                    HorizontalDivider(thickness = 1.dp, color = colors.line)
+                    PrototypeSettingRow(
+                        iconRes = AppIcons.Image,
+                        title = "Lưu trữ & dữ liệu",
+                        onClick = onNavigateToStorage,
+                        showChevron = true,
+                    )
+                    HorizontalDivider(thickness = 1.dp, color = colors.line)
+                    PrototypeSettingRow(
+                        iconRes = if (isDark) AppIcons.Moon else AppIcons.Sun,
+                        title = "Chế độ tối",
+                        trailing = {
+                            DiuSwitch(
+                                checked = isDark,
+                                onCheckedChange = onToggleDarkMode,
+                                contentDescription = "Chế độ tối",
+                            )
+                        },
+                    )
+                }
+            }
+
+            // ── GIỚI THIỆU ──
+            item {
+                Spacer(modifier = Modifier.height(8.dp))
+                DiuSectionHeader(title = "GIỚI THIỆU")
+                SettingsGlassGroupCard(modifier = Modifier.padding(horizontal = 20.dp)) {
+                    PrototypeSettingRow(
+                        iconRes = AppIcons.Heart,
+                        title = "Về dịu",
+                        valueText = "v1.0.0",
+                    )
+                    HorizontalDivider(thickness = 1.dp, color = colors.line)
+                    PrototypeSettingRow(
+                        iconRes = AppIcons.Share,
+                        title = "Giới thiệu cho bạn bè",
+                    )
+                    HorizontalDivider(thickness = 1.dp, color = colors.line)
+                    PrototypeSettingRow(
+                        iconRes = AppIcons.Chat,
+                        title = "Góp ý & hỗ trợ",
+                    )
+                }
+            }
+
+            // ── DANGER ACTIONS ──
+            item {
+                Spacer(modifier = Modifier.height(14.dp))
+                SettingsGlassGroupCard(modifier = Modifier.padding(horizontal = 20.dp)) {
+                    PrototypeSettingRow(
+                        iconRes = AppIcons.Back,
+                        title = "Đăng xuất",
+                        isDanger = true,
+                        onClick = onShowLogoutConfirm,
+                    )
+                    HorizontalDivider(thickness = 1.dp, color = colors.line)
+                    PrototypeSettingRow(
+                        iconRes = AppIcons.Trash,
+                        title = "Xoá tài khoản",
+                        isDanger = true,
+                        onClick = onShowDeleteAccount,
+                    )
+                }
+            }
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// #53 — BLOCKED_CONTACTS (Màn "Tạm ngừng liên lạc")
+// ═══════════════════════════════════════════════════════════════════════
 
 @Composable
 private fun BlockedContactsContent(
@@ -506,50 +1510,43 @@ private fun BlockedContactsContent(
             .navigationBarsPadding(),
     ) {
         DiuTopBar(
-            title = "Danh sách người bị chặn",
-            subtitle = "${uiState.blockedContacts.size} liên hệ",
+            title = "Tạm ngừng liên lạc",
             navigationIcon = {
-                IconButton(onClick = onBackClick) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Quay lại",
-                        tint = colors.ink,
-                    )
-                }
+                PrototypeBackButton(onClick = onBackClick)
             },
         )
 
         if (uiState.blockedContacts.isEmpty()) {
-            Box(
+            Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(32.dp),
-                contentAlignment = Alignment.Center,
+                    .padding(horizontal = 24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
             ) {
                 DiuEmptyState(
-                    title = "Chưa chặn ai",
-                    description = "Danh sách chặn của bạn đang trống. Bạn chưa chặn bất kỳ liên hệ nào.",
+                    title = "Không ai bị tạm ngừng liên lạc",
+                    description = "Bình yên ghê. Người bị tạm ngừng sẽ không thể gửi tin nhắn hay gọi cho bạn.",
                 )
             }
         } else {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                contentPadding = PaddingValues(bottom = 48.dp),
             ) {
-                item {
-                    Text(
-                        text = "Những người trong danh sách này sẽ không thể gửi tin nhắn, " +
-                            "gọi điện hay nhìn thấy trạng thái cảm xúc của bạn.",
-                        color = colors.inkSecondary,
-                        style = AppTheme.typography.bodySmall,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                        lineHeight = 18.sp,
-                    )
-                }
                 items(uiState.blockedContacts, key = { it.id }) { blocked ->
                     BlockedContactRow(
                         contact = blocked,
                         onUnblock = { onUnblock(blocked.id) },
+                    )
+                }
+                item {
+                    Text(
+                        text = "Người bị tạm ngừng sẽ không thể gửi tin nhắn hay gọi cho bạn. Họ không biết rằng bạn đã tạm ngừng.",
+                        color = colors.inkSecondary,
+                        fontSize = 13.sp,
+                        lineHeight = 18.sp,
+                        modifier = Modifier.padding(horizontal = 24.dp, vertical = 20.dp),
                     )
                 }
             }
@@ -567,323 +1564,193 @@ private fun BlockedContactRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+            .padding(horizontal = 20.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        Box(
-            modifier = Modifier
-                .size(44.dp)
-                .clip(CircleShape)
-                .background(colors.surface),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                imageVector = Icons.Default.Block,
-                contentDescription = null,
-                tint = colors.danger,
-                modifier = Modifier.size(22.dp),
-            )
-        }
+        DiuOrbAvatar(
+            initials = contact.name.ifEmpty { "?" }.take(1).uppercase(),
+            moodColor = AppPalette.MoodTram,
+            size = 44.dp,
+        )
 
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = contact.name,
                 color = colors.ink,
-                style = AppTheme.typography.bodyLarge,
+                fontSize = 16.sp,
                 fontWeight = FontWeight.Medium,
             )
             Text(
-                text = "${contact.phone} • Đã chặn ${contact.blockedAt}",
+                text = "từ ${contact.blockedAt}",
                 color = colors.inkSecondary,
-                style = AppTheme.typography.bodySmall,
+                fontSize = 14.sp,
             )
         }
 
-        DiuButton(
-            onClick = onUnblock,
-            variant = DiuButtonVariant.Outline,
-            shape = RoundedCornerShape(20.dp),
+        Text(
+            text = "Bỏ chặn",
+            color = colors.inkSecondary,
+            fontSize = 14.sp,
+            textAlign = TextAlign.Center,
+            modifier = Modifier
+                .clip(RoundedCornerShape(12.dp))
+                .clickable(onClick = onUnblock)
+                .padding(horizontal = 10.dp, vertical = 8.dp),
+        )
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// Shared Settings Primitives (.card, .set, .ib)
+// ═══════════════════════════════════════════════════════════════════════
+
+@Composable
+private fun SettingsGlassGroupCard(
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit,
+) {
+    val colors = AppTheme.colors
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(22.dp),
+        color = colors.surface,
+        border = BorderStroke(1.dp, colors.line),
+    ) {
+        Column {
+            content()
+        }
+    }
+}
+
+@Suppress("LongParameterList")
+@Composable
+private fun PrototypeSettingRow(
+    @DrawableRes iconRes: Int,
+    title: String,
+    modifier: Modifier = Modifier,
+    badgeText: String? = null,
+    valueText: String? = null,
+    isDanger: Boolean = false,
+    showChevron: Boolean = false,
+    onClick: (() -> Unit)? = null,
+    trailing: (@Composable () -> Unit)? = null,
+) {
+    val colors = AppTheme.colors
+    val contentTint = if (isDanger) colors.danger else colors.ink
+
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .heightIn(min = 56.dp)
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Icon(
+            painter = painterResource(iconRes),
+            contentDescription = null,
+            tint = if (isDanger) colors.danger else colors.inkSecondary,
+            modifier = Modifier.size(19.dp),
+        )
+
+        Row(
+            modifier = Modifier.weight(1f),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Text(
-                text = "Bỏ chặn",
-                style = AppTheme.typography.labelSmall,
-                color = colors.ink,
+                text = title,
+                color = contentTint,
+                fontSize = 15.sp,
+            )
+            if (!badgeText.isNullOrBlank()) {
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = colors.peach.copy(alpha = 0.50f),
+                ) {
+                    Text(
+                        text = badgeText,
+                        color = colors.ink,
+                        fontSize = 12.sp,
+                        modifier = Modifier.padding(horizontal = 7.dp, vertical = 1.dp),
+                    )
+                }
+            }
+        }
+
+        if (!valueText.isNullOrBlank()) {
+            Text(
+                text = valueText,
+                color = colors.inkTertiary,
+                fontSize = 12.sp,
+            )
+        }
+
+        trailing?.invoke()
+
+        if (showChevron) {
+            Icon(
+                painter = painterResource(AppIcons.Chev),
+                contentDescription = null,
+                tint = colors.inkSecondary,
+                modifier = Modifier.size(18.dp),
             )
         }
     }
 }
 
 @Composable
-private fun SectionHeader(title: String) {
-    Text(
-        text = title,
-        color = AppTheme.colors.inkSecondary,
-        style = AppTheme.typography.labelSmall,
-        fontWeight = FontWeight.SemiBold,
-        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-    )
-}
-
-@Composable
-private fun NotificationPrivacyDialog(
-    currentPrivacy: NotificationPrivacy,
-    currentSound: NotificationSound,
-    onSelectPrivacy: (NotificationPrivacy) -> Unit,
-    onSelectSound: (NotificationSound) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    val colors = AppTheme.colors
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Text(
-                text = "Thông báo & Âm báo",
-                style = AppTheme.typography.titleMedium,
-                color = colors.ink,
-            )
-        },
-        text = {
-            Column(
-                modifier = Modifier.verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                Text(
-                    text = "Hiển thị trên màn hình khoá",
-                    style = AppTheme.typography.labelSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = colors.inkSecondary,
-                )
-                NotificationPrivacy.entries.forEach { option ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(8.dp))
-                            .clickable { onSelectPrivacy(option) }
-                            .padding(vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        RadioButton(
-                            selected = option == currentPrivacy,
-                            onClick = { onSelectPrivacy(option) },
-                        )
-                        Column(modifier = Modifier.padding(start = 8.dp)) {
-                            Text(
-                                text = option.label,
-                                style = AppTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.Medium,
-                                color = colors.ink,
-                            )
-                            Text(
-                                text = option.description,
-                                style = AppTheme.typography.bodySmall,
-                                color = colors.inkSecondary,
-                                lineHeight = 16.sp,
-                            )
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "Âm báo",
-                    style = AppTheme.typography.labelSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = colors.inkSecondary,
-                )
-                NotificationSound.entries.forEach { sound ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(8.dp))
-                            .clickable { onSelectSound(sound) }
-                            .padding(vertical = 2.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        RadioButton(
-                            selected = sound == currentSound,
-                            onClick = { onSelectSound(sound) },
-                        )
-                        Text(
-                            text = sound.label,
-                            style = AppTheme.typography.bodyMedium,
-                            color = colors.ink,
-                            modifier = Modifier.padding(start = 8.dp),
-                        )
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Đóng", color = colors.accent)
-            }
-        },
-    )
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun QuietHoursPresetDialog(
-    currentSchedule: QuietSchedule,
-    onSelectRange: (startMinute: Int, endMinute: Int) -> Unit,
-    onToggleRepeatDay: (Int) -> Unit,
-    onToggleEmergencyContact: (String) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    val colors = AppTheme.colors
-
-    val presets = listOf(
-        Triple("22:30 – 06:00 (Mặc định)", 22 * 60 + 30, 6 * 60),
-        Triple("23:00 – 07:00 (Thức khuya dậy muộn)", 23 * 60, 7 * 60),
-        Triple("22:00 – 05:30 (Dậy sớm bình minh)", 22 * 60, 5 * 60 + 30),
-        Triple("00:00 – 08:00 (Nửa đêm tới sáng)", 0, 8 * 60),
-    )
-
-    val weekdayLabels = listOf(
-        1 to "T2",
-        2 to "T3",
-        3 to "T4",
-        4 to "T5",
-        5 to "T6",
-        6 to "T7",
-        7 to "CN",
-    )
-
-    val emergencyContacts = listOf(
-        "minh" to "Minh",
-        "me" to "Mẹ",
-        "thao" to "Thảo",
-    )
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Text(
-                text = "Chọn khung giờ nghỉ ngơi",
-                style = AppTheme.typography.titleMedium,
-                color = colors.ink,
-            )
-        },
-        text = {
-            Column(
-                modifier = Modifier.verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                presets.forEach { (label, start, end) ->
-                    val isSelected = currentSchedule.startMinuteOfDay == start && currentSchedule.endMinuteOfDay == end
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(8.dp))
-                            .clickable { onSelectRange(start, end) }
-                            .padding(vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                    ) {
-                        Text(
-                            text = label,
-                            style = AppTheme.typography.bodyMedium,
-                            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                            color = if (isSelected) colors.accent else colors.ink,
-                        )
-                        if (isSelected) {
-                            Icon(
-                                imageVector = Icons.Default.Check,
-                                contentDescription = null,
-                                tint = colors.accent,
-                            )
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "Lặp lại",
-                    style = AppTheme.typography.labelSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = colors.inkSecondary,
-                )
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    weekdayLabels.forEach { (dayInt, dayLabel) ->
-                        DiuFilterChip(
-                            text = dayLabel,
-                            selected = dayInt in currentSchedule.repeatDays,
-                            onClick = { onToggleRepeatDay(dayInt) },
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "Vẫn cho phép gọi khẩn",
-                    style = AppTheme.typography.labelSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = colors.inkSecondary,
-                )
-                emergencyContacts.forEach { (contactId, contactName) ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 2.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                    ) {
-                        Text(
-                            text = contactName,
-                            style = AppTheme.typography.bodyMedium,
-                            color = colors.ink,
-                        )
-                        DiuSwitch(
-                            checked = contactId in currentSchedule.allowedEmergencyContactIds,
-                            onCheckedChange = { onToggleEmergencyContact(contactId) },
-                            contentDescription = "Cho phép $contactName gọi khẩn",
-                        )
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Đóng", color = colors.accent)
-            }
-        },
-    )
+private fun PrototypeBackButton(onClick: () -> Unit) {
+    IconButton(
+        onClick = onClick,
+        modifier = Modifier.size(44.dp),
+    ) {
+        Icon(
+            painter = painterResource(AppIcons.Back),
+            contentDescription = "Quay lại",
+            tint = AppTheme.colors.inkSecondary,
+            modifier = Modifier.size(22.dp),
+        )
+    }
 }
 
 @Preview(showBackground = true)
 @Composable
-private fun SettingsOverviewPreview() {
+private fun ProfileOverviewPreview() {
     AppTheme {
         Surface(
             modifier = Modifier.fillMaxSize(),
             color = AppTheme.colors.background,
         ) {
-            SettingsOverviewContent(
+            ProfileOverviewContent(
                 uiState = SettingsUiState(
                     userProfile = UserProfile(
                         id = "u1",
-                        displayName = "Minh Anh",
-                        username = "minhanh",
-                        bio = "Nhẹ nhàng lắng nghe từng ngày trôi qua",
-                        birthday = "15/08/2000",
-                        phone = "+84901234567",
-                        primaryMood = "Bình yên",
+                        displayName = "Lan",
+                        username = "lan",
+                        bio = "Thích mưa, cà phê sữa và những buổi chiều chậm.",
+                        birthday = "14/02",
+                        phone = "+84 912 345 678",
+                        primaryMood = "Vui",
                         avatarUrl = null,
                     ),
-                    quietSchedule = QuietSchedule(
-                        enabled = true,
-                        startMinuteOfDay = 1350,
-                        endMinuteOfDay = 360,
-                    ),
-                    notificationPrivacy = NotificationPrivacy.FULL_CONTENT,
-                    readReceiptsEnabled = true,
                 ),
-                onBackClick = {},
+                onOpenEditProfile = {},
+                onSelectMood = {},
+                onToggleQuietHours = {},
+                onOpenQuietHours = {},
+                onToggleDarkMode = {},
+                onToggleSoftSendAnimation = {},
+                onNavigateToJournal = {},
+                onOpenNotifications = {},
+                onToggleReadReceipts = {},
+                onNavigateToLetters = {},
+                onNavigateToContacts = {},
+                onNavigateToFavourites = {},
+                onOpenGeneralSettings = {},
+                onReplayOnboarding = {},
             )
         }
     }
@@ -900,8 +1767,7 @@ private fun SettingsBlockedContactsPreview() {
             BlockedContactsContent(
                 uiState = SettingsUiState(
                     blockedContacts = listOf(
-                        BlockedContact("b1", "Người lạ", "+84900000001", "10/11/2026"),
-                        BlockedContact("b2", "Spam cuộc gọi", "+84900000002", "12/11/2026"),
+                        BlockedContact("b1", "Huy", "+84900000001", "12/8"),
                     ),
                 ),
                 onBackClick = {},

@@ -47,6 +47,9 @@ import com.uzuu.diuchat.feature.base.common.res.AppTheme
 @Composable
 fun DiuAmbientBackground(
     modifier: Modifier = Modifier,
+    primaryBlobColor: Color = AppPalette.Peach,
+    secondaryBlobColor: Color = AppPalette.MoodThuong,
+    tertiaryBlobColor: Color = AppPalette.MoodVui,
     content: @Composable () -> Unit = {},
 ) {
     val colors = AppTheme.colors
@@ -67,15 +70,14 @@ fun DiuAmbientBackground(
             val w = size.width
             val h = size.height
 
-            // Blob 1 — Peach ấm — góc phải trên
-            // Giống ảnh chụp: blob cam đào góc phải
+            // Blob 1 — Primary (mặc định Peach ấm) — góc trên
             drawCircle(
                 brush =
                 Brush.radialGradient(
                     colors =
                     listOf(
-                        AppPalette.Peach,
-                        AppPalette.Peach.copy(alpha = 0.48f),
+                        primaryBlobColor,
+                        primaryBlobColor.copy(alpha = 0.48f),
                         Color.Transparent,
                     ),
                     radius = w * 0.65f,
@@ -85,15 +87,14 @@ fun DiuAmbientBackground(
                 center = Offset(w * 0.25f, h * 0.12f),
             )
 
-            // Blob 2 — Thuong (Rose) — góc phải giữa
-            // Giống ảnh chụp: blob hồng nhạt bên phải giữa màn hình
+            // Blob 2 — Secondary (mặc định Thuong Rose) — góc phải giữa
             drawCircle(
                 brush =
                 Brush.radialGradient(
                     colors =
                     listOf(
-                        AppPalette.MoodThuong.copy(alpha = 0.8f),
-                        AppPalette.MoodThuong.copy(alpha = 0.42f),
+                        secondaryBlobColor.copy(alpha = 0.8f),
+                        secondaryBlobColor.copy(alpha = 0.42f),
                         Color.Transparent,
                     ),
                     center =
@@ -107,13 +108,13 @@ fun DiuAmbientBackground(
                 center = Offset(w * 0.95f, h * 0.56f),
             )
 
-            // Blob 3 — BinhYen (Sage Green) — góc trái dưới — nhẹ nhất
+            // Blob 3 — Tertiary (mặc định MoodVui) — góc trái dưới
             drawCircle(
                 brush =
                 Brush.radialGradient(
                     colors =
                     listOf(
-                        AppPalette.MoodVui,
+                        tertiaryBlobColor,
                         Color.Transparent,
                     ),
                     center = Offset(w * 0.15f, h * 0.88f),

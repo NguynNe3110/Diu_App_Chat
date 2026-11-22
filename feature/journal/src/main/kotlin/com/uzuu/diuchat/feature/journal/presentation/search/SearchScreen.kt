@@ -102,7 +102,7 @@ fun SearchContent(
                 },
             )
         },
-        containerColor = AppTheme.colors.background,
+        containerColor = Color.Transparent,
         modifier = modifier,
     ) { paddingValues ->
         Column(

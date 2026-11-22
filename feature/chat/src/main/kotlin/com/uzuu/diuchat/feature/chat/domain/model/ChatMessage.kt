@@ -19,4 +19,7 @@ data class ChatMessage(
     val caption: String? = null,
     val isPinned: Boolean = false,
     val reactions: List<MessageReaction> = emptyList(),
+    val scheduledForLabel: String? = null,
+    val isSealedRevealed: Boolean = false,
+    val locationDistanceLabel: String? = null,
 )

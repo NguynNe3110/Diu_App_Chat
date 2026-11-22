@@ -9,14 +9,52 @@ enum class CallHistoryFilter {
     MISSED,
 }
 
+data class FavoriteCaller(
+    val peerId: String,
+    val name: String,
+    val initials: String,
+    val moodHex: String,
+) {
+    val moodColorHex: String
+        get() = moodHex
+}
+
+fun defaultFavoriteCallers(): List<FavoriteCaller> = listOf(
+    FavoriteCaller(peerId = "minh", name = "Minh", initials = "M", moodHex = "#F7A3A9"),
+    FavoriteCaller(peerId = "me_yeu", name = "Mẹ", initials = "M", moodHex = "#F4CA84"),
+    FavoriteCaller(peerId = "thao", name = "Thảo", initials = "T", moodHex = "#C5B3EA"),
+    FavoriteCaller(peerId = "ba", name = "Ba", initials = "B", moodHex = "#A2D7AC"),
+)
+
 data class CallHistoryUiState(
     val callLogs: List<CallLog> = emptyList(),
     val filter: CallHistoryFilter = CallHistoryFilter.ALL,
     val isLoading: Boolean = false,
+    val favoriteCallers: List<FavoriteCaller> = defaultFavoriteCallers(),
 ) : BaseState {
     val filteredLogs: List<CallLog>
         get() = when (filter) {
             CallHistoryFilter.ALL -> callLogs
             CallHistoryFilter.MISSED -> callLogs.filter { it.endReason == CallEndReason.MISSED }
+        }
+
+    val groupedLogsByDate: Map<String, List<CallLog>>
+        get() {
+            val logs = filteredLogs
+            if (logs.isEmpty()) return emptyMap()
+            val grouped = linkedMapOf<String, MutableList<CallLog>>()
+            val newestTimestamp = logs.maxOf { it.timestampEpochMs }
+            logs.forEachIndexed { index, log ->
+                val ageMs = (newestTimestamp - log.timestampEpochMs).coerceAtLeast(0L)
+                val section = when {
+                    ageMs >= 36 * 3_600_000L -> "THỨ BA"
+                    ageMs >= 12 * 3_600_000L -> "HÔM QUA"
+                    index == 0 -> "HÔM NAY"
+                    index == 1 -> "HÔM QUA"
+                    else -> "THỨ BA"
+                }
+                grouped.getOrPut(section) { mutableListOf() }.add(log)
+            }
+            return grouped
         }
 }

@@ -30,4 +30,12 @@ data class ChatUiState(
     val availableConversations: List<Conversation> = emptyList(),
     val isChatInfoOpen: Boolean = false,
     val isNewGroupOpen: Boolean = false,
+    val isSlowSendSheetOpen: Boolean = false,
+    val isAttachmentSheetOpen: Boolean = false,
+    val slowSendDraftContent: String = "",
+    val slowSendScheduleLabel: String = "Sáng mai 7:00",
+    val isGroupEditSheetOpen: Boolean = false,
+    val newGroupSelectedMemberIds: List<String> = emptyList(),
+    val newGroupTitle: String = "",
+    val newGroupMood: MoodType = MoodType.THUONG,
 ) : BaseState

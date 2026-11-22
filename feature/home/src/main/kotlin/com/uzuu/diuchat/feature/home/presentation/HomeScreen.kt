@@ -39,7 +39,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -50,7 +49,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.uzuu.diuchat.feature.base.common.res.AppIcons
 import com.uzuu.diuchat.feature.base.common.res.AppPalette
 import com.uzuu.diuchat.feature.base.common.res.AppTheme
-import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuAmbientBackground
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuButton
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuEmptyState
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuIconButton
@@ -59,6 +57,7 @@ import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuMoodDot
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuOrbAvatar
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuPersonRow
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuSectionHeader
+import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuTabHeader
 import com.uzuu.diuchat.feature.home.domain.model.RecentChat
 import com.uzuu.diuchat.feature.home.domain.model.StarPerson
 import org.koin.androidx.compose.koinViewModel
@@ -100,10 +99,10 @@ fun HomeScreenContent(
     onInvite: () -> Unit = {},
     onSearchClick: () -> Unit = onOpenContacts,
 ) {
-    DiuAmbientBackground(modifier = modifier) {
+    Box(modifier = modifier.fillMaxSize()) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(bottom = 120.dp),
+            contentPadding = PaddingValues(bottom = 110.dp),
         ) {
             // ── Top Header ──────────────────────────────────────────────
             item {
@@ -269,37 +268,24 @@ private fun HomeHeader(
     onSearchClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(start = 20.dp, end = 12.dp, top = 16.dp, bottom = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween,
-    ) {
-        Column {
-            Text(
-                text = greeting,
-                style = AppTheme.typography.bodyMedium,
-                color = AppTheme.colors.inkSecondary,
-            )
-            Text(
-                text = "Vòng thân",
-                style = AppTheme.typography.headlineMedium.copy(fontFamily = FontFamily.Serif),
-                color = AppTheme.colors.ink,
-            )
-        }
-        DiuIconButton(
-            onClick = onSearchClick,
-            contentDescription = "Tìm kiếm danh bạ",
-            soft = true,
-        ) {
-            Icon(
-                painter = painterResource(AppIcons.Search),
-                contentDescription = null,
-                tint = AppTheme.colors.inkSecondary,
-            )
-        }
-    }
+    DiuTabHeader(
+        title = "Vòng thân",
+        greeting = greeting,
+        modifier = modifier,
+        actions = {
+            DiuIconButton(
+                onClick = onSearchClick,
+                contentDescription = "Tìm kiếm danh bạ",
+                soft = true,
+            ) {
+                Icon(
+                    painter = painterResource(AppIcons.Search),
+                    contentDescription = null,
+                    tint = AppTheme.colors.inkSecondary,
+                )
+            }
+        },
+    )
 }
 
 @Composable

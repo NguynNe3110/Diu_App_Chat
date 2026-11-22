@@ -1,5 +1,6 @@
 package com.uzuu.diuchat.feature.chat.presentation.screen
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -7,6 +8,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -20,19 +22,12 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
@@ -43,95 +38,141 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.uzuu.diuchat.feature.base.common.res.AppIcons
 import com.uzuu.diuchat.feature.base.common.res.AppTheme
+import com.uzuu.diuchat.feature.base.common.res.DiuSerif
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuButton
+import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuIconButton
+import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuOrbAvatar
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuSelectedPersonChip
+import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuTopBar
 import com.uzuu.diuchat.feature.chat.domain.model.MoodType
+
+private val CORE_FIVE_GROUP_MOODS = listOf(
+    MoodType.THUONG,
+    MoodType.VUI,
+    MoodType.BINHYEN,
+    MoodType.NHO,
+    MoodType.TRAM,
+)
+
+private const val MAX_SELECTABLE_PEERS = 7
 
 private data class SelectableContact(
     val id: String,
     val name: String,
+    val roleLabel: String,
     val mood: MoodType,
 )
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NewGroupScreen(
     onBackClick: () -> Unit,
     onCreateGroupSuccess: (String) -> Unit,
     modifier: Modifier = Modifier,
+    selectedMemberIds: List<String>? = null,
+    groupTitle: String? = null,
+    selectedMood: MoodType? = null,
+    onToggleMember: ((String) -> Unit)? = null,
+    onUpdateDraft: ((String, MoodType) -> Unit)? = null,
     onCreateGroup: ((String, MoodType, List<String>, (String) -> Unit) -> Unit)? = null,
 ) {
-    var groupTitle by remember { mutableStateOf("") }
-    var selectedMood by remember { mutableStateOf(MoodType.THUONG) }
-    val selectedMembers = remember { mutableStateListOf<SelectableContact>() }
+    var localTitle by remember { mutableStateOf("") }
+    var localMood by remember { mutableStateOf(MoodType.THUONG) }
+    val localSelectedIds = remember { mutableStateListOf<String>() }
+
+    val activeTitle = groupTitle ?: localTitle
+    val activeMood = selectedMood ?: localMood
+    val activeSelectedIds: List<String> = selectedMemberIds ?: localSelectedIds
+
+    val updateTitleAndMood: (String, MoodType) -> Unit = { newTitle, newMood ->
+        if (onUpdateDraft != null) {
+            onUpdateDraft(newTitle, newMood)
+        } else {
+            localTitle = newTitle
+            localMood = newMood
+        }
+    }
+
+    val toggleMemberSelection: (String) -> Unit = { memberId ->
+        if (onToggleMember != null) {
+            onToggleMember(memberId)
+        } else {
+            if (localSelectedIds.contains(memberId)) {
+                localSelectedIds.remove(memberId)
+            } else if (localSelectedIds.size < MAX_SELECTABLE_PEERS) {
+                localSelectedIds.add(memberId)
+            }
+        }
+    }
 
     val sampleContacts = remember {
         listOf(
-            SelectableContact("user_linh", "Linh Dịu", MoodType.BINHYEN),
-            SelectableContact("user_minh", "Minh Trí", MoodType.VUI),
-            SelectableContact("user_ha", "Thu Hà", MoodType.THUONG),
-            SelectableContact("user_nam", "Hoàng Nam", MoodType.NHO),
-            SelectableContact("user_anh", "Quỳnh Anh", MoodType.TRAM),
+            SelectableContact("user_minh", "Minh", "Người thương", MoodType.THUONG),
+            SelectableContact("user_me", "Mẹ", "Gia đình", MoodType.VUI),
+            SelectableContact("user_thao", "Thảo", "Bạn thân", MoodType.NHO),
+            SelectableContact("user_ba", "Ba", "Gia đình", MoodType.BINHYEN),
+            SelectableContact("user_an", "An", "Bạn thân", MoodType.TRAM),
+            SelectableContact("user_linh", "Chị Linh", "Gia đình", MoodType.THUONG),
+            SelectableContact("user_khoa", "Khoa", "Bạn thân", MoodType.VUI),
+            SelectableContact("user_ha", "Thu Hà", "Bạn thân", MoodType.BINHYEN),
         )
     }
 
-    val moodColor = Color(selectedMood.colorHex)
+    val colors = AppTheme.colors
+    val moodColor = Color(activeMood.colorHex)
+    val totalMemberCount = activeSelectedIds.size + 1
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
-        containerColor = AppTheme.colors.background,
+        containerColor = Color.Transparent,
         topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = "Tạo nhóm mới",
-                        style = AppTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                        color = AppTheme.colors.ink,
-                    )
-                },
+            DiuTopBar(
+                title = "Nhóm nhỏ mới",
+                subtitle = "tối đa 8 người",
                 navigationIcon = {
-                    IconButton(onClick = onBackClick) {
+                    DiuIconButton(
+                        onClick = onBackClick,
+                        contentDescription = "Quay lại",
+                    ) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Quay lại",
-                            tint = AppTheme.colors.ink,
+                            painter = painterResource(AppIcons.Back),
+                            contentDescription = null,
+                            tint = colors.ink,
+                            modifier = Modifier.size(22.dp),
                         )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = AppTheme.colors.surfaceElevated,
-                ),
             )
         },
         bottomBar = {
-            Surface(
-                color = AppTheme.colors.surfaceElevated,
-                tonalElevation = 6.dp,
-                border = androidx.compose.foundation.BorderStroke(1.dp, AppTheme.colors.line),
+            // Floating bottom CTA (.float-cta)
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .imePadding(),
+                    .imePadding()
+                    .padding(horizontal = 20.dp, vertical = 16.dp),
             ) {
-                Box(modifier = Modifier.padding(16.dp)) {
-                    val canCreate = groupTitle.trim().isNotEmpty() && selectedMembers.isNotEmpty()
-                    DiuButton(
-                        onClick = {
-                            onCreateGroup?.invoke(
-                                groupTitle.trim(),
-                                selectedMood,
-                                selectedMembers.map { it.id },
-                                onCreateGroupSuccess,
-                            ) ?: onCreateGroupSuccess("group_new")
-                        },
-                        enabled = canCreate,
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Text("Tạo nhóm (${selectedMembers.size} thành viên)")
-                    }
+                val canCreate = activeTitle.trim().isNotEmpty() && activeSelectedIds.size in 2..MAX_SELECTABLE_PEERS
+                DiuButton(
+                    onClick = {
+                        onCreateGroup?.invoke(
+                            activeTitle.trim(),
+                            activeMood,
+                            activeSelectedIds,
+                            onCreateGroupSuccess,
+                        ) ?: onCreateGroupSuccess("group_new")
+                    },
+                    enabled = canCreate,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text("Tạo nhóm · $totalMemberCount người")
                 }
             }
         },
@@ -140,187 +181,195 @@ fun NewGroupScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(16.dp),
+                .padding(horizontal = 18.dp),
         ) {
-            // Group Title Field
-            Text(
-                text = "Tên nhóm",
-                style = AppTheme.typography.labelMedium,
-                color = AppTheme.colors.inkSecondary,
-            )
-            Spacer(modifier = Modifier.height(6.dp))
-            OutlinedTextField(
-                value = groupTitle,
-                onValueChange = { groupTitle = it },
-                placeholder = { Text("Ví dụ: Gia đình nhỏ, Bạn bè thân thiết...") },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = moodColor,
-                    unfocusedBorderColor = AppTheme.colors.line,
-                ),
-                singleLine = true,
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Group Mood Theme Selector
-            Text(
-                text = "Sắc thái cảm xúc chủ đạo của nhóm",
-                style = AppTheme.typography.labelMedium,
-                color = AppTheme.colors.inkSecondary,
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Row(
+            // Header (.ng-head): Live 72.dp DiuOrbAvatar with badgeText + underlined DiuSerif 22.sp input + 5 mood dots
+            Surface(
+                shape = RoundedCornerShape(24.dp),
+                color = colors.surface,
+                border = BorderStroke(1.dp, colors.line),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    .padding(vertical = 8.dp),
             ) {
-                MoodType.entries.forEach { mood ->
-                    val color = Color(mood.colorHex)
-                    val isSelected = mood == selectedMood
-                    Surface(
-                        shape = RoundedCornerShape(16.dp),
-                        color = if (isSelected) color.copy(alpha = 0.25f) else AppTheme.colors.surface,
-                        border = androidx.compose.foundation.BorderStroke(
-                            1.dp,
-                            if (isSelected) color else AppTheme.colors.line,
-                        ),
-                        modifier = Modifier.clickable { selectedMood = mood },
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
+                    DiuOrbAvatar(
+                        initials = activeTitle.trim().take(1).ifEmpty { "N" },
+                        moodColor = moodColor,
+                        size = 72.dp,
+                        badgeText = "$totalMemberCount",
+                    )
+
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
+                        Column {
+                            Box(contentAlignment = Alignment.CenterStart) {
+                                if (activeTitle.isEmpty()) {
+                                    Text(
+                                        text = "Đặt tên nhóm…",
+                                        style = AppTheme.headlineSerif.copy(
+                                            fontFamily = DiuSerif,
+                                            fontSize = 22.sp,
+                                        ),
+                                        color = colors.inkTertiary,
+                                    )
+                                }
+                                BasicTextField(
+                                    value = activeTitle,
+                                    onValueChange = { updateTitleAndMood(it, activeMood) },
+                                    textStyle = AppTheme.headlineSerif.copy(
+                                        fontFamily = DiuSerif,
+                                        fontSize = 22.sp,
+                                        color = colors.ink,
+                                    ),
+                                    cursorBrush = SolidColor(colors.ink),
+                                    singleLine = true,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(bottom = 6.dp),
+                                )
+                            }
+                            HorizontalDivider(thickness = 1.dp, color = colors.line)
+                        }
+
+                        // 5 core mood dots (22.dp)
                         Row(
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
                             verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(10.dp)
-                                    .clip(CircleShape)
-                                    .background(color),
-                            )
-                            Text(
-                                text = mood.displayName,
-                                style = AppTheme.typography.labelMedium,
-                                color = if (isSelected) AppTheme.colors.ink else AppTheme.colors.inkSecondary,
-                            )
+                            CORE_FIVE_GROUP_MOODS.forEach { mood ->
+                                val dotColor = Color(mood.colorHex)
+                                val isSelected = mood == activeMood
+                                Box(
+                                    modifier = Modifier
+                                        .size(22.dp)
+                                        .clip(CircleShape)
+                                        .background(dotColor)
+                                        .then(
+                                            if (isSelected) {
+                                                Modifier.border(2.dp, colors.ink, CircleShape)
+                                            } else {
+                                                Modifier
+                                            },
+                                        )
+                                        .clickable { updateTitleAndMood(activeTitle, mood) },
+                                )
+                            }
                         }
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Selected Members Chips row using DiuSelectedPersonChip
-            if (selectedMembers.isNotEmpty()) {
-                Text(
-                    text = "Đã chọn (${selectedMembers.size})",
-                    style = AppTheme.typography.labelMedium,
-                    color = AppTheme.colors.inkSecondary,
-                )
-                Spacer(modifier = Modifier.height(6.dp))
+            // Selected Members Chips row (.ng-sel)
+            val selectedContacts = sampleContacts.filter { activeSelectedIds.contains(it.id) }
+            if (selectedContacts.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(8.dp))
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .horizontalScroll(rememberScrollState()),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    selectedMembers.forEach { contact ->
+                    selectedContacts.forEach { contact ->
                         DiuSelectedPersonChip(
                             name = contact.name,
                             initials = contact.name.take(1),
                             moodColor = Color(contact.mood.colorHex),
                             removeLabel = "Xóa ${contact.name}",
-                            onRemove = { selectedMembers.remove(contact) },
+                            onRemove = { toggleMemberSelection(contact.id) },
                         )
                     }
                 }
-                Spacer(modifier = Modifier.height(16.dp))
             }
 
-            // Contact selection list
+            Spacer(modifier = Modifier.height(14.dp))
+
             Text(
-                text = "Chọn thành viên từ danh bạ",
-                style = AppTheme.typography.labelMedium,
-                color = AppTheme.colors.inkSecondary,
+                text = "VÒNG THÂN",
+                style = AppTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
+                color = colors.inkSecondary,
+                modifier = Modifier.padding(start = 4.dp, bottom = 8.dp),
             )
-            Spacer(modifier = Modifier.height(8.dp))
 
             LazyColumn(
                 modifier = Modifier.weight(1f),
+                contentPadding = PaddingValues(bottom = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                items(sampleContacts) { contact ->
-                    val isSelected = selectedMembers.any { it.id == contact.id }
+                items(
+                    items = sampleContacts,
+                    key = { it.id },
+                ) { contact ->
+                    val isSelected = activeSelectedIds.contains(contact.id)
                     val contactMoodColor = Color(contact.mood.colorHex)
 
                     Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = if (isSelected) contactMoodColor.copy(alpha = 0.12f) else AppTheme.colors.surface,
-                        border = androidx.compose.foundation.BorderStroke(
+                        shape = RoundedCornerShape(18.dp),
+                        color = colors.surface,
+                        border = BorderStroke(
                             1.dp,
-                            if (isSelected) contactMoodColor else AppTheme.colors.line,
+                            if (isSelected) contactMoodColor else colors.line,
                         ),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable {
-                                if (isSelected) {
-                                    selectedMembers.removeAll { it.id == contact.id }
-                                } else {
-                                    selectedMembers.add(contact)
-                                }
-                            },
+                            .clip(RoundedCornerShape(18.dp))
+                            .clickable { toggleMemberSelection(contact.id) },
                     ) {
                         Row(
-                            modifier = Modifier.padding(12.dp),
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween,
                         ) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
                             ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(36.dp)
-                                        .clip(CircleShape)
-                                        .background(contactMoodColor.copy(alpha = 0.25f)),
-                                    contentAlignment = Alignment.Center,
-                                ) {
-                                    Text(
-                                        text = contact.name.take(1),
-                                        style = AppTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                                        color = contactMoodColor,
-                                    )
-                                }
+                                DiuOrbAvatar(
+                                    initials = contact.name.take(1),
+                                    moodColor = contactMoodColor,
+                                    size = 44.dp,
+                                )
                                 Column {
                                     Text(
                                         text = contact.name,
                                         style = AppTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
-                                        color = AppTheme.colors.ink,
+                                        color = colors.ink,
                                     )
                                     Text(
-                                        text = contact.mood.displayName,
+                                        text = contact.roleLabel,
                                         style = AppTheme.typography.bodySmall,
-                                        color = contactMoodColor,
+                                        color = colors.inkSecondary,
                                     )
                                 }
                             }
 
-                            if (isSelected) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(24.dp)
-                                        .clip(CircleShape)
-                                        .background(contactMoodColor),
-                                    contentAlignment = Alignment.Center,
-                                ) {
+                            // 26.dp circular .chk indicator
+                            Box(
+                                modifier = Modifier
+                                    .size(26.dp)
+                                    .clip(CircleShape)
+                                    .background(if (isSelected) colors.ink else Color.Transparent)
+                                    .border(
+                                        width = 1.5.dp,
+                                        color = if (isSelected) colors.ink else colors.line,
+                                        shape = CircleShape,
+                                    ),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                if (isSelected) {
                                     Icon(
-                                        imageVector = Icons.Default.Check,
+                                        painter = painterResource(AppIcons.Check),
                                         contentDescription = "Đã chọn",
-                                        tint = Color.White,
-                                        modifier = Modifier.size(16.dp),
+                                        tint = colors.background,
+                                        modifier = Modifier.size(15.dp),
                                     )
                                 }
                             }

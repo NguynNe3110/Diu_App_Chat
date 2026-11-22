@@ -84,12 +84,41 @@ class SettingsActionTest {
 
     @Test
     fun `SetSubScreen reduces subScreen in state`() {
-        val initial = SettingsUiState(subScreen = SettingsSubScreen.OVERVIEW)
+        val initial = SettingsUiState(subScreen = SettingsSubScreen.PROFILE_OVERVIEW)
         val action = SettingsAction.SetSubScreen(SettingsSubScreen.BLOCKED_CONTACTS)
 
         val newState = action.reduce(initial)
 
         newState.subScreen shouldBeEqualTo SettingsSubScreen.BLOCKED_CONTACTS
+    }
+
+    @Test
+    fun `stepStartMinutes and stepEndMinutes wrap across midnight and compute overnight duration`() {
+        val schedule = QuietSchedule(startMinuteOfDay = 22 * 60 + 30, endMinuteOfDay = 6 * 60)
+        schedule.durationMinutes shouldBeEqualTo 450
+        schedule.durationHoursFormatted shouldBeEqualTo "7,5 giờ nghỉ"
+
+        val wrappedStart = QuietSchedule(startMinuteOfDay = 23 * 60 + 30, endMinuteOfDay = 6 * 60)
+            .stepStartMinutes(30)
+        wrappedStart.startMinuteOfDay shouldBeEqualTo 0
+
+        val wrappedBack = wrappedStart.stepStartMinutes(-30)
+        wrappedBack.startMinuteOfDay shouldBeEqualTo 23 * 60 + 30
+
+        val wrappedEnd = QuietSchedule(startMinuteOfDay = 22 * 60 + 30, endMinuteOfDay = 23 * 60 + 30)
+            .stepEndMinutes(30)
+        wrappedEnd.endMinuteOfDay shouldBeEqualTo 0
+    }
+
+    @Test
+    fun `SetSubScreen transitions across all 6 prototype sub-screens`() {
+        var state = SettingsUiState()
+        state.subScreen shouldBeEqualTo SettingsSubScreen.PROFILE_OVERVIEW
+
+        SettingsSubScreen.entries.forEach { target ->
+            state = SettingsAction.SetSubScreen(target).reduce(state)
+            state.subScreen shouldBeEqualTo target
+        }
     }
 
     @Test

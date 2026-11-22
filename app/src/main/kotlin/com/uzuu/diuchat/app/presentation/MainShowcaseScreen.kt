@@ -68,28 +68,29 @@ fun MainShowcaseScreen(modifier: Modifier = Modifier) {
         addOnDestinationChangedListener(navController)
     }
 
+    val destination = backStackEntry?.destination
+    val hideBottomBar =
+        destination?.hasRoute<NavigationRoute.OnBoarding>() == true ||
+            destination?.hasRoute<NavigationRoute.Auth>() == true ||
+            destination?.hasRoute<NavigationRoute.Chat>() == true ||
+            destination?.hasRoute<NavigationRoute.Call>() == true ||
+            destination?.hasRoute<NavigationRoute.PhotoViewer>() == true ||
+            destination?.hasRoute<NavigationRoute.LocationPicker>() == true ||
+            destination?.hasRoute<NavigationRoute.LiveLocation>() == true ||
+            destination?.hasRoute<NavigationRoute.NewGroup>() == true ||
+            destination?.hasRoute<NavigationRoute.Search>() == true ||
+            destination?.hasRoute<NavigationRoute.Letters>() == true ||
+            destination?.hasRoute<NavigationRoute.Journal>() == true ||
+            destination?.hasRoute<NavigationRoute.Media>() == true ||
+            destination?.hasRoute<NavigationRoute.Storage>() == true ||
+            destination?.hasRoute<NavigationRoute.Favourites>() == true ||
+            destination?.hasRoute<NavigationRoute.AboutLibraries>() == true
+
     DiuAmbientBackground(modifier = modifier) {
         Scaffold(
             modifier = Modifier.fillMaxSize(),
             containerColor = Color.Transparent,
             bottomBar = {
-                val destination = backStackEntry?.destination
-                val hideBottomBar =
-                    destination?.hasRoute<NavigationRoute.OnBoarding>() == true ||
-                        destination?.hasRoute<NavigationRoute.Auth>() == true ||
-                        destination?.hasRoute<NavigationRoute.Chat>() == true ||
-                        destination?.hasRoute<NavigationRoute.Call>() == true ||
-                        destination?.hasRoute<NavigationRoute.PhotoViewer>() == true ||
-                        destination?.hasRoute<NavigationRoute.LocationPicker>() == true ||
-                        destination?.hasRoute<NavigationRoute.LiveLocation>() == true ||
-                        destination?.hasRoute<NavigationRoute.NewGroup>() == true ||
-                        destination?.hasRoute<NavigationRoute.Search>() == true ||
-                        destination?.hasRoute<NavigationRoute.Letters>() == true ||
-                        destination?.hasRoute<NavigationRoute.Journal>() == true ||
-                        destination?.hasRoute<NavigationRoute.Media>() == true ||
-                        destination?.hasRoute<NavigationRoute.Storage>() == true ||
-                        destination?.hasRoute<NavigationRoute.Favourites>() == true ||
-                        destination?.hasRoute<NavigationRoute.AboutLibraries>() == true
                 if (!hideBottomBar) {
                     BottomNavigationBar(
                         navController = navController,
@@ -104,7 +105,10 @@ fun MainShowcaseScreen(modifier: Modifier = Modifier) {
                 modifier =
                 Modifier
                     .fillMaxSize()
-                    .padding(innerPadding),
+                    .padding(
+                        top = innerPadding.calculateTopPadding(),
+                        bottom = if (hideBottomBar) innerPadding.calculateBottomPadding() else 0.dp,
+                    ),
             ) {
                 DiuOfflineBanner(visible = !isOnline)
 
@@ -161,8 +165,16 @@ fun MainShowcaseScreen(modifier: Modifier = Modifier) {
                             onNavigateToChat = { conversationId ->
                                 navController.navigate(NavigationRoute.Chat(conversationId))
                             },
-                            onStartCall = {
-                                navController.navigate(NavigationRoute.Call)
+                            onStartCall = { peerId ->
+                                val (peerName, peerMoodHex) = resolveContactCallMetadata(peerId)
+                                navController.navigate(
+                                    NavigationRoute.Call(
+                                        peerId = peerId,
+                                        peerName = peerName,
+                                        peerMoodHex = peerMoodHex,
+                                        isVideo = false,
+                                    ),
+                                )
                             },
                         )
                     }
@@ -173,11 +185,35 @@ fun MainShowcaseScreen(modifier: Modifier = Modifier) {
                             onBackClick = {
                                 navController.popBackStack()
                             },
-                            onStartVoiceCall = {
-                                navController.navigate(NavigationRoute.Call)
+                            onStartVoiceCall = { peerId, peerName, peerMoodHex ->
+                                navController.navigate(
+                                    NavigationRoute.Call(
+                                        peerId = peerId,
+                                        peerName = peerName,
+                                        peerMoodHex = peerMoodHex,
+                                        isVideo = false,
+                                    ),
+                                )
                             },
-                            onStartVideoCall = {
-                                navController.navigate(NavigationRoute.Call)
+                            onStartVideoCall = { peerId, peerName, peerMoodHex ->
+                                navController.navigate(
+                                    NavigationRoute.Call(
+                                        peerId = peerId,
+                                        peerName = peerName,
+                                        peerMoodHex = peerMoodHex,
+                                        isVideo = true,
+                                    ),
+                                )
+                            },
+                            onOpenPhotoViewer = { caption, moodName, senderName, timestamp ->
+                                navController.navigate(
+                                    NavigationRoute.PhotoViewer(
+                                        caption = caption,
+                                        moodName = moodName,
+                                        senderName = senderName,
+                                        timestamp = timestamp,
+                                    ),
+                                )
                             },
                             onAttachLocationClick = {
                                 navController.navigate(NavigationRoute.LocationPicker(args.conversationId))
@@ -244,6 +280,24 @@ fun MainShowcaseScreen(modifier: Modifier = Modifier) {
                             onNavigateToStorage = {
                                 navController.navigate(NavigationRoute.Storage)
                             },
+                            onNavigateToJournal = {
+                                navController.navigate(NavigationRoute.Journal)
+                            },
+                            onNavigateToLetters = {
+                                navController.navigate(NavigationRoute.Letters)
+                            },
+                            onNavigateToContacts = {
+                                navController.navigate(NavigationRoute.Contacts)
+                            },
+                            onNavigateToFavourites = {
+                                navController.navigate(NavigationRoute.Favourites)
+                            },
+                            onNavigateToOnBoarding = {
+                                navController.navigate(NavigationRoute.OnBoarding)
+                            },
+                            onReplayOnboarding = {
+                                navController.navigate(NavigationRoute.OnBoarding)
+                            },
                         )
                     }
                     composable<NavigationRoute.Letters> {
@@ -273,10 +327,16 @@ fun MainShowcaseScreen(modifier: Modifier = Modifier) {
                             },
                         )
                     }
-                    composable<NavigationRoute.Call> {
+                    composable<NavigationRoute.Call> { backStackEntry ->
+                        val args = backStackEntry.toRoute<NavigationRoute.Call>()
                         val viewModel: CallViewModel = koinViewModel()
                         CallScreen(
                             viewModel = viewModel,
+                            peerId = args.peerId,
+                            peerName = args.peerName,
+                            peerMoodHex = args.peerMoodHex,
+                            isVideo = args.isVideo,
+                            isIncoming = args.isIncoming,
                             onNavigateBack = {
                                 navController.popBackStack()
                             },
@@ -289,8 +349,15 @@ fun MainShowcaseScreen(modifier: Modifier = Modifier) {
                             onNavigateBack = {
                                 navController.popBackStack()
                             },
-                            onStartCall = {
-                                navController.navigate(NavigationRoute.Call)
+                            onStartCall = { peerId, peerName, peerMoodHex, isVideo ->
+                                navController.navigate(
+                                    NavigationRoute.Call(
+                                        peerId = peerId,
+                                        peerName = peerName,
+                                        peerMoodHex = peerMoodHex,
+                                        isVideo = isVideo,
+                                    ),
+                                )
                             },
                         )
                     }
@@ -382,6 +449,16 @@ private fun DiuOfflineBanner(
         }
     }
 }
+
+private fun resolveContactCallMetadata(peerId: String): Pair<String, String> =
+    when (peerId) {
+        "c1", "minh", "conv_linh_diu" -> "Minh" to "#F7A3A9"
+        "c2", "me" -> "Mẹ" to "#F4CA84"
+        "c3", "vy", "thao" -> "Bảo Vy" to "#A2D7AC"
+        "c4", "ngoai" -> "Bà Ngoại" to "#C5B3EA"
+        "c5", "ba" -> "Ba" to "#95C4E7"
+        else -> peerId.replaceFirstChar { it.uppercase() } to "#F7A3A9"
+    }
 
 // khi chuyển màn thì in ra log
 private fun addOnDestinationChangedListener(navController: NavController) {

@@ -55,7 +55,13 @@ sealed interface NavigationRoute {
     ) : NavigationRoute
 
     @Serializable
-    data object Call : NavigationRoute
+    data class Call(
+        val peerId: String = "minh",
+        val peerName: String = "Minh",
+        val peerMoodHex: String = "#F7A3A9",
+        val isVideo: Boolean = false,
+        val isIncoming: Boolean = false,
+    ) : NavigationRoute
 
     @Serializable
     data object CallHistory : NavigationRoute

@@ -164,6 +164,18 @@ class ContactsRepositoryImpl(
                 isQuiet = true,
                 lastSeen = "20:00 hôm qua",
             ),
+            ContactEntity(
+                id = "c5",
+                name = "Ba",
+                initials = "B",
+                phone = "0905 666 888",
+                circle = ContactCircle.FAMILY.name,
+                moodColorHex = "#95C4E7",
+                nickname = "Ba hiền",
+                anniversary = null,
+                isQuiet = false,
+                lastSeen = "1 giờ trước",
+            ),
         )
 
         private fun createInitialRequests(): List<ConnectionRequestEntity> = listOf(
@@ -173,7 +185,7 @@ class ContactsRepositoryImpl(
                 senderName = "Hoàng Nam",
                 senderInitials = "HN",
                 senderPhone = "0933 555 777",
-                senderMoodColorHex = "#A2D7AC",
+                senderMoodColorHex = "#95C4E7",
                 proposedCircle = ContactCircle.FRIENDS.name,
                 createdAt = "Hôm nay, 10:15",
             ),

@@ -452,4 +452,34 @@ class ChatViewModelTest {
 
         errorMsg shouldBeEqualTo GroupError.LastAdminCannotLeave.message
     }
+
+    @Test
+    fun `onSealSlowSendMessage appends SEALED_LETTER bubble and onCancelSealedMessage removes it`() = runTest {
+        advanceUntilIdle()
+        sut.onOpenSlowSendSheet(true)
+        sut.onUpdateSlowSendDraft(content = "Ngủ ngon nhé người thương", scheduleLabel = "Sáng mai 7:00")
+        sut.onSealSlowSendMessage()
+
+        val sealed = sut.uiStateFlow.value.messages.last()
+        sealed.mediaType shouldBeEqualTo MessageMediaType.SEALED_LETTER
+        sealed.content shouldBeEqualTo "Ngủ ngon nhé người thương"
+        sealed.scheduledForLabel shouldBeEqualTo "Sáng mai 7:00"
+        sut.uiStateFlow.value.isSlowSendSheetOpen shouldBeEqualTo false
+
+        sut.onToggleRevealSealedMessage(sealed.id)
+        sut.uiStateFlow.value.messages.last().isSealedRevealed shouldBeEqualTo true
+
+        sut.onCancelSealedMessage(sealed.id)
+        sut.uiStateFlow.value.messages.none { it.id == sealed.id } shouldBeEqualTo true
+    }
+
+    @Test
+    fun `onToggleNewGroupMember and onUpdateNewGroupDraft enforce 7 peer max in viewModel`() {
+        (1..8).forEach { i -> sut.onToggleNewGroupMember("m_$i") }
+        sut.uiStateFlow.value.newGroupSelectedMemberIds.size shouldBeEqualTo 7
+
+        sut.onUpdateNewGroupDraft("Hội bạn thân", MoodType.BINHYEN)
+        sut.uiStateFlow.value.newGroupTitle shouldBeEqualTo "Hội bạn thân"
+        sut.uiStateFlow.value.newGroupMood shouldBeEqualTo MoodType.BINHYEN
+    }
 }

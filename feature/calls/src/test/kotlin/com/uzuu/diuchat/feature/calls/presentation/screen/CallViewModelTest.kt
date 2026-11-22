@@ -87,6 +87,23 @@ class CallViewModelTest {
     }
 
     @Test
+    fun `initializeCallFromRoute sets peer metadata and starts outgoing call when no active session`() = runTest {
+        sut.initializeCallFromRoute(
+            peerId = "thao",
+            peerName = "Thảo",
+            peerMoodHex = "#C5B3EA",
+            isVideo = true,
+            isIncoming = false,
+        )
+        advanceUntilIdle()
+
+        sut.uiStateFlow.value.peerId shouldBeEqualTo "thao"
+        sut.uiStateFlow.value.peerName shouldBeEqualTo "Thảo"
+        sut.uiStateFlow.value.peerMoodHex shouldBeEqualTo "#C5B3EA"
+        coVerify { startCallUseCase("thao", "Thảo", CallType.VIDEO) }
+    }
+
+    @Test
     fun `acceptIncomingCall triggers AcceptCallUseCase`() = runTest {
         val incomingSession = CallSession(
             callId = "call_inc",
@@ -124,6 +141,31 @@ class CallViewModelTest {
         advanceUntilIdle()
 
         coVerify { endCallUseCase("call_inc", CallEndReason.REJECTED) }
+    }
+
+    @Test
+    fun `sendQuickReplyAndDecline records quick reply message and ends call with REJECTED`() = runTest {
+        val incomingSession = CallSession(
+            callId = "call_inc_qr",
+            callerId = "minh",
+            callerName = "Minh",
+            calleeId = "me",
+            calleeName = "Tôi",
+            status = CallStatus.RINGING,
+            isIncoming = true,
+        )
+        callSessionFlow.value = incomingSession
+        advanceUntilIdle()
+
+        sut.toggleQuickReplyOptions()
+        sut.uiStateFlow.value.isQuickReplyExpanded shouldBeEqualTo true
+
+        sut.sendQuickReplyAndDecline("Thương, tí gọi lại")
+        advanceUntilIdle()
+
+        sut.uiStateFlow.value.lastQuickReplyMessage shouldBeEqualTo "Thương, tí gọi lại"
+        sut.uiStateFlow.value.isQuickReplyExpanded shouldBeEqualTo false
+        coVerify { endCallUseCase("call_inc_qr", CallEndReason.REJECTED) }
     }
 
     @Test

@@ -100,4 +100,21 @@ class CallHistoryViewModelTest {
             )
         }
     }
+
+    @Test
+    fun `startFavoriteCall initiates call with favorite caller info and groupedLogsByDate buckets logs`() = runTest {
+        advanceUntilIdle()
+        val fav = sut.uiStateFlow.value.favoriteCallers.first()
+        sut.startFavoriteCall(fav, CallType.AUDIO)
+        advanceUntilIdle()
+
+        coVerify {
+            startCallUseCase(
+                calleeId = fav.peerId,
+                calleeName = fav.name,
+                callType = CallType.AUDIO,
+            )
+        }
+        sut.uiStateFlow.value.groupedLogsByDate.values.flatten().size shouldBeEqualTo 2
+    }
 }

@@ -5,6 +5,9 @@ import com.uzuu.diuchat.feature.calls.domain.model.CallSession
 
 data class CallUiState(
     val callSession: CallSession? = null,
+    val peerId: String = "minh",
+    val peerName: String = "Minh",
+    val peerMoodHex: String = "#F7A3A9",
     val isMuted: Boolean = false,
     val isSpeakerOn: Boolean = false,
     val isVideoEnabled: Boolean = false,
@@ -12,4 +15,7 @@ data class CallUiState(
     val formattedDuration: String = "00:00",
     val isOverlayMinimized: Boolean = false,
     val connectionQuality: String = "HD",
+    val isQuickReplyExpanded: Boolean = false,
+    val lastQuickReplyMessage: String? = null,
+    val reminderScheduled: Boolean = false,
 ) : BaseState
