@@ -10,6 +10,8 @@ import com.uzuu.diuchat.feature.chat.domain.model.MoodType
 import com.uzuu.diuchat.feature.chat.domain.model.VoiceRecordingState
 import com.uzuu.diuchat.feature.chat.domain.usecase.CreateGroupUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.ForwardMessageUseCase
+import com.uzuu.diuchat.feature.chat.domain.usecase.GetConversationUseCase
+import com.uzuu.diuchat.feature.chat.domain.usecase.GetConversationsUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.GetMessagesUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.LeaveGroupUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.ManageGroupMemberUseCase
@@ -43,6 +45,8 @@ import org.junit.jupiter.api.extension.ExtendWith
 class ChatViewModelTest {
     private val mockCreateGroupUseCase: CreateGroupUseCase = mockk()
     private val mockForwardMessageUseCase: ForwardMessageUseCase = mockk()
+    private val mockGetConversationUseCase: GetConversationUseCase = mockk()
+    private val mockGetConversationsUseCase: GetConversationsUseCase = mockk()
     private val mockGetMessagesUseCase: GetMessagesUseCase = mockk()
     private val mockLeaveGroupUseCase: LeaveGroupUseCase = mockk()
     private val mockManageGroupMemberUseCase: ManageGroupMemberUseCase = mockk()
@@ -71,9 +75,21 @@ class ChatViewModelTest {
     @BeforeEach
     fun setUp() {
         every { mockGetMessagesUseCase(any()) } returns flowOf(sampleMessages)
+        every { mockGetConversationUseCase(any()) } returns flowOf(
+            Conversation(
+                id = "conv_linh_diu",
+                title = "Linh Dịu",
+                mood = MoodType.BINHYEN,
+                lastMessage = "",
+                lastMessageTimeEpochMs = 0L,
+            ),
+        )
+        every { mockGetConversationsUseCase() } returns flowOf(emptyList())
         sut = ChatViewModel(
             createGroupUseCase = mockCreateGroupUseCase,
             forwardMessageUseCase = mockForwardMessageUseCase,
+            getConversationUseCase = mockGetConversationUseCase,
+            getConversationsUseCase = mockGetConversationsUseCase,
             getMessagesUseCase = mockGetMessagesUseCase,
             leaveGroupUseCase = mockLeaveGroupUseCase,
             manageGroupMemberUseCase = mockManageGroupMemberUseCase,
@@ -84,6 +100,7 @@ class ChatViewModelTest {
             toggleReactionUseCase = mockToggleReactionUseCase,
             updateGroupInfoUseCase = mockUpdateGroupInfoUseCase,
         )
+        sut.loadMessages("conv_linh_diu")
     }
 
     @Test

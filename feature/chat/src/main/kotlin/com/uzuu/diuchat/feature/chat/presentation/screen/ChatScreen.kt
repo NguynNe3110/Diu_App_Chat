@@ -90,7 +90,7 @@ import java.util.Locale
 fun ChatScreen(
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier,
-    conversationId: String = "conv_linh_diu",
+    conversationId: String = "",
     onStartVoiceCall: (peerId: String, peerName: String, peerMoodHex: String) -> Unit = { _, _, _ -> },
     onStartVideoCall: (peerId: String, peerName: String, peerMoodHex: String) -> Unit = { _, _, _ -> },
     onOpenPhotoClick: (ChatMessage) -> Unit = {},

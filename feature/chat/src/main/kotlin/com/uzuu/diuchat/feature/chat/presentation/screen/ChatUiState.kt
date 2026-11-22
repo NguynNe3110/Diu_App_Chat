@@ -9,8 +9,8 @@ import com.uzuu.diuchat.feature.chat.domain.model.VoiceRecordingState
 
 @Immutable
 data class ChatUiState(
-    val conversationId: String = "conv_linh_diu",
-    val conversationTitle: String = "Linh Dịu",
+    val conversationId: String = "",
+    val conversationTitle: String = "",
     val partnerMood: MoodType = MoodType.BINHYEN,
     val isPartnerInQuietHours: Boolean = false,
     val messages: List<ChatMessage> = emptyList(),
