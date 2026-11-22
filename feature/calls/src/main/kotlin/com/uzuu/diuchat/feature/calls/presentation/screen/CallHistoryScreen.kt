@@ -141,12 +141,11 @@ fun CallHistoryContent(
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier
-                            .clip(RoundedCornerShape(16.dp))
                             .clickable { onFavoriteClick(favorite) }
-                            .padding(horizontal = 4.dp, vertical = 4.dp),
+                            .padding(horizontal = 8.dp, vertical = 8.dp),
                     ) {
                         DiuOrbAvatar(
-                            initials = favorite.initials,
+                            initials = favorite.initials.ifEmpty { favorite.name.take(1) }.uppercase(),
                             moodColor = parseMoodColorHex(favorite.moodHex),
                             size = 56.dp,
                         )
@@ -256,8 +255,7 @@ private fun CallHistoryItem(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(20.dp))
-            .background(colors.surface)
+            .background(colors.surface, RoundedCornerShape(20.dp))
             .border(1.dp, colors.line, RoundedCornerShape(20.dp))
             .clickable { onRedial() }
             .padding(horizontal = 14.dp, vertical = 12.dp),
@@ -269,7 +267,7 @@ private fun CallHistoryItem(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             DiuOrbAvatar(
-                initials = log.peerName.take(1),
+                initials = log.peerName.ifEmpty { "D" }.take(1).uppercase(),
                 moodColor = parseMoodColorHex(moodHex),
                 size = 44.dp,
             )

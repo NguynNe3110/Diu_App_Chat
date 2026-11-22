@@ -55,7 +55,7 @@ fun DiuSwitch(
     Box(
         modifier =
         modifier
-            .sizeIn(minWidth = 50.dp, minHeight = 48.dp)
+            .sizeIn(minWidth = 50.dp, minHeight = 30.dp)
             .semantics { this.contentDescription = contentDescription }
             .toggleable(
                 value = checked,

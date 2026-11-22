@@ -9,6 +9,8 @@ import kotlinx.coroutines.CancellationException
 class LettersSupabaseService(
     private val supabaseClient: SupabaseClient?,
 ) {
+    val isRemoteEnabled: Boolean get() = supabaseClient != null
+
     suspend fun fetchLetters(): Result<LettersResponse> {
         val client = supabaseClient ?: return Result.success(LettersResponse())
         return runCatching {

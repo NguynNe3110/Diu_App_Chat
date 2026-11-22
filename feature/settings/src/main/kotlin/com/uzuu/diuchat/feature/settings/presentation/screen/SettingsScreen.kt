@@ -30,6 +30,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -67,6 +69,7 @@ import com.uzuu.diuchat.feature.base.common.res.AppTheme
 import com.uzuu.diuchat.feature.base.common.res.DiuSerif
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuCard
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuEmptyState
+import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuIconButton
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuMediaSourceSheet
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuOrbAvatar
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuSectionHeader
@@ -115,6 +118,8 @@ fun SettingsScreen(
     onNavigateToOnBoarding: () -> Unit = {},
     onReplayOnboarding: () -> Unit = onNavigateToOnBoarding,
     onLoggedOut: () -> Unit = {},
+    pendingLettersCount: Int = 0,
+    closeCircleCount: Int = 0,
     viewModel: SettingsViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.uiStateFlow.collectAsState()
@@ -160,7 +165,8 @@ fun SettingsScreen(
                     onNavigateToContacts = onNavigateToContacts,
                     onNavigateToFavourites = onNavigateToFavourites,
                     onOpenGeneralSettings = { viewModel.navigateToSubScreen(SettingsSubScreen.GENERAL_SETTINGS) },
-                    onReplayOnboarding = onReplayOnboarding,
+                    pendingLettersCount = pendingLettersCount,
+                    closeCircleCount = closeCircleCount,
                 )
             }
 
@@ -304,7 +310,8 @@ private fun ProfileOverviewContent(
     onNavigateToContacts: () -> Unit,
     onNavigateToFavourites: () -> Unit,
     onOpenGeneralSettings: () -> Unit,
-    onReplayOnboarding: () -> Unit,
+    pendingLettersCount: Int = 0,
+    closeCircleCount: Int = 0,
 ) {
     val colors = AppTheme.colors
     val profile = uiState.userProfile
@@ -318,63 +325,83 @@ private fun ProfileOverviewContent(
     ) {
         // ── .prof-top ──
         item {
-            Column(
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 30.dp, start = 20.dp, end = 20.dp, bottom = 10.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
+                    .padding(top = 12.dp, start = 20.dp, end = 20.dp, bottom = 10.dp),
             ) {
-                DiuOrbAvatar(
-                    initials = profile.displayName.ifEmpty { "D" }.take(1).uppercase(),
-                    moodColor = activeMoodColor,
-                    size = 112.dp,
-                    avatarUrl = profile.avatarUrl,
-                    isPulsing = true,
-                )
-
-                Spacer(modifier = Modifier.height(18.dp))
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                DiuIconButton(
+                    onClick = onOpenGeneralSettings,
+                    contentDescription = "Cài đặt",
+                    soft = true,
+                    modifier = Modifier.align(Alignment.TopEnd),
                 ) {
-                    Text(
-                        text = profile.displayName.ifEmpty { "Bạn" },
-                        fontFamily = DiuSerif,
-                        fontSize = 34.sp,
-                        fontWeight = FontWeight.Normal,
-                        color = colors.ink,
+                    Icon(
+                        imageVector = Icons.Outlined.Settings,
+                        contentDescription = "Cài đặt",
+                        tint = colors.ink,
+                        modifier = Modifier.size(20.dp),
                     )
-                    IconButton(
-                        onClick = onOpenEditProfile,
-                        modifier = Modifier.size(34.dp),
-                    ) {
-                        Icon(
-                            painter = painterResource(AppIcons.Edit),
-                            contentDescription = "Sửa hồ sơ",
-                            tint = colors.inkSecondary,
-                            modifier = Modifier.size(17.dp),
-                        )
-                    }
                 }
 
-                Text(
-                    text = buildAnnotatedString {
-                        append("Đang thấy ")
-                        withStyle(SpanStyle(color = colors.ink, fontWeight = FontWeight.Medium)) {
-                            append(profile.primaryMood.ifEmpty { "vui" }.lowercase())
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 18.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    DiuOrbAvatar(
+                        initials = profile.displayName.ifEmpty { "D" }.take(1).uppercase(),
+                        moodColor = activeMoodColor,
+                        size = 112.dp,
+                        avatarUrl = profile.avatarUrl,
+                        isPulsing = true,
+                    )
+
+                    Spacer(modifier = Modifier.height(18.dp))
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        Text(
+                            text = profile.displayName.ifEmpty { "Bạn" },
+                            fontFamily = DiuSerif,
+                            fontSize = 34.sp,
+                            fontWeight = FontWeight.Normal,
+                            color = colors.ink,
+                        )
+                        IconButton(
+                            onClick = onOpenEditProfile,
+                            modifier = Modifier.size(34.dp),
+                        ) {
+                            Icon(
+                                painter = painterResource(AppIcons.Edit),
+                                contentDescription = "Sửa hồ sơ",
+                                tint = colors.inkSecondary,
+                                modifier = Modifier.size(17.dp),
+                            )
                         }
-                    },
-                    fontSize = 14.sp,
-                    color = colors.inkSecondary,
-                )
+                    }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = buildAnnotatedString {
+                            append("Đang thấy ")
+                            withStyle(SpanStyle(color = colors.ink, fontWeight = FontWeight.Medium)) {
+                                append(profile.primaryMood.ifEmpty { "vui" }.lowercase())
+                            }
+                        },
+                        fontSize = 14.sp,
+                        color = colors.inkSecondary,
+                    )
 
-                MoodDotSelectorRow(
-                    selectedMood = profile.primaryMood,
-                    onSelectMood = onSelectMood,
-                )
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    MoodDotSelectorRow(
+                        selectedMood = profile.primaryMood,
+                        onSelectMood = onSelectMood,
+                    )
+                }
             }
         }
 
@@ -467,7 +494,7 @@ private fun ProfileOverviewContent(
                 PrototypeSettingRow(
                     iconRes = AppIcons.Envelope,
                     title = "Thư hẹn đang chờ",
-                    badgeText = "1",
+                    badgeText = pendingLettersCount.takeIf { it > 0 }?.toString(),
                     onClick = onNavigateToLetters,
                     showChevron = true,
                 )
@@ -475,7 +502,7 @@ private fun ProfileOverviewContent(
                 PrototypeSettingRow(
                     iconRes = AppIcons.People,
                     title = "Vòng thân của tôi",
-                    badgeText = "7",
+                    badgeText = closeCircleCount.takeIf { it > 0 }?.toString(),
                     onClick = onNavigateToContacts,
                     showChevron = true,
                 )
@@ -485,35 +512,6 @@ private fun ProfileOverviewContent(
                     title = "Kỷ niệm đã lưu",
                     onClick = onNavigateToFavourites,
                     showChevron = true,
-                )
-            }
-        }
-
-        // ── Bottom links ──
-        item {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 22.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                Text(
-                    text = "Cài đặt",
-                    color = colors.inkSecondary,
-                    fontSize = 14.sp,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(12.dp))
-                        .clickable(onClick = onOpenGeneralSettings)
-                        .padding(horizontal = 16.dp, vertical = 10.dp),
-                )
-                Text(
-                    text = "Xem lại phần giới thiệu",
-                    color = colors.inkSecondary,
-                    fontSize = 14.sp,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(12.dp))
-                        .clickable(onClick = onReplayOnboarding)
-                        .padding(horizontal = 16.dp, vertical = 10.dp),
                 )
             }
         }
@@ -1763,7 +1761,6 @@ private fun ProfileOverviewPreview() {
                 onNavigateToContacts = {},
                 onNavigateToFavourites = {},
                 onOpenGeneralSettings = {},
-                onReplayOnboarding = {},
             )
         }
     }
