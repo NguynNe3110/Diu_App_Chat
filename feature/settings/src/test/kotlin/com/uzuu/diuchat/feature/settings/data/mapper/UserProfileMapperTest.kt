@@ -57,7 +57,7 @@ class UserProfileMapperTest {
             bio = "Nhẹ nhàng",
             birthday = "15/08/2000",
             phone = "+84909998887",
-            primaryMood = "Bình yên",
+            primaryMood = "binhyen",
             avatarUrl = null,
         )
     }

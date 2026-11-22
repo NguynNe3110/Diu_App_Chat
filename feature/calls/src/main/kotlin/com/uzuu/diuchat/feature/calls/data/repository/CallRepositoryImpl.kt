@@ -1,6 +1,8 @@
 package com.uzuu.diuchat.feature.calls.data.repository
 
+import com.uzuu.diuchat.feature.calls.data.CallMediaEngine
 import com.uzuu.diuchat.feature.calls.data.CallServiceCoordinator
+import com.uzuu.diuchat.feature.calls.data.CallTokenService
 import com.uzuu.diuchat.feature.calls.data.WebRtcSignalingAdapter
 import com.uzuu.diuchat.feature.calls.domain.model.CallEndReason
 import com.uzuu.diuchat.feature.calls.domain.model.CallLog
@@ -33,6 +35,8 @@ class CallRepositoryImpl(
     private val callServiceCoordinator: CallServiceCoordinator,
     private val webRtcSignalingAdapter: WebRtcSignalingAdapter,
     private val coroutineDispatcher: CoroutineDispatcher = Dispatchers.Default,
+    private val callTokenService: CallTokenService? = null,
+    private val callMediaEngine: CallMediaEngine? = null,
 ) : CallRepository {
 
     private val repositoryScope = CoroutineScope(coroutineDispatcher)
@@ -64,6 +68,7 @@ class CallRepositoryImpl(
                         startedAtEpochMs = current.startedAtEpochMs ?: System.currentTimeMillis(),
                     )
                     startDurationTicker()
+                    connectMediaEngine(current.callId, current.type == CallType.VIDEO)
                     Timber.d("Incoming ANSWER transitioned call %s to ACTIVE", current.callId)
                 }
             }
@@ -122,6 +127,14 @@ class CallRepositoryImpl(
         _currentCallSession.value = session
         callServiceCoordinator.startCallService(callId, calleeName, callType == CallType.VIDEO)
         webRtcSignalingAdapter.connect(callId)
+        webRtcSignalingAdapter.sendSignaling(
+            RtcSignalingMessage(
+                sessionId = callId,
+                senderId = session.callerId,
+                targetId = calleeId,
+                type = SignalingType.OFFER,
+            ),
+        )
 
         Timber.d("Started call: %s to %s (%s)", callId, calleeName, callType)
         session
@@ -158,6 +171,7 @@ class CallRepositoryImpl(
         )
 
         startDurationTicker()
+        connectMediaEngine(callId, current.type == CallType.VIDEO)
         Timber.d("Accepted call: %s, transition to ACTIVE", callId)
         activeSession
     }
@@ -193,6 +207,7 @@ class CallRepositoryImpl(
         val newMuted = !current.isAudioMuted
         _currentCallSession.value = current.copy(isAudioMuted = newMuted)
         callServiceCoordinator.setMicrophoneMute(newMuted)
+        callMediaEngine?.setMicrophoneMuted(newMuted)
         newMuted
     }
 
@@ -213,6 +228,7 @@ class CallRepositoryImpl(
         val newVideo = !current.isVideoEnabled
         _currentCallSession.value = current.copy(isVideoEnabled = newVideo)
         callServiceCoordinator.setCameraEnabled(newVideo)
+        callMediaEngine?.setCameraEnabled(newVideo)
         newVideo
     }
 
@@ -220,7 +236,7 @@ class CallRepositoryImpl(
         val current = _currentCallSession.value ?: error(ERROR_NO_CALL)
         require(current.callId == callId) { ERROR_CALL_ID_MISMATCH }
 
-        val newFront = callServiceCoordinator.switchCamera()
+        val newFront = callMediaEngine?.switchCamera() ?: callServiceCoordinator.switchCamera()
         _currentCallSession.value = current.copy(isFrontCamera = newFront)
         newFront
     }
@@ -272,7 +288,33 @@ class CallRepositoryImpl(
         callLogsStateFlow.update { logs -> listOf(log) + logs }
 
         callServiceCoordinator.stopCallService()
+        callMediaEngine?.disconnect()
         webRtcSignalingAdapter.disconnect()
+    }
+
+    private fun connectMediaEngine(
+        roomName: String,
+        enableVideo: Boolean,
+    ) {
+        val tokenService = callTokenService ?: return
+        val mediaEngine = callMediaEngine ?: return
+        repositoryScope.launch {
+            tokenService.fetchToken(roomName)
+                .onSuccess { payload ->
+                    runCatching {
+                        mediaEngine.connect(
+                            url = payload.resolvedUrl(),
+                            token = payload.token,
+                            enableVideo = enableVideo,
+                        )
+                    }.onFailure { error ->
+                        Timber.w(error, "Failed to connect LiveKit room %s", roomName)
+                    }
+                }
+                .onFailure { error ->
+                    Timber.w(error, "Unable to obtain LiveKit token for %s", roomName)
+                }
+        }
     }
 
     private fun createInitialCallLogs(): List<CallLog> = listOf(

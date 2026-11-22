@@ -24,6 +24,7 @@ dependencyResolutionManagement {
         // Added for testing local Konsist artifacts
         mavenLocal()
         mavenCentral()
+        maven("https://jitpack.io")
     }
 }
 

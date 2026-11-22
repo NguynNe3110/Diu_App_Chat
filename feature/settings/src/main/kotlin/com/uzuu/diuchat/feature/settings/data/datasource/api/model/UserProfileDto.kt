@@ -10,15 +10,15 @@ internal data class UserProfileDto(
     @SerialName("display_name")
     val displayName: String = "",
     @SerialName("username")
-    val username: String = "",
+    val username: String? = null,
     @SerialName("bio")
-    val bio: String = "",
+    val bio: String? = null,
     @SerialName("birthday")
-    val birthday: String = "",
-    @SerialName("phone")
-    val phone: String = "",
-    @SerialName("primary_mood")
-    val primaryMood: String = "Bình yên",
+    val birthday: String? = null,
+    @SerialName("phone_number")
+    val phone: String? = null,
+    @SerialName("current_mood")
+    val primaryMood: String? = null,
     @SerialName("avatar_url")
     val avatarUrl: String? = null,
 )

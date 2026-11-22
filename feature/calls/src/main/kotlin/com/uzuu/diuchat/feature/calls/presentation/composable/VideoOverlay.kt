@@ -27,6 +27,8 @@ import androidx.compose.ui.unit.sp
 import com.uzuu.diuchat.feature.base.common.res.AppIcons
 import com.uzuu.diuchat.feature.base.common.res.AppTheme
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuOrbAvatar
+import io.livekit.android.renderer.SurfaceViewRenderer
+import io.livekit.android.room.track.VideoTrack
 
 @Composable
 fun VideoOverlay(
@@ -35,6 +37,8 @@ fun VideoOverlay(
     onToggleMinimize: () -> Unit,
     onFlipCamera: () -> Unit,
     modifier: Modifier = Modifier,
+    localVideoTrack: VideoTrack? = null,
+    onInitRenderer: ((SurfaceViewRenderer) -> Unit)? = null,
 ) {
     val colors = AppTheme.colors
     val pipShape = RoundedCornerShape(22.dp)
@@ -73,25 +77,33 @@ fun VideoOverlay(
                 .border(3.dp, colors.background, pipShape)
                 .clickable { onToggleMinimize() },
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(10.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center,
-            ) {
-                DiuOrbAvatar(
-                    initials = "T",
-                    moodColor = colors.peach,
-                    size = 42.dp,
+            if (localVideoTrack != null && onInitRenderer != null) {
+                LiveKitVideoView(
+                    videoTrack = localVideoTrack,
+                    onInitRenderer = onInitRenderer,
+                    modifier = Modifier.fillMaxSize(),
                 )
+            } else {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(10.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                ) {
+                    DiuOrbAvatar(
+                        initials = "T",
+                        moodColor = colors.peach,
+                        size = 42.dp,
+                    )
 
-                Text(
-                    text = if (isFrontCamera) "Bạn" else "Cam sau",
-                    color = colors.inkSecondary,
-                    fontSize = 11.sp,
-                    modifier = Modifier.padding(top = 6.dp),
-                )
+                    Text(
+                        text = if (isFrontCamera) "Bạn" else "Cam sau",
+                        color = colors.inkSecondary,
+                        fontSize = 11.sp,
+                        modifier = Modifier.padding(top = 6.dp),
+                    )
+                }
             }
 
             IconButton(

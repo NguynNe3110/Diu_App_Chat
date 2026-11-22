@@ -150,7 +150,7 @@ class SettingsRepositoryImplTest {
         updated.phone shouldBeEqualTo ""
 
         coVerify {
-            remoteDataSource.upsertUserProfile(match { it.username == "deleted_user" && it.phone == "" })
+            remoteDataSource.upsertUserProfile(match { it.username == "deleted_user" && it.phone == null })
             remoteDataSource.signOut()
         }
     }

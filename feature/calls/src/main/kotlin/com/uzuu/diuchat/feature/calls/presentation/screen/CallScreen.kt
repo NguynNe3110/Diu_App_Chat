@@ -42,12 +42,17 @@ import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuIconButt
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuOrbAvatar
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuRippleOrb
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.parseMoodColorHex
+import com.uzuu.diuchat.feature.calls.data.CallMediaEngine
 import com.uzuu.diuchat.feature.calls.domain.model.CallSession
 import com.uzuu.diuchat.feature.calls.domain.model.CallStatus
 import com.uzuu.diuchat.feature.calls.domain.model.CallType
 import com.uzuu.diuchat.feature.calls.presentation.composable.CallControls
 import com.uzuu.diuchat.feature.calls.presentation.composable.IncomingCallFullScreen
+import com.uzuu.diuchat.feature.calls.presentation.composable.LiveKitVideoView
 import com.uzuu.diuchat.feature.calls.presentation.composable.VideoOverlay
+import io.livekit.android.renderer.SurfaceViewRenderer
+import io.livekit.android.room.track.VideoTrack
+import org.koin.compose.koinInject
 
 @Composable
 fun CallScreen(
@@ -61,6 +66,9 @@ fun CallScreen(
     isIncoming: Boolean = false,
 ) {
     val uiState by viewModel.uiStateFlow.collectAsState()
+    val callMediaEngine: CallMediaEngine = koinInject()
+    val localVideoTrack by callMediaEngine.localVideoTrack.collectAsState()
+    val remoteVideoTrack by callMediaEngine.remoteVideoTrack.collectAsState()
     val context = LocalContext.current
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions(),
@@ -93,6 +101,9 @@ fun CallScreen(
 
     CallContent(
         uiState = uiState,
+        localVideoTrack = localVideoTrack,
+        remoteVideoTrack = remoteVideoTrack,
+        onInitRenderer = callMediaEngine::initVideoRenderer,
         onNavigateBack = onNavigateBack,
         onAcceptCall = { viewModel.acceptIncomingCall() },
         onRejectCall = {
@@ -137,6 +148,9 @@ fun CallContent(
     onToggleQuickReply: () -> Unit = {},
     onSelectQuickReply: (String) -> Unit = {},
     onRemindMe: () -> Unit = {},
+    localVideoTrack: VideoTrack? = null,
+    remoteVideoTrack: VideoTrack? = null,
+    onInitRenderer: (SurfaceViewRenderer) -> Unit = {},
 ) {
     val session = uiState.callSession
     val colors = AppTheme.colors
@@ -173,27 +187,35 @@ fun CallContent(
 
             Box(modifier = Modifier.fillMaxSize()) {
                 if (isVideoMode) {
-                    // Full-screen remote video feed backdrop
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(
-                                Brush.verticalGradient(
-                                    colors = listOf(
-                                        peerMoodColor.copy(alpha = 0.28f),
-                                        colors.peach.copy(alpha = 0.22f),
-                                        colors.surface,
+                    if (remoteVideoTrack != null) {
+                        LiveKitVideoView(
+                            videoTrack = remoteVideoTrack,
+                            onInitRenderer = onInitRenderer,
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    } else {
+                        // Full-screen remote video feed backdrop
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(
+                                    Brush.verticalGradient(
+                                        colors = listOf(
+                                            peerMoodColor.copy(alpha = 0.28f),
+                                            colors.peach.copy(alpha = 0.22f),
+                                            colors.surface,
+                                        ),
                                     ),
                                 ),
-                            ),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        DiuOrbAvatar(
-                            initials = displayPeerName.take(1),
-                            moodColor = peerMoodColor,
-                            size = 132.dp,
-                            isPulsing = true,
-                        )
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            DiuOrbAvatar(
+                                initials = displayPeerName.take(1),
+                                moodColor = peerMoodColor,
+                                size = 132.dp,
+                                isPulsing = true,
+                            )
+                        }
                     }
                 }
 
@@ -252,6 +274,8 @@ fun CallContent(
                         isFrontCamera = uiState.isFrontCamera,
                         onToggleMinimize = onToggleMinimize,
                         onFlipCamera = onFlipCamera,
+                        localVideoTrack = localVideoTrack,
+                        onInitRenderer = onInitRenderer,
                         modifier = Modifier
                             .align(Alignment.TopEnd)
                             .padding(top = 78.dp, end = 20.dp),

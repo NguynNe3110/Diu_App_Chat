@@ -325,7 +325,7 @@ private fun ProfileOverviewContent(
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 DiuOrbAvatar(
-                    initials = profile.displayName.ifEmpty { "L" }.take(1).uppercase(),
+                    initials = profile.displayName.ifEmpty { "D" }.take(1).uppercase(),
                     moodColor = activeMoodColor,
                     size = 112.dp,
                     avatarUrl = profile.avatarUrl,
@@ -339,7 +339,7 @@ private fun ProfileOverviewContent(
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     Text(
-                        text = profile.displayName.ifEmpty { "Lan" },
+                        text = profile.displayName.ifEmpty { "Bạn" },
                         fontFamily = DiuSerif,
                         fontSize = 34.sp,
                         fontWeight = FontWeight.Normal,

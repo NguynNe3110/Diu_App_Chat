@@ -62,12 +62,12 @@ class SettingsPreferencesDataSource(
 
     val userProfileFlow: Flow<UserProfile> = dataStore.data.map { preferences ->
         UserProfile(
-            id = preferences[KEY_USER_ID] ?: "user_me",
-            displayName = preferences[KEY_USER_DISPLAY_NAME] ?: "Minh",
-            username = preferences[KEY_USER_USERNAME] ?: "minh_diu",
-            bio = preferences[KEY_USER_BIO] ?: "Tìm kiếm những điều dịu dàng và bình yên mỗi ngày.",
-            birthday = preferences[KEY_USER_BIRTHDAY] ?: "15/08/2000",
-            phone = preferences[KEY_USER_PHONE] ?: "+84901234567",
+            id = preferences[KEY_USER_ID] ?: "",
+            displayName = preferences[KEY_USER_DISPLAY_NAME] ?: "",
+            username = preferences[KEY_USER_USERNAME] ?: "",
+            bio = preferences[KEY_USER_BIO] ?: "",
+            birthday = preferences[KEY_USER_BIRTHDAY] ?: "",
+            phone = preferences[KEY_USER_PHONE] ?: "",
             primaryMood = preferences[KEY_USER_PRIMARY_MOOD] ?: "Bình yên",
             avatarUrl = preferences[KEY_USER_AVATAR_URL],
         )

@@ -5,6 +5,8 @@ import com.uzuu.diuchat.feature.settings.data.datasource.api.model.UserSettingsD
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.postgrest
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.contentOrNull
 
 internal class SettingsSupabaseService(
     private val supabaseClient: SupabaseClient?,
@@ -13,14 +15,39 @@ internal class SettingsSupabaseService(
 
     suspend fun fetchUserProfile(): UserProfileDto? {
         val client = supabaseClient ?: return null
-        val userId = client.auth.currentUserOrNull()?.id ?: return null
-        return client.postgrest
+        val user = client.auth.currentUserOrNull() ?: return null
+        val remote = client.postgrest
             .from(TABLE_USER_PROFILES)
             .select {
                 filter {
-                    eq("id", userId)
+                    eq("id", user.id)
                 }
             }.decodeSingleOrNull<UserProfileDto>()
+
+        val googleName = (user.userMetadata?.get("full_name") as? JsonPrimitive)?.contentOrNull
+            ?: (user.userMetadata?.get("name") as? JsonPrimitive)?.contentOrNull
+        val googleAvatar = (user.userMetadata?.get("avatar_url") as? JsonPrimitive)?.contentOrNull
+            ?: (user.userMetadata?.get("picture") as? JsonPrimitive)?.contentOrNull
+
+        return if (remote == null) {
+            googleName?.let { name ->
+                UserProfileDto(
+                    id = user.id,
+                    displayName = name,
+                    avatarUrl = googleAvatar,
+                )
+            }
+        } else {
+            val resolvedName = if (remote.displayName.isBlank() || remote.displayName == "Người thương") {
+                googleName ?: remote.displayName
+            } else {
+                remote.displayName
+            }
+            remote.copy(
+                displayName = resolvedName,
+                avatarUrl = remote.avatarUrl ?: googleAvatar,
+            )
+        }
     }
 
     suspend fun upsertUserProfile(profile: UserProfileDto) {

@@ -7,10 +7,14 @@ import org.koin.dsl.module
 val dataModule = module {
     single<WebRtcSignalingAdapter> { WebRtcSignalingAdapterImpl(supabaseClient = getOrNull()) }
     single<CallServiceCoordinator> { CallServiceCoordinatorImpl(context = getOrNull()) }
+    single { CallTokenService(supabaseClient = getOrNull()) }
+    single<CallMediaEngine> { LiveKitCallMediaEngine(context = getOrNull()) }
     single<CallRepository> {
         CallRepositoryImpl(
             callServiceCoordinator = get(),
             webRtcSignalingAdapter = get(),
+            callTokenService = get(),
+            callMediaEngine = get(),
         )
     }
 }

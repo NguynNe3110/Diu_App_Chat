@@ -1,0 +1,165 @@
+package com.uzuu.diuchat.feature.calls.data
+
+import android.content.Context
+import io.livekit.android.LiveKit
+import io.livekit.android.events.RoomEvent
+import io.livekit.android.events.collect
+import io.livekit.android.renderer.SurfaceViewRenderer
+import io.livekit.android.room.Room
+import io.livekit.android.room.track.CameraPosition
+import io.livekit.android.room.track.LocalVideoTrack
+import io.livekit.android.room.track.Track
+import io.livekit.android.room.track.VideoTrack
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+import timber.log.Timber
+
+interface CallMediaEngine {
+    val localVideoTrack: StateFlow<VideoTrack?>
+    val remoteVideoTrack: StateFlow<VideoTrack?>
+
+    suspend fun connect(
+        url: String,
+        token: String,
+        enableVideo: Boolean,
+    )
+
+    suspend fun setMicrophoneMuted(muted: Boolean)
+
+    suspend fun setCameraEnabled(enabled: Boolean)
+
+    suspend fun switchCamera(): Boolean
+
+    fun initVideoRenderer(renderer: SurfaceViewRenderer)
+
+    suspend fun disconnect()
+}
+
+class LiveKitCallMediaEngine(
+    private val context: Context?,
+) : CallMediaEngine {
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    private var room: Room? = null
+    private var eventsJob: Job? = null
+    private var isFrontCamera = true
+
+    private val _localVideoTrack = MutableStateFlow<VideoTrack?>(null)
+    override val localVideoTrack: StateFlow<VideoTrack?> = _localVideoTrack.asStateFlow()
+
+    private val _remoteVideoTrack = MutableStateFlow<VideoTrack?>(null)
+    override val remoteVideoTrack: StateFlow<VideoTrack?> = _remoteVideoTrack.asStateFlow()
+
+    @Suppress("TooGenericExceptionCaught")
+    override suspend fun connect(
+        url: String,
+        token: String,
+        enableVideo: Boolean,
+    ) {
+        val appContext = context?.applicationContext ?: return
+        disconnect()
+
+        val lkRoom = LiveKit.create(appContext)
+        room = lkRoom
+        isFrontCamera = true
+
+        eventsJob = scope.launch {
+            lkRoom.events.collect { event ->
+                when (event) {
+                    is RoomEvent.TrackSubscribed -> {
+                        if (event.track is VideoTrack) {
+                            _remoteVideoTrack.value = event.track as VideoTrack
+                        }
+                    }
+
+                    is RoomEvent.TrackUnsubscribed -> {
+                        if (event.track is VideoTrack && _remoteVideoTrack.value == event.track) {
+                            _remoteVideoTrack.value = null
+                        }
+                    }
+
+                    is RoomEvent.Disconnected -> {
+                        _localVideoTrack.value = null
+                        _remoteVideoTrack.value = null
+                    }
+
+                    else -> {
+                    }
+                }
+            }
+        }
+
+        try {
+            lkRoom.connect(url = url, token = token)
+            lkRoom.localParticipant.setMicrophoneEnabled(true)
+            lkRoom.localParticipant.setCameraEnabled(enableVideo)
+            if (enableVideo) {
+                refreshLocalVideoTrack(lkRoom)
+            }
+            Timber.d("LiveKit connected to room %s (video=%s)", lkRoom.name, enableVideo)
+        } catch (error: Throwable) {
+            Timber.w(error, "LiveKit room connect failed")
+            disconnect()
+            throw error
+        }
+    }
+
+    override suspend fun setMicrophoneMuted(muted: Boolean) {
+        runCatching {
+            room?.localParticipant?.setMicrophoneEnabled(!muted)
+        }
+    }
+
+    override suspend fun setCameraEnabled(enabled: Boolean) {
+        val activeRoom = room ?: return
+        runCatching {
+            activeRoom.localParticipant.setCameraEnabled(enabled)
+            if (enabled) {
+                refreshLocalVideoTrack(activeRoom)
+            } else {
+                _localVideoTrack.value = null
+            }
+        }
+    }
+
+    override suspend fun switchCamera(): Boolean {
+        val activeRoom = room ?: return !isFrontCamera
+        isFrontCamera = !isFrontCamera
+        val targetPos = if (isFrontCamera) CameraPosition.FRONT else CameraPosition.BACK
+        val localTrack = activeRoom.localParticipant
+            .getTrackPublication(Track.Source.CAMERA)
+            ?.track as? LocalVideoTrack
+        localTrack?.switchCamera(position = targetPos)
+        return isFrontCamera
+    }
+
+    override fun initVideoRenderer(renderer: SurfaceViewRenderer) {
+        runCatching {
+            room?.initVideoRenderer(renderer)
+        }
+    }
+
+    override suspend fun disconnect() {
+        eventsJob?.cancel()
+        eventsJob = null
+        _localVideoTrack.value = null
+        _remoteVideoTrack.value = null
+        runCatching {
+            room?.disconnect()
+            room?.release()
+        }
+        room = null
+    }
+
+    private fun refreshLocalVideoTrack(activeRoom: Room) {
+        val track = activeRoom.localParticipant
+            .getTrackPublication(Track.Source.CAMERA)
+            ?.track as? VideoTrack
+        _localVideoTrack.value = track
+    }
+}
