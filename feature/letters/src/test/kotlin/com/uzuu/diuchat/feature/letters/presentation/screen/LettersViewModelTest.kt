@@ -4,6 +4,7 @@ import com.uzuu.diuchat.feature.letters.domain.model.LetterScheduleType
 import com.uzuu.diuchat.feature.letters.domain.model.LetterStatus
 import com.uzuu.diuchat.feature.letters.domain.model.SealedLetter
 import com.uzuu.diuchat.feature.letters.domain.usecase.CancelSealedLetterUseCase
+import com.uzuu.diuchat.feature.letters.domain.usecase.GetLetterRecipientsUseCase
 import com.uzuu.diuchat.feature.letters.domain.usecase.GetLettersUseCase
 import com.uzuu.diuchat.feature.letters.domain.usecase.OpenSealedLetterUseCase
 import com.uzuu.diuchat.feature.letters.domain.usecase.SendLetterImmediatelyUseCase
@@ -30,11 +31,14 @@ class LettersViewModelTest {
     val coroutinesTestDispatcherExtension = CoroutinesTestDispatcherExtension()
 
     private val cancelSealedLetterUseCase: CancelSealedLetterUseCase = mockk(relaxed = true)
+    private val getLetterRecipientsUseCase: GetLetterRecipientsUseCase = mockk()
     private val getLettersUseCase: GetLettersUseCase = mockk()
     private val openSealedLetterUseCase: OpenSealedLetterUseCase = mockk(relaxed = true)
     private val sendLetterImmediatelyUseCase: SendLetterImmediatelyUseCase = mockk(relaxed = true)
     private val sendSealedLetterUseCase: SendSealedLetterUseCase = mockk(relaxed = true)
     private val updateSealedLetterUseCase: UpdateSealedLetterUseCase = mockk(relaxed = true)
+
+    private val testRecipients = listOf("user_linh" to "Linh", "user_minh" to "Minh")
 
     private val testLetters = listOf(
         SealedLetter(
@@ -57,9 +61,11 @@ class LettersViewModelTest {
     @BeforeEach
     fun setUp() {
         every { getLettersUseCase() } returns flowOf(testLetters)
+        every { getLetterRecipientsUseCase() } returns flowOf(testRecipients)
 
         sut = LettersViewModel(
             cancelSealedLetterUseCase = cancelSealedLetterUseCase,
+            getLetterRecipientsUseCase = getLetterRecipientsUseCase,
             getLettersUseCase = getLettersUseCase,
             openSealedLetterUseCase = openSealedLetterUseCase,
             sendLetterImmediatelyUseCase = sendLetterImmediatelyUseCase,
@@ -107,6 +113,7 @@ class LettersViewModelTest {
 
     @Test
     fun `sealAndSendLetter delegates to send usecase and resets draft`() = runTest {
+        advanceUntilIdle()
         sut.updateDraftTitle("Lá thư sáng mai")
         sut.updateDraftContent("Chúc em ngày mới tốt lành")
 

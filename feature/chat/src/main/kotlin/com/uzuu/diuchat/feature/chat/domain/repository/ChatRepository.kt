@@ -82,4 +82,26 @@ interface ChatRepository {
     }
 
     fun observeTypingStatus(conversationId: String): Flow<Boolean> = emptyFlow()
+
+    suspend fun deleteMessage(messageId: String) {
+        // Default no-op for test doubles
+    }
+
+    suspend fun starMessage(messageId: String): Boolean = true
+
+    suspend fun deleteConversation(conversationId: String) {
+        // Default no-op for test doubles
+    }
+
+    suspend fun sendSealedMessage(
+        conversationId: String,
+        content: String,
+        mood: MoodType,
+        unlockAtEpochMs: Long,
+        scheduledLabel: String,
+    ): ChatMessage = sendMessage(
+        conversationId = conversationId,
+        content = content,
+        mood = mood,
+    )
 }

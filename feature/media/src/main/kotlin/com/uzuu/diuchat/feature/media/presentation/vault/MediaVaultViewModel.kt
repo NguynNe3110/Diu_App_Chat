@@ -4,6 +4,7 @@ import androidx.lifecycle.viewModelScope
 import com.uzuu.diuchat.feature.base.presentation.viewmodel.BaseViewModel
 import com.uzuu.diuchat.feature.media.domain.model.MediaType
 import com.uzuu.diuchat.feature.media.domain.usecase.GetVaultMediaUseCase
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 
@@ -11,13 +12,16 @@ class MediaVaultViewModel(
     private val getVaultMediaUseCase: GetVaultMediaUseCase,
 ) : BaseViewModel<MediaVaultUiState, MediaVaultAction>(MediaVaultUiState()) {
 
+    private var loadJob: Job? = null
+
     init {
         loadMedia()
     }
 
     fun loadMedia(conversationId: String = "all") {
+        loadJob?.cancel()
         sendAction(MediaVaultAction.SetLoading(true))
-        getVaultMediaUseCase(conversationId)
+        loadJob = getVaultMediaUseCase(conversationId)
             .onEach { items ->
                 sendAction(MediaVaultAction.SetItems(items))
             }

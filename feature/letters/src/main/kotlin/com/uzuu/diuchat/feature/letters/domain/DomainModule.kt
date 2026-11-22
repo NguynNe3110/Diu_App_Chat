@@ -1,6 +1,7 @@
 package com.uzuu.diuchat.feature.letters.domain
 
 import com.uzuu.diuchat.feature.letters.domain.usecase.CancelSealedLetterUseCase
+import com.uzuu.diuchat.feature.letters.domain.usecase.GetLetterRecipientsUseCase
 import com.uzuu.diuchat.feature.letters.domain.usecase.GetLettersUseCase
 import com.uzuu.diuchat.feature.letters.domain.usecase.OpenSealedLetterUseCase
 import com.uzuu.diuchat.feature.letters.domain.usecase.SendLetterImmediatelyUseCase
@@ -10,6 +11,7 @@ import org.koin.dsl.module
 
 val domainModule = module {
     factory { CancelSealedLetterUseCase(get()) }
+    factory { GetLetterRecipientsUseCase(get()) }
     factory { GetLettersUseCase(get()) }
     factory { OpenSealedLetterUseCase(get()) }
     factory { SendLetterImmediatelyUseCase(get()) }

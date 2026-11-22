@@ -26,6 +26,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -66,8 +67,13 @@ fun MediaVaultScreen(
     onOpenPhoto: (MediaVaultItem) -> Unit,
     onOpenStorage: () -> Unit,
     modifier: Modifier = Modifier,
+    conversationId: String = "all",
     viewModel: MediaVaultViewModel = koinViewModel(),
 ) {
+    LaunchedEffect(conversationId) {
+        viewModel.loadMedia(conversationId)
+    }
+
     val state by viewModel.uiStateFlow.collectAsStateWithLifecycle()
 
     MediaVaultContent(

@@ -482,6 +482,58 @@ class ChatRepositoryImpl(
 
     override fun observeTypingStatus(conversationId: String): Flow<Boolean> = supabaseService.observeTypingStatus(conversationId)
 
+    override suspend fun deleteMessage(messageId: String) {
+        messageDao.delete(messageId)
+        supabaseService.deleteMessage(messageId)
+    }
+
+    override suspend fun starMessage(messageId: String): Boolean = supabaseService.toggleStarMessage(messageId).getOrDefault(true)
+
+    override suspend fun deleteConversation(conversationId: String) {
+        messageDao.deleteByConversationId(conversationId)
+        conversationDao.deleteById(conversationId)
+        supabaseService.deleteConversation(conversationId)
+    }
+
+    override suspend fun sendSealedMessage(
+        conversationId: String,
+        content: String,
+        mood: MoodType,
+        unlockAtEpochMs: Long,
+        scheduledLabel: String,
+    ): ChatMessage {
+        val messageId = UUID.randomUUID().toString()
+        val operationId = UUID.randomUUID().toString()
+        val now = System.currentTimeMillis()
+        val entity =
+            MessageEntity(
+                id = messageId,
+                conversationId = conversationId,
+                senderId = currentUserId(),
+                senderName = currentUserName(),
+                content = content,
+                mood = mood.id,
+                status = MessageStatus.PENDING.value,
+                createdAtEpochMs = now,
+                isFromMe = true,
+                mediaType = MessageMediaType.SEALED_LETTER.name,
+                caption = scheduledLabel,
+            )
+        val outbox = createOutboxEntity(operationId, conversationId, messageId, now)
+        persistMessageWithOutbox(entity, outbox, mood)
+        val syncedEntity = syncMessageWithOutboxAck(entity, operationId)
+        supabaseService.insertSealedLetterForMessage(
+            messageId = messageId,
+            conversationId = conversationId,
+            content = content,
+            unlockAtEpochMs = unlockAtEpochMs,
+        )
+        return chatMapper.messageEntityToDomain(syncedEntity).copy(
+            scheduledForLabel = scheduledLabel,
+            isSealedRevealed = false,
+        )
+    }
+
     private fun currentUserId(): String = supabaseService.currentUserId() ?: ME_USER_ID
 
     private fun currentUserName(): String = supabaseService.currentUserDisplayName()?.takeIf { it.isNotBlank() } ?: ME_DISPLAY_NAME

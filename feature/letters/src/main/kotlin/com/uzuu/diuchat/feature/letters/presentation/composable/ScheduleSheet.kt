@@ -106,6 +106,7 @@ fun ScheduleSheet(
                                 showDatePicker = true
                             } else {
                                 val formattedTime = when (option) {
+                                    LetterScheduleType.IN_ONE_HOUR -> "Sau 1 giờ"
                                     LetterScheduleType.WAKE_UP -> "06:00 Sáng (Khi đối phương thức dậy)"
                                     LetterScheduleType.TOMORROW_MORNING -> "08:00 Sáng mai"
                                     LetterScheduleType.TONIGHT -> "22:00 Tối nay"
@@ -148,7 +149,7 @@ fun ScheduleSheet(
 
     if (showDatePicker) {
         val datePickerState = rememberDatePickerState(
-            initialSelectedDateMillis = System.currentTimeMillis() + 24 * 3600 * 1000L,
+            initialSelectedDateMillis = System.currentTimeMillis(),
         )
         DatePickerDialog(
             onDismissRequest = { showDatePicker = false },

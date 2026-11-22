@@ -142,10 +142,12 @@ sealed interface ChatAction : BaseAction<ChatUiState> {
     data class UpdateSlowSendDraft(
         val content: String,
         val scheduleLabel: String,
+        val unlockEpochMs: Long? = null,
     ) : ChatAction {
         override fun reduce(state: ChatUiState): ChatUiState = state.copy(
             slowSendDraftContent = content,
             slowSendScheduleLabel = scheduleLabel,
+            slowSendUnlockEpochMs = unlockEpochMs,
         )
     }
 

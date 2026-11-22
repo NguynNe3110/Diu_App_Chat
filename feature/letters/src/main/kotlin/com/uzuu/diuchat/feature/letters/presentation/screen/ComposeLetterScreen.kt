@@ -75,7 +75,11 @@ fun ComposeLetterScreen(
         ) {
             DiuTopBar(
                 title = if (uiState.draftEditingLetterId != null) "Chỉnh sửa thư" else "Viết thư gửi chậm",
-                subtitle = "Gửi đến: ${uiState.draftRecipientName}",
+                subtitle = if (uiState.draftRecipientName.isNotBlank()) {
+                    "Gửi đến: ${uiState.draftRecipientName}"
+                } else {
+                    "Chọn người nhận trong vòng thân"
+                },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(
@@ -100,18 +104,27 @@ fun ComposeLetterScreen(
                     color = colors.inkSecondary,
                     modifier = Modifier.padding(top = 12.dp, bottom = 6.dp),
                 )
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    uiState.availableRecipients.forEach { (recipientId, recipientName) ->
-                        DiuFilterChip(
-                            text = recipientName,
-                            selected = uiState.draftRecipientId == recipientId,
-                            onClick = { onRecipientChange(recipientId, recipientName) },
-                        )
+                if (uiState.availableRecipients.isEmpty()) {
+                    Text(
+                        text = "Chưa có người trong vòng thân. Hãy kết nối thêm bạn bè trong Danh bạ để gửi thư.",
+                        style = AppTheme.typography.bodySmall,
+                        color = colors.inkSecondary,
+                        modifier = Modifier.padding(bottom = 6.dp),
+                    )
+                } else {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        uiState.availableRecipients.forEach { (recipientId, recipientName) ->
+                            DiuFilterChip(
+                                text = recipientName,
+                                selected = uiState.draftRecipientId == recipientId,
+                                onClick = { onRecipientChange(recipientId, recipientName) },
+                            )
+                        }
                     }
                 }
 
@@ -286,7 +299,9 @@ fun ComposeLetterScreen(
                 DiuButton(
                     onClick = onSealAndSend,
                     modifier = Modifier.fillMaxWidth(),
-                    enabled = uiState.draftTitle.isNotBlank() && uiState.draftContent.isNotBlank(),
+                    enabled = uiState.draftRecipientId.isNotBlank() &&
+                        uiState.draftTitle.isNotBlank() &&
+                        uiState.draftContent.isNotBlank(),
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,

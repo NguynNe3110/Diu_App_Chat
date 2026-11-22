@@ -28,8 +28,10 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.put
 import timber.log.Timber
 import java.time.Instant
 import java.time.ZoneId
@@ -85,6 +87,8 @@ class HomeSupabaseService(
                         localReadAtByConversation[convoId] = Instant.now()
                     }
                 }
+            val deletedBroadcasts =
+                broadcastChannel.broadcastFlow<JsonObject>(event = EVENT_CONVERSATION_DELETED).map { }
 
             launch {
                 merge(
@@ -94,6 +98,7 @@ class HomeSupabaseService(
                     newMessageBroadcasts,
                     profileBroadcasts,
                     readBroadcasts,
+                    deletedBroadcasts,
                 ).collect { send(Unit) }
             }
 
@@ -107,6 +112,28 @@ class HomeSupabaseService(
                     removeChannelSafely(client, dbChannel)
                 }
             }
+        }
+    }
+
+    suspend fun deleteConversation(conversationId: String): Result<Unit> {
+        val client = supabaseClient ?: return Result.success(Unit)
+        val myId = client.auth.currentUserOrNull()?.id ?: return Result.success(Unit)
+        return runCatching {
+            client.postgrest
+                .from(TABLE_CONVERSATION_MEMBERS)
+                .update(
+                    buildJsonObject {
+                        put("left_at", Instant.now().toString())
+                    },
+                ) {
+                    filter {
+                        eq("conversation_id", conversationId)
+                        eq("user_id", myId)
+                    }
+                }
+        }.map { }.onFailure { error ->
+            rethrowCancellation(error)
+            Timber.w(error, "Failed to delete conversation %s from Home", conversationId)
         }
     }
 
@@ -459,6 +486,7 @@ class HomeSupabaseService(
         const val EVENT_NEW_MESSAGE = "new_message"
         const val EVENT_PROFILE_UPDATED = "profile_updated"
         const val EVENT_CONVERSATION_READ = "conversation_read"
+        const val EVENT_CONVERSATION_DELETED = "conversation_deleted"
         const val RECENT_MESSAGES_LIMIT = 100L
         val TIME_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
         val STAR_POSITIONS = listOf(

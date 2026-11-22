@@ -6,6 +6,7 @@ import com.uzuu.diuchat.feature.letters.domain.model.LetterScheduleType
 import com.uzuu.diuchat.feature.letters.domain.model.LetterStatus
 import com.uzuu.diuchat.feature.letters.domain.model.SealedLetter
 import com.uzuu.diuchat.feature.letters.domain.usecase.CancelSealedLetterUseCase
+import com.uzuu.diuchat.feature.letters.domain.usecase.GetLetterRecipientsUseCase
 import com.uzuu.diuchat.feature.letters.domain.usecase.GetLettersUseCase
 import com.uzuu.diuchat.feature.letters.domain.usecase.OpenSealedLetterUseCase
 import com.uzuu.diuchat.feature.letters.domain.usecase.SendLetterImmediatelyUseCase
@@ -14,10 +15,15 @@ import com.uzuu.diuchat.feature.letters.domain.usecase.UpdateSealedLetterUseCase
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.LocalTime
+import java.time.ZoneId
 import java.util.UUID
 
 class LettersViewModel(
     private val cancelSealedLetterUseCase: CancelSealedLetterUseCase,
+    private val getLetterRecipientsUseCase: GetLetterRecipientsUseCase,
     private val getLettersUseCase: GetLettersUseCase,
     private val openSealedLetterUseCase: OpenSealedLetterUseCase,
     private val sendLetterImmediatelyUseCase: SendLetterImmediatelyUseCase,
@@ -27,12 +33,19 @@ class LettersViewModel(
 
     init {
         observeLetters()
+        observeRecipients()
     }
 
     private fun observeLetters() {
         sendAction(LettersAction.SetLoading(true))
         getLettersUseCase()
             .onEach { sendAction(LettersAction.SetLetters(it)) }
+            .launchIn(viewModelScope)
+    }
+
+    private fun observeRecipients() {
+        getLetterRecipientsUseCase()
+            .onEach { sendAction(LettersAction.SetRecipients(it)) }
             .launchIn(viewModelScope)
     }
 
@@ -73,11 +86,22 @@ class LettersViewModel(
     }
 
     fun setSchedule(type: LetterScheduleType, formatted: String, customEpochMs: Long? = null) {
+        val zone = ZoneId.systemDefault()
+        val now = LocalDateTime.now(zone)
         val epochMs = customEpochMs ?: when (type) {
-            LetterScheduleType.WAKE_UP -> System.currentTimeMillis() + 8 * 3600 * 1000L
-            LetterScheduleType.TOMORROW_MORNING -> System.currentTimeMillis() + 14 * 3600 * 1000L
-            LetterScheduleType.TONIGHT -> System.currentTimeMillis() + 4 * 3600 * 1000L
-            LetterScheduleType.CUSTOM_DATE -> System.currentTimeMillis() + 7 * 24 * 3600 * 1000L
+            LetterScheduleType.IN_ONE_HOUR -> now.plusHours(1).atZone(zone).toInstant().toEpochMilli()
+
+            LetterScheduleType.TONIGHT -> LocalDateTime.of(LocalDate.now(zone), LocalTime.of(22, 0))
+                .let { if (it.isAfter(now)) it else it.plusDays(1) }
+                .atZone(zone).toInstant().toEpochMilli()
+
+            LetterScheduleType.WAKE_UP -> LocalDateTime.of(LocalDate.now(zone).plusDays(1), LocalTime.of(6, 0))
+                .atZone(zone).toInstant().toEpochMilli()
+
+            LetterScheduleType.TOMORROW_MORNING -> LocalDateTime.of(LocalDate.now(zone).plusDays(1), LocalTime.of(8, 0))
+                .atZone(zone).toInstant().toEpochMilli()
+
+            LetterScheduleType.CUSTOM_DATE -> now.plusHours(2).atZone(zone).toInstant().toEpochMilli()
         }
         sendAction(LettersAction.SetDraftSchedule(type, epochMs, formatted))
         sendAction(LettersAction.SetShowScheduleSheet(false))
@@ -86,10 +110,11 @@ class LettersViewModel(
     fun sealAndSendLetter() {
         val currentState = uiStateFlow.value
         if (currentState.draftTitle.isBlank() || currentState.draftContent.isBlank()) return
+        if (currentState.draftRecipientId.isBlank()) return
 
         val editingId = currentState.draftEditingLetterId
         val letter = SealedLetter(
-            id = editingId ?: "letter_${UUID.randomUUID().toString().take(8)}",
+            id = editingId ?: UUID.randomUUID().toString(),
             senderId = "user_me",
             senderName = "Tôi",
             recipientId = currentState.draftRecipientId,

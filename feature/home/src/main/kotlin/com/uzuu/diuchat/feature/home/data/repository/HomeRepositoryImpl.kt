@@ -72,6 +72,17 @@ class HomeRepositoryImpl(
         }
     }
 
+    override suspend fun deleteConversation(conversationId: String) {
+        starsFlow.replayCache.firstOrNull()?.let { current ->
+            starsFlow.tryEmit(current.filterNot { it.id == conversationId })
+        }
+        recentChatsFlow.replayCache.firstOrNull()?.let { current ->
+            recentChatsFlow.tryEmit(current.filterNot { it.id == conversationId })
+        }
+        homeSupabaseService.deleteConversation(conversationId)
+        syncFromRemote()
+    }
+
     suspend fun syncFromRemote() {
         val overview = homeSupabaseService.fetchOverview()
         if (overview == null) {

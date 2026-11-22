@@ -3,10 +3,12 @@ package com.uzuu.diuchat.feature.home.presentation
 import androidx.compose.ui.graphics.Color
 import com.uzuu.diuchat.feature.home.domain.model.RecentChat
 import com.uzuu.diuchat.feature.home.domain.model.StarPerson
+import com.uzuu.diuchat.feature.home.domain.usecase.DeleteHomeConversationUseCase
 import com.uzuu.diuchat.feature.home.domain.usecase.GetHomeStarsUseCase
 import com.uzuu.diuchat.feature.home.domain.usecase.GetRecentChatsUseCase
 import com.uzuu.diuchat.library.testutils.CoroutinesTestDispatcherExtension
 import com.uzuu.diuchat.library.testutils.InstantTaskExecutorExtension
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -24,6 +26,7 @@ import org.junit.jupiter.api.extension.ExtendWith
 @OptIn(ExperimentalCoroutinesApi::class)
 @ExtendWith(InstantTaskExecutorExtension::class, CoroutinesTestDispatcherExtension::class)
 class HomeViewModelTest {
+    private val deleteHomeConversationUseCase: DeleteHomeConversationUseCase = mockk(relaxed = true)
     private val getHomeStarsUseCase: GetHomeStarsUseCase = mockk()
     private val getRecentChatsUseCase: GetRecentChatsUseCase = mockk()
 
@@ -44,7 +47,7 @@ class HomeViewModelTest {
         every { getHomeStarsUseCase(any()) } returns flowOf(defaultStars)
         every { getRecentChatsUseCase() } returns flowOf(defaultChats)
 
-        sut = HomeViewModel(getHomeStarsUseCase, getRecentChatsUseCase)
+        sut = HomeViewModel(deleteHomeConversationUseCase, getHomeStarsUseCase, getRecentChatsUseCase)
     }
 
     @Test
@@ -110,5 +113,14 @@ class HomeViewModelTest {
 
         val state = sut.uiStateFlow.first()
         assertFalse(state.isQuietModeActive)
+    }
+
+    @Test
+    fun `delete conversation invokes use case`() = runTest {
+        advanceUntilIdle()
+        sut.onDeleteConversation("minh")
+        advanceUntilIdle()
+
+        coVerify(exactly = 1) { deleteHomeConversationUseCase("minh") }
     }
 }

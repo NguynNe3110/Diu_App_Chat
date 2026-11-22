@@ -9,6 +9,8 @@ import com.uzuu.diuchat.feature.chat.domain.model.MessageStatus
 import com.uzuu.diuchat.feature.chat.domain.model.MoodType
 import com.uzuu.diuchat.feature.chat.domain.model.VoiceRecordingState
 import com.uzuu.diuchat.feature.chat.domain.usecase.CreateGroupUseCase
+import com.uzuu.diuchat.feature.chat.domain.usecase.DeleteConversationUseCase
+import com.uzuu.diuchat.feature.chat.domain.usecase.DeleteMessageUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.ForwardMessageUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.GetConversationUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.GetConversationsUseCase
@@ -18,6 +20,7 @@ import com.uzuu.diuchat.feature.chat.domain.usecase.ManageGroupMemberUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.ObserveTypingStatusUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.SendMessageUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.SendPhotoMessageUseCase
+import com.uzuu.diuchat.feature.chat.domain.usecase.SendSealedMessageUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.SendTypingStatusUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.SendVoiceMessageUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.TogglePinMessageUseCase
@@ -46,6 +49,8 @@ import org.junit.jupiter.api.extension.ExtendWith
 @ExtendWith(InstantTaskExecutorExtension::class, CoroutinesTestDispatcherExtension::class)
 class ChatViewModelTest {
     private val mockCreateGroupUseCase: CreateGroupUseCase = mockk()
+    private val mockDeleteConversationUseCase: DeleteConversationUseCase = mockk(relaxed = true)
+    private val mockDeleteMessageUseCase: DeleteMessageUseCase = mockk(relaxed = true)
     private val mockForwardMessageUseCase: ForwardMessageUseCase = mockk()
     private val mockGetConversationUseCase: GetConversationUseCase = mockk()
     private val mockGetConversationsUseCase: GetConversationsUseCase = mockk()
@@ -55,6 +60,7 @@ class ChatViewModelTest {
     private val mockObserveTypingStatusUseCase: ObserveTypingStatusUseCase = mockk()
     private val mockSendMessageUseCase: SendMessageUseCase = mockk()
     private val mockSendPhotoMessageUseCase: SendPhotoMessageUseCase = mockk()
+    private val mockSendSealedMessageUseCase: SendSealedMessageUseCase = mockk(relaxed = true)
     private val mockSendTypingStatusUseCase: SendTypingStatusUseCase = mockk(relaxed = true)
     private val mockSendVoiceMessageUseCase: SendVoiceMessageUseCase = mockk()
     private val mockTogglePinMessageUseCase: TogglePinMessageUseCase = mockk()
@@ -92,6 +98,8 @@ class ChatViewModelTest {
         every { mockObserveTypingStatusUseCase(any()) } returns flowOf(false)
         sut = ChatViewModel(
             createGroupUseCase = mockCreateGroupUseCase,
+            deleteConversationUseCase = mockDeleteConversationUseCase,
+            deleteMessageUseCase = mockDeleteMessageUseCase,
             forwardMessageUseCase = mockForwardMessageUseCase,
             getConversationUseCase = mockGetConversationUseCase,
             getConversationsUseCase = mockGetConversationsUseCase,
@@ -101,6 +109,7 @@ class ChatViewModelTest {
             observeTypingStatusUseCase = mockObserveTypingStatusUseCase,
             sendMessageUseCase = mockSendMessageUseCase,
             sendPhotoMessageUseCase = mockSendPhotoMessageUseCase,
+            sendSealedMessageUseCase = mockSendSealedMessageUseCase,
             sendTypingStatusUseCase = mockSendTypingStatusUseCase,
             sendVoiceMessageUseCase = mockSendVoiceMessageUseCase,
             togglePinMessageUseCase = mockTogglePinMessageUseCase,
@@ -478,23 +487,39 @@ class ChatViewModelTest {
     }
 
     @Test
-    fun `onSealSlowSendMessage appends SEALED_LETTER bubble and onCancelSealedMessage removes it`() = runTest {
+    fun `onSealSlowSendMessage delegates to sendSealedMessageUseCase and closes sheet`() = runTest {
         advanceUntilIdle()
         sut.onOpenSlowSendSheet(true)
-        sut.onUpdateSlowSendDraft(content = "Ngủ ngon nhé người thương", scheduleLabel = "Sáng mai 7:00")
+        sut.onUpdateSlowSendDraft(
+            content = "Ngủ ngon nhé người thương",
+            scheduleLabel = "20:30 · 25/11/2026",
+            unlockEpochMs = 1_800_000_000_000L,
+        )
         sut.onSealSlowSendMessage()
+        advanceUntilIdle()
 
-        val sealed = sut.uiStateFlow.value.messages.last()
-        sealed.mediaType shouldBeEqualTo MessageMediaType.SEALED_LETTER
-        sealed.content shouldBeEqualTo "Ngủ ngon nhé người thương"
-        sealed.scheduledForLabel shouldBeEqualTo "Sáng mai 7:00"
+        coVerify(exactly = 1) {
+            mockSendSealedMessageUseCase(
+                conversationId = "conv_linh_diu",
+                content = "Ngủ ngon nhé người thương",
+                mood = any(),
+                unlockAtEpochMs = 1_800_000_000_000L,
+                scheduledLabel = "20:30 · 25/11/2026",
+            )
+        }
         sut.uiStateFlow.value.isSlowSendSheetOpen shouldBeEqualTo false
+        sut.uiStateFlow.value.slowSendDraftContent shouldBeEqualTo ""
+    }
 
-        sut.onToggleRevealSealedMessage(sealed.id)
-        sut.uiStateFlow.value.messages.last().isSealedRevealed shouldBeEqualTo true
+    @Test
+    fun `onDeleteConversation delegates to deleteConversationUseCase and invokes onSuccess`() = runTest {
+        advanceUntilIdle()
+        var deleted = false
+        sut.onDeleteConversation(onSuccess = { deleted = true })
+        advanceUntilIdle()
 
-        sut.onCancelSealedMessage(sealed.id)
-        sut.uiStateFlow.value.messages.none { it.id == sealed.id } shouldBeEqualTo true
+        deleted shouldBeEqualTo true
+        coVerify(exactly = 1) { mockDeleteConversationUseCase("conv_linh_diu") }
     }
 
     @Test
