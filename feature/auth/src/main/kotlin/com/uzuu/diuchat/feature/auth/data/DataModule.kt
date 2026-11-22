@@ -5,6 +5,8 @@ import com.uzuu.diuchat.feature.auth.data.mapper.AuthMapper
 import com.uzuu.diuchat.feature.auth.data.repository.AuthRepositoryImpl
 import com.uzuu.diuchat.feature.auth.data.repository.MockAuthRepository
 import com.uzuu.diuchat.feature.auth.domain.repository.AuthRepository
+import com.uzuu.diuchat.feature.base.domain.repository.NoOpPushRegistration
+import com.uzuu.diuchat.feature.base.domain.repository.PushRegistration
 import io.github.jan.supabase.SupabaseClient
 import org.koin.dsl.module
 
@@ -20,6 +22,7 @@ internal val dataModule =
                 AuthRepositoryImpl(
                     supabaseService = get(),
                     authMapper = get(),
+                    pushRegistration = getOrNull<PushRegistration>() ?: NoOpPushRegistration,
                 )
             } else {
                 MockAuthRepository()

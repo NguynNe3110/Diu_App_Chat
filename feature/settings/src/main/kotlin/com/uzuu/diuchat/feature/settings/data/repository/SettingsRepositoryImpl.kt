@@ -161,9 +161,7 @@ internal class SettingsRepositoryImpl(
     }
 
     override suspend fun logout() {
-        runRemoteSafely {
-            remoteDataSource?.signOut()
-        }
+        remoteDataSource?.signOut()
         val emptyProfile = UserProfile(
             id = "",
             displayName = "",
@@ -194,8 +192,8 @@ internal class SettingsRepositoryImpl(
         )
         runRemoteSafely {
             remoteDataSource?.upsertUserProfile(userProfileMapper.toDto(anonymizedProfile))
-            remoteDataSource?.signOut()
         }
+        remoteDataSource?.signOut()
         saveUserProfileLocally(anonymizedProfile)
     }
 

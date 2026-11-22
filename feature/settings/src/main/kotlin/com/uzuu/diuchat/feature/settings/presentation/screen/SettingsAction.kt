@@ -70,7 +70,14 @@ sealed class SettingsAction : BaseAction<SettingsUiState> {
     }
 
     data class SetShowLogoutConfirmDialog(val show: Boolean) : SettingsAction() {
-        override fun reduce(state: SettingsUiState): SettingsUiState = state.copy(showLogoutConfirmDialog = show)
+        override fun reduce(state: SettingsUiState): SettingsUiState = state.copy(
+            showLogoutConfirmDialog = show,
+            logoutError = if (show) null else state.logoutError,
+        )
+    }
+
+    data class SetLogoutError(val error: String?) : SettingsAction() {
+        override fun reduce(state: SettingsUiState): SettingsUiState = state.copy(logoutError = error)
     }
 
     data class SetAccountDeletionState(val deletionState: AccountDeletionState) : SettingsAction() {

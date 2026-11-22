@@ -8,11 +8,13 @@ import androidx.compose.runtime.getValue
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.uzuu.diuchat.feature.base.common.res.AppTheme
+import com.uzuu.diuchat.feature.base.domain.repository.PushRegistration
 import com.uzuu.diuchat.feature.settings.domain.usecase.GetThemeModeUseCase
 import org.koin.android.ext.android.inject
 
 class MainShowcaseActivity : ComponentActivity() {
     private val getThemeModeUseCase: GetThemeModeUseCase by inject()
+    private val pushRegistration: PushRegistration by inject()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
@@ -32,5 +34,10 @@ class MainShowcaseActivity : ComponentActivity() {
                 MainShowcaseScreen()
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        pushRegistration.requestSync()
     }
 }

@@ -261,11 +261,20 @@ fun SettingsScreen(
                     )
                 },
                 text = {
-                    Text(
-                        text = "Bạn có chắc chắn muốn đăng xuất? Dữ liệu lưu cục bộ sẽ được bảo vệ an toàn.",
-                        style = AppTheme.typography.bodySmall,
-                        color = colors.inkSecondary,
-                    )
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            text = "Bạn có chắc chắn muốn đăng xuất? Dữ liệu lưu cục bộ sẽ được bảo vệ an toàn.",
+                            style = AppTheme.typography.bodySmall,
+                            color = colors.inkSecondary,
+                        )
+                        uiState.logoutError?.let { errorMessage ->
+                            Text(
+                                text = errorMessage,
+                                style = AppTheme.typography.bodySmall,
+                                color = colors.danger,
+                            )
+                        }
+                    }
                 },
                 confirmButton = {
                     TextButton(onClick = viewModel::logout) {

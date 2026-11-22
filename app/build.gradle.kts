@@ -2,6 +2,7 @@ import com.uzuu.diuchat.buildlogic.ext.buildConfigFieldFromGradleProperty
 
 plugins {
     id("com.uzuu.diuchat.convention.application")
+    alias(libs.plugins.google.services)
 }
 
 android {
@@ -51,4 +52,7 @@ dependencies {
     implementation(projects.feature.journal)
     implementation(projects.feature.calls)
     implementation(projects.feature.location)
+    // Firebase Cloud Messaging
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.messaging)
 }

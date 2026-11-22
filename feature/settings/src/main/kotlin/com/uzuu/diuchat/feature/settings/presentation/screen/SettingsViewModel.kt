@@ -248,11 +248,24 @@ class SettingsViewModel(
         sendAction(SettingsAction.SetShowLogoutConfirmDialog(show))
     }
 
+    @Suppress("TooGenericExceptionCaught")
     fun logout() {
         viewModelScope.launch {
-            logoutUseCase()
-            sendAction(SettingsAction.SetShowLogoutConfirmDialog(false))
-            sendAction(SettingsAction.SetLoggedOut(true))
+            try {
+                sendAction(SettingsAction.SetLogoutError(null))
+                logoutUseCase()
+                sendAction(SettingsAction.SetShowLogoutConfirmDialog(false))
+                sendAction(SettingsAction.SetLoggedOut(true))
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                sendAction(
+                    SettingsAction.SetLogoutError(
+                        e.message?.takeIf { it.isNotBlank() }
+                            ?: "Không thể gỡ đăng ký thiết bị. Kiểm tra kết nối mạng và thử lại.",
+                    ),
+                )
+            }
         }
     }
 
@@ -273,6 +286,8 @@ class SettingsViewModel(
                 sendAction(SettingsAction.SetAccountDeletionState(AccountDeletionState.Completed))
                 sendAction(SettingsAction.SetShowDeleteAccountDialog(false))
                 sendAction(SettingsAction.SetLoggedOut(true))
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
             } catch (e: Exception) {
                 sendAction(SettingsAction.SetAccountDeletionState(AccountDeletionState.Failed(e.message ?: "Lỗi")))
             }

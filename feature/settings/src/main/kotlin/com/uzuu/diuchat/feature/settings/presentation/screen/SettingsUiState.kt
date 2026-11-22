@@ -26,5 +26,6 @@ data class SettingsUiState(
     val showDeleteAccountDialog: Boolean = false,
     val showLogoutConfirmDialog: Boolean = false,
     val accountDeletionState: AccountDeletionState = AccountDeletionState.Idle,
+    val logoutError: String? = null,
     val isLoggedOut: Boolean = false,
 ) : BaseState
