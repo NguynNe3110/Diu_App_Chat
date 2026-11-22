@@ -1,5 +1,9 @@
 package com.uzuu.diuchat.feature.calls.data
 
+import android.content.Context
+import android.media.AudioDeviceInfo
+import android.media.AudioManager
+import android.os.Build
 import timber.log.Timber
 
 @Suppress("ComplexInterface")
@@ -22,7 +26,13 @@ interface CallServiceCoordinator {
     fun switchCamera(): Boolean
 }
 
-class CallServiceCoordinatorImpl : CallServiceCoordinator {
+class CallServiceCoordinatorImpl(
+    private val context: Context? = null,
+) : CallServiceCoordinator {
+    private val audioManager: AudioManager? by lazy {
+        context?.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
+    }
+
     private var internalSpeakerOn = false
     private var internalMuted = false
     private var internalCameraEnabled = false
@@ -37,28 +47,59 @@ class CallServiceCoordinatorImpl : CallServiceCoordinator {
     override fun startCallService(callId: String, peerName: String, isVideo: Boolean) {
         activeCallId = callId
         internalCameraEnabled = isVideo
-        internalSpeakerOn = isVideo
         internalMuted = false
         internalFrontCamera = true
+        runCatching {
+            audioManager?.mode = AudioManager.MODE_IN_COMMUNICATION
+            audioManager?.isMicrophoneMute = false
+        }
+        setSpeakerphoneOn(isVideo)
         Timber.d("CallServiceCoordinator started: callId=%s, peer=%s, isVideo=%s", callId, peerName, isVideo)
     }
 
     override fun stopCallService() {
         Timber.d("CallServiceCoordinator stopped: callId=%s", activeCallId)
         activeCallId = null
-        internalSpeakerOn = false
         internalMuted = false
         internalCameraEnabled = false
         internalFrontCamera = true
+        setSpeakerphoneOn(false)
+        runCatching {
+            audioManager?.mode = AudioManager.MODE_NORMAL
+            audioManager?.isMicrophoneMute = false
+        }
     }
 
     override fun setSpeakerphoneOn(on: Boolean) {
         internalSpeakerOn = on
+        audioManager?.let { manager ->
+            runCatching { applySpeakerRoute(manager, on) }
+        }
         Timber.d("CallServiceCoordinator audio route speakerphone=%s", on)
+    }
+
+    private fun applySpeakerRoute(manager: AudioManager, on: Boolean) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+            @Suppress("DEPRECATION")
+            manager.isSpeakerphoneOn = on
+            return
+        }
+        if (!on) {
+            manager.clearCommunicationDevice()
+            return
+        }
+        val speakerDevice = manager.availableCommunicationDevices
+            .firstOrNull { it.type == AudioDeviceInfo.TYPE_BUILTIN_SPEAKER }
+        if (speakerDevice != null) {
+            manager.setCommunicationDevice(speakerDevice)
+        }
     }
 
     override fun setMicrophoneMute(muted: Boolean) {
         internalMuted = muted
+        runCatching {
+            audioManager?.isMicrophoneMute = muted
+        }
         Timber.d("CallServiceCoordinator microphone muted=%s", muted)
     }
 

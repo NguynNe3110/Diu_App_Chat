@@ -5,10 +5,15 @@ import com.uzuu.diuchat.feature.calls.data.WebRtcSignalingAdapter
 import com.uzuu.diuchat.feature.calls.domain.model.CallEndReason
 import com.uzuu.diuchat.feature.calls.domain.model.CallStatus
 import com.uzuu.diuchat.feature.calls.domain.model.CallType
+import com.uzuu.diuchat.feature.calls.domain.model.RtcSignalingMessage
+import com.uzuu.diuchat.feature.calls.domain.model.SignalingType
 import com.uzuu.diuchat.library.testutils.CoroutinesTestDispatcherExtension
+import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runTest
@@ -26,8 +31,11 @@ class CallRepositoryImplTest {
     val coroutinesTestDispatcherExtension = CoroutinesTestDispatcherExtension()
 
     private val testDispatcher = StandardTestDispatcher()
+    private val signalingFlow = MutableSharedFlow<RtcSignalingMessage>(extraBufferCapacity = 16)
     private val callServiceCoordinator: CallServiceCoordinator = mockk(relaxed = true)
-    private val webRtcSignalingAdapter: WebRtcSignalingAdapter = mockk(relaxed = true)
+    private val webRtcSignalingAdapter: WebRtcSignalingAdapter = mockk(relaxed = true) {
+        every { signalingEvents } returns signalingFlow
+    }
 
     lateinit var sut: CallRepositoryImpl
 
@@ -106,5 +114,59 @@ class CallRepositoryImplTest {
         val videoResult = sut.toggleCamera(session.callId)
         videoResult.getOrNull() shouldBeEqualTo true
         sut.currentCallSession.value?.isVideoEnabled shouldBeEqualTo true
+    }
+
+    @Test
+    fun `acceptCall sends ANSWER signaling and rejectCall sends DECLINE signaling`() = runTest {
+        val session1 = sut.startCall("peer_1", "Linh", CallType.AUDIO).getOrNull().shouldNotBeNull()
+        sut.acceptCall(session1.callId)
+
+        coVerify {
+            webRtcSignalingAdapter.sendSignaling(
+                match { it.sessionId == session1.callId && it.type == SignalingType.ANSWER },
+            )
+        }
+
+        sut.endCall(session1.callId, CallEndReason.COMPLETED)
+
+        val session2 = sut.startCall("peer_2", "Minh", CallType.VIDEO).getOrNull().shouldNotBeNull()
+        sut.rejectCall(session2.callId, CallEndReason.REJECTED)
+
+        coVerify {
+            webRtcSignalingAdapter.sendSignaling(
+                match { it.sessionId == session2.callId && it.type == SignalingType.DECLINE },
+            )
+        }
+    }
+
+    @Test
+    fun `incoming ANSWER transitions INVITING call to ACTIVE and remote BYE ends call`() = runTest(testDispatcher) {
+        val session = sut.startCall("peer_1", "Linh", CallType.AUDIO).getOrNull().shouldNotBeNull()
+        session.status shouldBeEqualTo CallStatus.INVITING
+
+        signalingFlow.emit(
+            RtcSignalingMessage(
+                sessionId = session.callId,
+                senderId = "remote_peer",
+                targetId = "local_peer",
+                type = SignalingType.ANSWER,
+            ),
+        )
+        testDispatcher.scheduler.runCurrent()
+
+        sut.currentCallSession.value?.status shouldBeEqualTo CallStatus.ACTIVE
+
+        signalingFlow.emit(
+            RtcSignalingMessage(
+                sessionId = session.callId,
+                senderId = "remote_peer",
+                targetId = "local_peer",
+                type = SignalingType.BYE,
+            ),
+        )
+        testDispatcher.scheduler.runCurrent()
+
+        sut.currentCallSession.value?.status shouldBeEqualTo CallStatus.ENDED
+        sut.currentCallSession.value?.endReason shouldBeEqualTo CallEndReason.COMPLETED
     }
 }

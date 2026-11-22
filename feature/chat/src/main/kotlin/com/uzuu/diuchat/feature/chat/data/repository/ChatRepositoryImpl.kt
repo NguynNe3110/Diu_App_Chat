@@ -1,6 +1,7 @@
 package com.uzuu.diuchat.feature.chat.data.repository
 
 import androidx.room.withTransaction
+import com.uzuu.diuchat.feature.chat.data.datasource.api.model.MessageDto
 import com.uzuu.diuchat.feature.chat.data.datasource.api.service.ChatSupabaseService
 import com.uzuu.diuchat.feature.chat.data.datasource.database.DiuChatDatabase
 import com.uzuu.diuchat.feature.chat.data.datasource.database.dao.ConversationDao
@@ -22,12 +23,14 @@ import com.uzuu.diuchat.feature.chat.domain.model.MoodType
 import com.uzuu.diuchat.feature.chat.domain.repository.ChatRepository
 import java.util.UUID
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 
+@Suppress("TooManyFunctions")
 class ChatRepositoryImpl(
     private val conversationDao: ConversationDao,
     private val messageDao: MessageDao,
-    @Suppress("UnusedPrivateProperty")
     private val outboxDao: OutboxDao,
     private val database: DiuChatDatabase? = null,
     private val chatMapper: ChatMapper = ChatMapper(),
@@ -35,8 +38,18 @@ class ChatRepositoryImpl(
 ) : ChatRepository {
     override fun observeMessages(
         conversationId: String,
-    ): Flow<List<ChatMessage>> = messageDao.observeMessages(conversationId).map { entities ->
-        entities.map(chatMapper::messageEntityToDomain)
+    ): Flow<List<ChatMessage>> = channelFlow {
+        launch {
+            syncInitialMessages(conversationId)
+            supabaseService.observeRealtimeMessages(conversationId).collect { dto ->
+                upsertIncomingMessage(dto)
+            }
+        }
+        launch {
+            messageDao.observeMessages(conversationId).collect { entities ->
+                send(entities.map(chatMapper::messageEntityToDomain))
+            }
+        }
     }
 
     override fun observeConversations(): Flow<List<Conversation>> = conversationDao.observeConversations().map { entities ->
@@ -64,8 +77,8 @@ class ChatRepositoryImpl(
             MessageEntity(
                 id = messageId,
                 conversationId = conversationId,
-                senderId = ME_USER_ID,
-                senderName = ME_DISPLAY_NAME,
+                senderId = currentUserId(),
+                senderName = currentUserName(),
                 content = content,
                 mood = mood.id,
                 status = MessageStatus.PENDING.value,
@@ -78,9 +91,9 @@ class ChatRepositoryImpl(
 
         val outboxEntity = createOutboxEntity(operationId, conversationId, messageId, now)
         persistMessageWithOutbox(messageEntity, outboxEntity, mood)
-        supabaseService.upsertMessage(chatMapper.messageEntityToDto(messageEntity))
+        val syncedEntity = syncMessageWithOutboxAck(messageEntity, operationId)
 
-        return chatMapper.messageEntityToDomain(messageEntity)
+        return chatMapper.messageEntityToDomain(syncedEntity)
     }
 
     override suspend fun sendPhotoMessage(
@@ -100,8 +113,8 @@ class ChatRepositoryImpl(
             MessageEntity(
                 id = messageId,
                 conversationId = conversationId,
-                senderId = ME_USER_ID,
-                senderName = ME_DISPLAY_NAME,
+                senderId = currentUserId(),
+                senderName = currentUserName(),
                 content = displayContent,
                 mood = mood.id,
                 status = MessageStatus.PENDING.value,
@@ -116,9 +129,9 @@ class ChatRepositoryImpl(
 
         val outboxEntity = createOutboxEntity(operationId, conversationId, messageId, now)
         persistMessageWithOutbox(messageEntity, outboxEntity, mood)
-        supabaseService.upsertMessage(chatMapper.messageEntityToDto(messageEntity))
+        val syncedEntity = syncMessageWithOutboxAck(messageEntity, operationId)
 
-        return chatMapper.messageEntityToDomain(messageEntity)
+        return chatMapper.messageEntityToDomain(syncedEntity)
     }
 
     override suspend fun sendVoiceMessage(
@@ -138,8 +151,8 @@ class ChatRepositoryImpl(
             MessageEntity(
                 id = messageId,
                 conversationId = conversationId,
-                senderId = ME_USER_ID,
-                senderName = ME_DISPLAY_NAME,
+                senderId = currentUserId(),
+                senderName = currentUserName(),
                 content = VOICE_PLACEHOLDER,
                 mood = mood.id,
                 status = MessageStatus.PENDING.value,
@@ -155,9 +168,9 @@ class ChatRepositoryImpl(
 
         val outboxEntity = createOutboxEntity(operationId, conversationId, messageId, now)
         persistMessageWithOutbox(messageEntity, outboxEntity, mood)
-        supabaseService.upsertMessage(chatMapper.messageEntityToDto(messageEntity))
+        val syncedEntity = syncMessageWithOutboxAck(messageEntity, operationId)
 
-        return chatMapper.messageEntityToDomain(messageEntity)
+        return chatMapper.messageEntityToDomain(syncedEntity)
     }
 
     override suspend fun createGroup(
@@ -170,8 +183,8 @@ class ChatRepositoryImpl(
 
         val membersList = mutableListOf(
             GroupMember(
-                userId = ME_USER_ID,
-                displayName = ME_DISPLAY_NAME,
+                userId = currentUserId(),
+                displayName = currentUserName(),
                 role = GroupRole.ADMIN,
                 mood = mood,
                 isFromMe = true,
@@ -249,15 +262,16 @@ class ChatRepositoryImpl(
     override suspend fun leaveGroup(conversationId: String) {
         val existing = conversationDao.getConversation(conversationId) ?: return
         val members = chatMapper.parseMembers(existing.membersCsv)
+        val userId = currentUserId()
 
-        val callerMember = members.find { it.isFromMe || it.userId == ME_USER_ID }
-        val otherAdmins = members.filter { (it.isFromMe || it.userId == ME_USER_ID).not() && it.role == GroupRole.ADMIN }
+        val callerMember = members.find { it.isFromMe || it.userId == userId }
+        val otherAdmins = members.filter { (it.isFromMe || it.userId == userId).not() && it.role == GroupRole.ADMIN }
 
         if (callerMember?.role == GroupRole.ADMIN && otherAdmins.isEmpty() && members.size > 1) {
             throw GroupError.LastAdminCannotLeave
         }
 
-        val remainingMembers = members.filterNot { it.isFromMe || it.userId == ME_USER_ID }
+        val remainingMembers = members.filterNot { it.isFromMe || it.userId == userId }
         val updated = existing.copy(membersCsv = chatMapper.serializeMembers(remainingMembers))
         conversationDao.upsert(updated)
         supabaseService.upsertConversation(chatMapper.conversationEntityToDto(updated))
@@ -269,8 +283,10 @@ class ChatRepositoryImpl(
     ) {
         val message = messageDao.getMessage(messageId) ?: return
         val reactions = chatMapper.parseReactions(message.reactionsCsv, messageId).toMutableList()
+        val userId = currentUserId()
+        val userName = currentUserName()
 
-        val myExistingIndex = reactions.indexOfFirst { it.userId == ME_USER_ID }
+        val myExistingIndex = reactions.indexOfFirst { it.userId == userId }
         if (myExistingIndex >= 0) {
             val existingReaction = reactions[myExistingIndex]
             if (existingReaction.mood == mood) {
@@ -282,8 +298,8 @@ class ChatRepositoryImpl(
             reactions.add(
                 MessageReaction(
                     messageId = messageId,
-                    userId = ME_USER_ID,
-                    userName = ME_DISPLAY_NAME,
+                    userId = userId,
+                    userName = userName,
                     mood = mood,
                     isFromMe = true,
                 ),
@@ -325,6 +341,8 @@ class ChatRepositoryImpl(
     ): List<ChatMessage> {
         val forwardedList = mutableListOf<ChatMessage>()
         val now = System.currentTimeMillis()
+        val userId = currentUserId()
+        val userName = currentUserName()
 
         recipientConversationIds.forEach { targetConvoId ->
             val newMsgId = UUID.randomUUID().toString()
@@ -333,8 +351,8 @@ class ChatRepositoryImpl(
             val entity = MessageEntity(
                 id = newMsgId,
                 conversationId = targetConvoId,
-                senderId = ME_USER_ID,
-                senderName = ME_DISPLAY_NAME,
+                senderId = userId,
+                senderName = userName,
                 content = message.content,
                 mood = message.mood.id,
                 status = MessageStatus.PENDING.value,
@@ -349,8 +367,8 @@ class ChatRepositoryImpl(
 
             val outbox = createOutboxEntity(opId, targetConvoId, newMsgId, now)
             persistMessageWithOutbox(entity, outbox, message.mood)
-            supabaseService.upsertMessage(chatMapper.messageEntityToDto(entity))
-            forwardedList.add(chatMapper.messageEntityToDomain(entity))
+            val syncedEntity = syncMessageWithOutboxAck(entity, opId)
+            forwardedList.add(chatMapper.messageEntityToDomain(syncedEntity))
         }
 
         return forwardedList
@@ -369,7 +387,7 @@ class ChatRepositoryImpl(
             persistRetry()
         } ?: persistRetry()
 
-        supabaseService.upsertMessage(chatMapper.messageEntityToDto(message.copy(status = MessageStatus.PENDING.value)))
+        syncMessageWithOutboxAck(message.copy(status = MessageStatus.PENDING.value), opId)
     }
 
     override suspend fun markAsRead(conversationId: String) {
@@ -378,6 +396,57 @@ class ChatRepositoryImpl(
             val updated = convo.copy(unreadCount = 0)
             conversationDao.upsert(updated)
             supabaseService.upsertConversation(chatMapper.conversationEntityToDto(updated))
+        }
+    }
+
+    private fun currentUserId(): String = supabaseService.currentUserId() ?: ME_USER_ID
+
+    private fun currentUserName(): String = supabaseService.currentUserDisplayName()?.takeIf { it.isNotBlank() } ?: ME_DISPLAY_NAME
+
+    private suspend fun syncInitialMessages(conversationId: String) {
+        val response = supabaseService.fetchMessages(conversationId).getOrNull() ?: return
+        response.conversation?.let { convoDto ->
+            conversationDao.upsert(chatMapper.conversationDtoToEntity(convoDto))
+        }
+        val activeUserId = currentUserId()
+        response.messages.forEach { dto ->
+            val resolved = dto.copy(isFromMe = dto.senderId == activeUserId)
+            messageDao.insert(chatMapper.messageDtoToEntity(resolved))
+        }
+    }
+
+    private suspend fun upsertIncomingMessage(dto: MessageDto) {
+        val activeUserId = currentUserId()
+        val resolved =
+            dto.copy(
+                isFromMe = dto.senderId == activeUserId,
+                status = MessageStatus.SENT.value,
+            )
+        messageDao.insert(chatMapper.messageDtoToEntity(resolved))
+        updateConversationSummary(
+            conversationId = resolved.conversationId,
+            lastMessage = resolved.content,
+            mood = MoodType.fromId(resolved.mood),
+            now = resolved.createdAtEpochMs,
+        )
+    }
+
+    private suspend fun syncMessageWithOutboxAck(
+        messageEntity: MessageEntity,
+        operationId: String,
+    ): MessageEntity {
+        val syncResult =
+            supabaseService.upsertMessage(
+                chatMapper.messageEntityToDto(messageEntity.copy(status = MessageStatus.SENT.value)),
+            )
+        return if (syncResult.isSuccess) {
+            messageDao.updateStatus(messageEntity.id, MessageStatus.SENT.value)
+            outboxDao.delete(operationId)
+            messageEntity.copy(status = MessageStatus.SENT.value)
+        } else {
+            messageDao.updateStatus(messageEntity.id, MessageStatus.FAILED.value)
+            outboxDao.updateStatus(operationId, MessageStatus.FAILED.value)
+            messageEntity.copy(status = MessageStatus.FAILED.value)
         }
     }
 

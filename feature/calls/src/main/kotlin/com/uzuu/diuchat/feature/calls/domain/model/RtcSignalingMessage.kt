@@ -1,5 +1,8 @@
 package com.uzuu.diuchat.feature.calls.domain.model
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 enum class SignalingType {
     OFFER,
     ANSWER,
@@ -8,6 +11,7 @@ enum class SignalingType {
     DECLINE,
 }
 
+@Serializable
 data class RtcSignalingMessage(
     val sessionId: String,
     val senderId: String,

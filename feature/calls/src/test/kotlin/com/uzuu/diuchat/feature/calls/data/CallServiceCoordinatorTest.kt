@@ -1,5 +1,10 @@
 package com.uzuu.diuchat.feature.calls.data
 
+import android.content.Context
+import android.media.AudioManager
+import io.mockk.every
+import io.mockk.mockk
+import io.mockk.verify
 import org.amshove.kluent.shouldBeEqualTo
 import org.junit.jupiter.api.Test
 
@@ -50,5 +55,24 @@ class CallServiceCoordinatorTest {
         sut.isMuted shouldBeEqualTo false
         sut.isCameraEnabled shouldBeEqualTo false
         sut.isFrontCamera shouldBeEqualTo true
+    }
+
+    @Test
+    fun `coordinator configures AudioManager mode and mute when context is provided`() {
+        val audioManager = mockk<AudioManager>(relaxed = true)
+        val context = mockk<Context> {
+            every { getSystemService(Context.AUDIO_SERVICE) } returns audioManager
+        }
+        val coordinator = CallServiceCoordinatorImpl(context = context)
+
+        coordinator.startCallService("call_audio", "Linh", false)
+        verify { audioManager.mode = AudioManager.MODE_IN_COMMUNICATION }
+        verify { audioManager.isMicrophoneMute = false }
+
+        coordinator.setMicrophoneMute(true)
+        verify { audioManager.isMicrophoneMute = true }
+
+        coordinator.stopCallService()
+        verify { audioManager.mode = AudioManager.MODE_NORMAL }
     }
 }
