@@ -47,11 +47,14 @@ import coil.compose.AsyncImage
 import com.uzuu.diuchat.feature.base.common.res.AppIcons
 import com.uzuu.diuchat.feature.base.common.res.AppTheme
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuCard
+import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuCardSkeleton
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuEmptyState
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuFilterChip
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuIconButton
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuMoodDot
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuSectionHeader
+import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuShimmerContainer
+import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuSkeletonBox
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuTopBar
 import com.uzuu.diuchat.feature.media.domain.model.MediaType
 import com.uzuu.diuchat.feature.media.domain.model.MediaVaultItem
@@ -143,7 +146,33 @@ fun MediaVaultContent(
                     }
                 }
 
-                if (state.isEmpty) {
+                if (state.isLoading && state.isEmpty) {
+                    DiuShimmerContainer(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 20.dp, vertical = 8.dp),
+                    ) {
+                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            repeat(2) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                ) {
+                                    repeat(3) {
+                                        DiuSkeletonBox(
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .aspectRatio(1f),
+                                            shape = RoundedCornerShape(14.dp),
+                                        )
+                                    }
+                                }
+                            }
+                            DiuCardSkeleton(lineCount = 1)
+                            DiuCardSkeleton(lineCount = 1)
+                        }
+                    }
+                } else if (state.isEmpty) {
                     Box(
                         modifier = Modifier
                             .fillMaxSize()

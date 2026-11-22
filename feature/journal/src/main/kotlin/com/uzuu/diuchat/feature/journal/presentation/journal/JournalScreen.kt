@@ -40,9 +40,12 @@ import com.uzuu.diuchat.feature.base.common.res.AppTheme
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuButton
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuButtonVariant
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuCard
+import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuCardSkeleton
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuIconButton
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuMoodDot
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuSectionHeader
+import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuShimmerContainer
+import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuSkeletonBox
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuTopBar
 import com.uzuu.diuchat.feature.journal.domain.model.DailyMoodCheckin
 import com.uzuu.diuchat.feature.journal.domain.model.JournalMoodType
@@ -130,61 +133,80 @@ fun JournalContent(
                 .fillMaxSize()
                 .padding(paddingValues),
         ) {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 20.dp),
-            ) {
-                // Calendar Grid Section
-                item {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    CalendarGrid(
-                        year = state.year,
-                        month = state.month,
-                        checkins = state.checkins,
-                        selectedDay = state.selectedDay,
-                        onSelectDay = onSelectDay,
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                }
-
-                // Selected Day Detail Card
-                item {
-                    val selectedCheckin = state.selectedCheckin
-                    SelectedDayCard(
-                        dayNumber = state.selectedDay,
-                        month = state.month,
-                        checkin = selectedCheckin,
-                        onCheckinClick = onOpenCheckinSheet,
-                    )
-                    Spacer(modifier = Modifier.height(24.dp))
-                }
-
-                // Monthly Mood Breakdown Section
-                item {
-                    val breakdown = state.breakdown
-                    if (breakdown != null) {
-                        DiuSectionHeader(title = "Tháng này bạn thường thấy")
-                        Spacer(modifier = Modifier.height(10.dp))
-                        MoodBreakdownBars(breakdown = breakdown)
-                        Spacer(modifier = Modifier.height(24.dp))
+            if (state.isLoading && state.checkins.isEmpty()) {
+                DiuShimmerContainer(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 20.dp, vertical = 12.dp),
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        DiuSkeletonBox(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(250.dp),
+                            shape = RoundedCornerShape(22.dp),
+                        )
+                        DiuCardSkeleton(lineCount = 2)
+                        DiuCardSkeleton(lineCount = 2)
                     }
                 }
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 20.dp),
+                ) {
+                    // Calendar Grid Section
+                    item {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        CalendarGrid(
+                            year = state.year,
+                            month = state.month,
+                            checkins = state.checkins,
+                            selectedDay = state.selectedDay,
+                            onSelectDay = onSelectDay,
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                    }
 
-                // Mood Comparison ("Cùng Minh") Section
-                item {
-                    val comparison = state.comparison
-                    if (comparison != null) {
-                        DiuSectionHeader(title = "Cùng ${comparison.partnerName}")
-                        Spacer(modifier = Modifier.height(10.dp))
-                        MoodComparisonCard(comparison = comparison)
+                    // Selected Day Detail Card
+                    item {
+                        val selectedCheckin = state.selectedCheckin
+                        SelectedDayCard(
+                            dayNumber = state.selectedDay,
+                            month = state.month,
+                            checkin = selectedCheckin,
+                            onCheckinClick = onOpenCheckinSheet,
+                        )
                         Spacer(modifier = Modifier.height(24.dp))
                     }
-                }
 
-                // Bottom spacer for CTA
-                item {
-                    Spacer(modifier = Modifier.height(72.dp))
+                    // Monthly Mood Breakdown Section
+                    item {
+                        val breakdown = state.breakdown
+                        if (breakdown != null) {
+                            DiuSectionHeader(title = "Tháng này bạn thường thấy")
+                            Spacer(modifier = Modifier.height(10.dp))
+                            MoodBreakdownBars(breakdown = breakdown)
+                            Spacer(modifier = Modifier.height(24.dp))
+                        }
+                    }
+
+                    // Mood Comparison ("Cùng Minh") Section
+                    item {
+                        val comparison = state.comparison
+                        if (comparison != null) {
+                            DiuSectionHeader(title = "Cùng ${comparison.partnerName}")
+                            Spacer(modifier = Modifier.height(10.dp))
+                            MoodComparisonCard(comparison = comparison)
+                            Spacer(modifier = Modifier.height(24.dp))
+                        }
+                    }
+
+                    // Bottom spacer for CTA
+                    item {
+                        Spacer(modifier = Modifier.height(72.dp))
+                    }
                 }
             }
 
