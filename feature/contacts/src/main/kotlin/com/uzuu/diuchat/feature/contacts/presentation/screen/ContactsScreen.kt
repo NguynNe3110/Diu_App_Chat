@@ -29,7 +29,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.QrCode
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
@@ -70,6 +69,7 @@ import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuFilterCh
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuIconButton
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuInviteCodeCard
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuOrbAvatar
+import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuPersonListSkeleton
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuPersonRow
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuQrCodeImage
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuSearchField
@@ -201,15 +201,15 @@ fun ContactsScreenContent(
         }
 
         if (uiState.isLoading) {
-            Box(
+            DiuPersonListSkeleton(
                 modifier =
                 Modifier
                     .fillMaxWidth()
-                    .weight(1f),
-                contentAlignment = Alignment.Center,
-            ) {
-                CircularProgressIndicator(color = colors.accent)
-            }
+                    .weight(1f)
+                    .padding(top = 8.dp),
+                itemCount = 6,
+                showTimestamp = false,
+            )
         } else {
             LazyColumn(
                 modifier =

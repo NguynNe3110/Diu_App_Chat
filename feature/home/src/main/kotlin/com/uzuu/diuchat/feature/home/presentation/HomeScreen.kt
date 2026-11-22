@@ -60,6 +60,7 @@ import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuIconButt
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuInlineNotice
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuMoodDot
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuOrbAvatar
+import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuPersonListSkeleton
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuPersonRow
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuSectionHeader
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuTabHeader
@@ -167,8 +168,15 @@ fun HomeScreenContent(
                 }
             }
 
-            // ── Recent Chats / Empty State ──────────────────────────────
-            if (state.isEmpty) {
+            // ── Recent Chats / Loading Skeleton / Empty State ───────────
+            if (state.isLoading && state.isEmpty) {
+                item {
+                    DiuPersonListSkeleton(
+                        itemCount = 4,
+                        modifier = Modifier.padding(top = 12.dp),
+                    )
+                }
+            } else if (state.isEmpty) {
                 item {
                     DiuEmptyState(
                         title = "Vòng thân còn trống",
