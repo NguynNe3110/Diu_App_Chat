@@ -37,7 +37,7 @@ where schemaname = 'public' and tablename = 'push_tokens';
 - Token thay đổi phải cập nhật cùng row; `updated_at` do trigger server ghi. Cột này chỉ phản ánh lần đăng ký/cập nhật, không phải trạng thái online.
 - Trước logout, DELETE row theo installation khi session cũ còn hiệu lực. Nếu detach thất bại, không coi token đã tách; đổi tài khoản phải có luồng thu hồi/đổi token và retry được thiết kế riêng. Không bỏ unique constraint hoặc nới RLS để giải quyết lỗi chuyển tài khoản.
 - Backend dùng `service_role` trong Edge Function để đọc endpoint, xóa endpoint hết hạn. Không đặt service key vào Android.
-- Chưa triển khai Android registration/logout/token refresh, Edge Function, webhook, retry, TTL hoặc notification routing. Vì vậy migration này **chưa tự tạo thông báo khi có tin mới**.
+- Android registration/logout/token refresh đã được thêm trong app. Backend chat push có source và hướng dẫn tại [CHAT_PUSH_SETUP.md](CHAT_PUSH_SETUP.md); phải deploy function và cài webhook riêng sau migration 10. Migration 09 một mình **chưa tự tạo thông báo khi có tin mới**. Worker tự retry và notification routing vẫn chưa có.
 - Backend tương lai phải đọc privacy/quiet/block/membership trước khi gửi, không lấy body/tên từ client làm nguồn tin cậy.
 
 ## Kiểm chứng
