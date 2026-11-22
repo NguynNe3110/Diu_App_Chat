@@ -80,6 +80,12 @@ sealed interface ContactsAction : BaseAction<ContactsUiState> {
         override fun reduce(state: ContactsUiState): ContactsUiState = state.copy(copiedLink = copied)
     }
 
+    data class SetMyInviteLink(
+        val link: String,
+    ) : ContactsAction {
+        override fun reduce(state: ContactsUiState): ContactsUiState = state.copy(myInviteLink = link)
+    }
+
     data class SetLoading(
         val loading: Boolean,
     ) : ContactsAction {

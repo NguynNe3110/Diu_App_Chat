@@ -39,6 +39,11 @@ class ContactsViewModel(
             .onEach { requests ->
                 sendAction(ContactsAction.SetPendingRequests(requests))
             }.launchIn(viewModelScope)
+
+        contactsRepository.getMyInviteLink()
+            .onEach { link ->
+                sendAction(ContactsAction.SetMyInviteLink(link))
+            }.launchIn(viewModelScope)
     }
 
     fun onSelectCircle(circle: ContactCircle) {
@@ -59,6 +64,9 @@ class ContactsViewModel(
 
     fun onShowQrSheet() {
         sendAction(ContactsAction.SetQrSheetVisible(true))
+        viewModelScope.launch {
+            contactsRepository.refreshFromRemote()
+        }
     }
 
     fun onDismissQrSheet() {

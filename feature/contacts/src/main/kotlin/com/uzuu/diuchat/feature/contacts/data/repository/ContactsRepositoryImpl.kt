@@ -14,7 +14,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
@@ -25,6 +26,10 @@ class ContactsRepositoryImpl(
     private val connectionRequestMapper: ConnectionRequestMapper,
     coroutineScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
 ) : ContactsRepository {
+    private val myInviteLinkState = MutableStateFlow(
+        if (contactsSupabaseService.isConfigured()) "" else DEFAULT_INVITE_LINK,
+    )
+
     init {
         coroutineScope.launch {
             syncOrSeedInitialData()
@@ -97,10 +102,7 @@ class ContactsRepositoryImpl(
             ?: contactId
     }
 
-    override fun getMyInviteLink(): Flow<String> = flow {
-        val remoteUrl = contactsSupabaseService.fetchMyInviteLink()?.url
-        emit(remoteUrl ?: DEFAULT_INVITE_LINK)
-    }
+    override fun getMyInviteLink(): Flow<String> = myInviteLinkState.asStateFlow()
 
     override suspend fun refreshFromRemote() {
         syncOrSeedInitialData()
@@ -110,6 +112,7 @@ class ContactsRepositoryImpl(
         if (contactsSupabaseService.isConfigured()) {
             contactDao.deleteAllContacts()
             contactDao.deleteAllRequests()
+            myInviteLinkState.value = ""
         }
     }
 
@@ -120,13 +123,18 @@ class ContactsRepositoryImpl(
                 contacts = remoteSync.contacts.map(contactMapper::toEntity),
                 requests = remoteSync.pendingRequests.map(connectionRequestMapper::toEntity),
             )
+            myInviteLinkState.value = remoteSync.inviteLink?.url
+                ?: contactsSupabaseService.fetchMyInviteLink()?.url
+                ?: ""
             return
         }
         if (!contactsSupabaseService.isConfigured()) {
+            myInviteLinkState.value = contactsSupabaseService.fetchMyInviteLink()?.url ?: DEFAULT_INVITE_LINK
             seedInitialDataIfNeeded()
         } else {
             contactDao.deleteAllContacts()
             contactDao.deleteAllRequests()
+            myInviteLinkState.value = ""
         }
     }
 

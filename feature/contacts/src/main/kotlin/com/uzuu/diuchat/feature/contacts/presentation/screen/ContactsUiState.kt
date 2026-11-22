@@ -22,7 +22,7 @@ data class ContactsUiState(
     val selectedQrTab: QrSheetTab = QrSheetTab.MY_CODE,
     val inviteCodeInput: String = "",
     val scanResultMessage: String? = null,
-    val myInviteLink: String = "diu.vn/linh/7K2M9P",
+    val myInviteLink: String = "",
     val copiedLink: Boolean = false,
     val isLoading: Boolean = false,
     val errorMessage: String? = null,

@@ -173,6 +173,7 @@ class ContactsRepositoryImplTest {
             code = "ABC123",
             url = "diu.vn/minh/ABC123",
         )
+        sut.refreshFromRemote()
         sut.getMyInviteLink().first() shouldBeEqualTo "diu.vn/minh/ABC123"
     }
 
