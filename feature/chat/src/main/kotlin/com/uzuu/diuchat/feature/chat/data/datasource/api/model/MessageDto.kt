@@ -2,6 +2,8 @@ package com.uzuu.diuchat.feature.chat.data.datasource.api.model
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.buildJsonObject
 
 @Serializable
 data class MessageDto(
@@ -11,34 +13,24 @@ data class MessageDto(
     val conversationId: String,
     @SerialName("sender_id")
     val senderId: String,
-    @SerialName("sender_name")
-    val senderName: String = "Tôi",
-    @SerialName("content")
-    val content: String,
-    @SerialName("mood")
-    val mood: String = "binh_yen",
-    @SerialName("status")
-    val status: String = "SENT",
     @SerialName("reply_to_id")
     val replyToId: String? = null,
-    @SerialName("reply_quote")
-    val replyQuote: String? = null,
-    @SerialName("created_at_epoch_ms")
-    val createdAtEpochMs: Long = 0L,
-    @SerialName("is_from_me")
-    val isFromMe: Boolean = false,
-    @SerialName("media_type")
-    val mediaType: String = "TEXT",
-    @SerialName("media_uri")
-    val mediaUri: String? = null,
-    @SerialName("audio_duration_ms")
-    val audioDurationMs: Long? = null,
-    @SerialName("audio_waveform_csv")
-    val audioWaveformCsv: String? = null,
-    @SerialName("caption")
-    val caption: String? = null,
+    @SerialName("forwarded_from_id")
+    val forwardedFromId: String? = null,
+    @SerialName("type")
+    val type: String = "text",
+    @SerialName("content")
+    val content: String? = null,
+    @SerialName("media_url")
+    val mediaUrl: String? = null,
+    @SerialName("mood_id")
+    val moodId: String = "thuong",
+    @SerialName("metadata")
+    val metadata: JsonObject = buildJsonObject {},
     @SerialName("is_pinned")
     val isPinned: Boolean = false,
-    @SerialName("reactions_csv")
-    val reactionsCsv: String? = null,
+    @SerialName("deleted_at")
+    val deletedAt: String? = null,
+    @SerialName("created_at")
+    val createdAt: String? = null,
 )

@@ -18,5 +18,9 @@ interface ContactsRepository {
 
     suspend fun searchUserByPhone(phone: String): Result<Contact?>
 
+    suspend fun connectByInviteCode(code: String): Result<Contact>
+
+    suspend fun openDirectChat(contactId: String): Result<String>
+
     fun getMyInviteLink(): Flow<String>
 }

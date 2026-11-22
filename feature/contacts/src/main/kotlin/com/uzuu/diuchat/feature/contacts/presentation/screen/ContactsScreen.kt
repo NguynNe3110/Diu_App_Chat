@@ -93,7 +93,9 @@ fun ContactsScreen(
 
     ContactsScreenContent(
         uiState = uiState,
-        onNavigateToChat = onNavigateToChat,
+        onNavigateToChat = { contactId ->
+            viewModel.onOpenContactChat(contactId, onNavigateToChat)
+        },
         onStartCall = onStartCall,
         onShowQrSheet = viewModel::onShowQrSheet,
         onDismissQrSheet = viewModel::onDismissQrSheet,

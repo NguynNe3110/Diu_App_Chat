@@ -12,6 +12,12 @@ import com.uzuu.diuchat.feature.chat.domain.model.MessageMediaType
 import com.uzuu.diuchat.feature.chat.domain.model.MessageReaction
 import com.uzuu.diuchat.feature.chat.domain.model.MessageStatus
 import com.uzuu.diuchat.feature.chat.domain.model.MoodType
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.longOrNull
+import kotlinx.serialization.json.put
+import java.time.Instant
 
 class ChatMapper {
     fun messageEntityToDomain(entity: MessageEntity): ChatMessage = ChatMessage(
@@ -56,49 +62,87 @@ class ChatMapper {
         reactionsCsv = serializeReactions(domain.reactions),
     )
 
-    fun messageDtoToEntity(dto: MessageDto): MessageEntity = MessageEntity(
-        id = dto.id,
-        conversationId = dto.conversationId,
-        senderId = dto.senderId,
-        senderName = dto.senderName,
-        content = dto.content,
-        mood = dto.mood,
-        status = dto.status,
-        replyToId = dto.replyToId,
-        replyQuote = dto.replyQuote,
-        createdAtEpochMs = dto.createdAtEpochMs,
-        isFromMe = dto.isFromMe,
-        mediaType = dto.mediaType,
-        mediaUri = dto.mediaUri,
-        audioDurationMs = dto.audioDurationMs,
-        audioWaveformCsv = dto.audioWaveformCsv,
-        caption = dto.caption,
-        isPinned = dto.isPinned,
-        reactionsCsv = dto.reactionsCsv,
-    )
+    fun messageDtoToEntity(
+        dto: MessageDto,
+        currentUserId: String? = null,
+    ): MessageEntity {
+        val meta = dto.metadata
+        val senderName = meta["sender_name"]?.jsonPrimitive?.contentOrNull ?: "Bạn"
+        val replyQuote = meta["reply_quote"]?.jsonPrimitive?.contentOrNull
+        val audioDurationMs = meta["audio_duration_ms"]?.jsonPrimitive?.longOrNull
+        val audioWaveformCsv = meta["audio_waveform_csv"]?.jsonPrimitive?.contentOrNull ?: ""
+        val caption = meta["caption"]?.jsonPrimitive?.contentOrNull
+        val reactionsCsv = meta["reactions_csv"]?.jsonPrimitive?.contentOrNull ?: ""
+        val createdAtMs = dto.createdAt?.let {
+            runCatching { Instant.parse(it).toEpochMilli() }.getOrNull()
+        } ?: System.currentTimeMillis()
+        val mediaType = when (dto.type.lowercase()) {
+            "photo" -> MessageMediaType.PHOTO.name
+            "voice" -> MessageMediaType.VOICE.name
+            "location" -> MessageMediaType.LOCATION.name
+            else -> MessageMediaType.TEXT.name
+        }
+        return MessageEntity(
+            id = dto.id,
+            conversationId = dto.conversationId,
+            senderId = dto.senderId,
+            senderName = senderName,
+            content = dto.content ?: "",
+            mood = normalizeMoodId(dto.moodId),
+            status = MessageStatus.SENT.value,
+            replyToId = dto.replyToId,
+            replyQuote = replyQuote,
+            createdAtEpochMs = createdAtMs,
+            isFromMe = currentUserId != null && dto.senderId == currentUserId,
+            mediaType = mediaType,
+            mediaUri = dto.mediaUrl,
+            audioDurationMs = audioDurationMs,
+            audioWaveformCsv = audioWaveformCsv,
+            caption = caption,
+            isPinned = dto.isPinned,
+            reactionsCsv = reactionsCsv,
+        )
+    }
 
-    fun messageEntityToDto(entity: MessageEntity): MessageDto = MessageDto(
-        id = entity.id,
-        conversationId = entity.conversationId,
-        senderId = entity.senderId,
-        senderName = entity.senderName,
-        content = entity.content,
-        mood = entity.mood,
-        status = entity.status,
-        replyToId = entity.replyToId,
-        replyQuote = entity.replyQuote,
-        createdAtEpochMs = entity.createdAtEpochMs,
-        isFromMe = entity.isFromMe,
-        mediaType = entity.mediaType,
-        mediaUri = entity.mediaUri,
-        audioDurationMs = entity.audioDurationMs,
-        audioWaveformCsv = entity.audioWaveformCsv,
-        caption = entity.caption,
-        isPinned = entity.isPinned,
-        reactionsCsv = entity.reactionsCsv,
-    )
+    fun messageEntityToDto(entity: MessageEntity): MessageDto {
+        val dbType = when (entity.mediaType.uppercase()) {
+            MessageMediaType.PHOTO.name -> "photo"
+            MessageMediaType.VOICE.name -> "voice"
+            MessageMediaType.LOCATION.name -> "location"
+            else -> "text"
+        }
+        val meta = buildJsonObject {
+            put("sender_name", entity.senderName)
+            entity.replyQuote?.let { put("reply_quote", it) }
+            entity.audioDurationMs?.let { put("audio_duration_ms", it) }
+            entity.audioWaveformCsv?.takeIf { it.isNotBlank() }?.let { put("audio_waveform_csv", it) }
+            entity.caption?.let { put("caption", it) }
+            entity.reactionsCsv?.takeIf { it.isNotBlank() }?.let { put("reactions_csv", it) }
+        }
+        return MessageDto(
+            id = entity.id,
+            conversationId = entity.conversationId,
+            senderId = entity.senderId,
+            replyToId = entity.replyToId,
+            type = dbType,
+            content = entity.content,
+            mediaUrl = entity.mediaUri,
+            moodId = normalizeMoodId(entity.mood),
+            metadata = meta,
+            isPinned = entity.isPinned,
+            createdAt = Instant.ofEpochMilli(entity.createdAtEpochMs).toString(),
+        )
+    }
 
-    fun messageDtoToDomain(dto: MessageDto): ChatMessage = messageEntityToDomain(messageDtoToEntity(dto))
+    fun messageDtoToDomain(
+        dto: MessageDto,
+        currentUserId: String? = null,
+    ): ChatMessage = messageEntityToDomain(messageDtoToEntity(dto, currentUserId))
+
+    private fun normalizeMoodId(raw: String?): String = when (raw?.lowercase()) {
+        "thuong", "vui", "binhyen", "nho", "tram" -> raw.lowercase()
+        else -> "thuong"
+    }
 
     fun conversationEntityToDomain(entity: ConversationEntity): Conversation = Conversation(
         id = entity.id,
@@ -136,40 +180,29 @@ class ChatMapper {
         membersCsv = serializeMembers(domain.members),
     )
 
-    fun conversationDtoToEntity(dto: ConversationDto): ConversationEntity = ConversationEntity(
-        id = dto.id,
-        title = dto.title,
-        mood = dto.mood,
-        lastMessage = dto.lastMessage,
-        lastMessageTimeEpochMs = dto.lastMessageTimeEpochMs,
-        unreadCount = dto.unreadCount,
-        isGroup = dto.isGroup,
-        avatarUrl = dto.avatarUrl,
-        pinnedMessageId = dto.pinnedMessageId,
-        pinnedMessageSnippet = dto.pinnedMessageSnippet,
-        daysTogether = dto.daysTogether,
-        anniversaryDate = dto.anniversaryDate,
-        customNickname = dto.customNickname,
-        isMuted = dto.isMuted,
-        membersCsv = dto.membersCsv,
-    )
+    fun conversationDtoToEntity(dto: ConversationDto): ConversationEntity {
+        val updatedAtMs = dto.updatedAt?.let {
+            runCatching { Instant.parse(it).toEpochMilli() }.getOrNull()
+        }
+        return ConversationEntity(
+            id = dto.id,
+            title = dto.title ?: "Cuộc trò chuyện",
+            mood = normalizeMoodId(dto.moodId),
+            lastMessage = null,
+            lastMessageTimeEpochMs = updatedAtMs,
+            unreadCount = 0,
+            isGroup = dto.type.equals("group", ignoreCase = true),
+            avatarUrl = dto.avatarUrl,
+        )
+    }
 
     fun conversationEntityToDto(entity: ConversationEntity): ConversationDto = ConversationDto(
         id = entity.id,
+        type = if (entity.isGroup) "group" else "direct",
         title = entity.title,
-        mood = entity.mood,
-        lastMessage = entity.lastMessage,
-        lastMessageTimeEpochMs = entity.lastMessageTimeEpochMs,
-        unreadCount = entity.unreadCount,
-        isGroup = entity.isGroup,
         avatarUrl = entity.avatarUrl,
-        pinnedMessageId = entity.pinnedMessageId,
-        pinnedMessageSnippet = entity.pinnedMessageSnippet,
-        daysTogether = entity.daysTogether,
-        anniversaryDate = entity.anniversaryDate,
-        customNickname = entity.customNickname,
-        isMuted = entity.isMuted,
-        membersCsv = entity.membersCsv,
+        moodId = normalizeMoodId(entity.mood),
+        updatedAt = entity.lastMessageTimeEpochMs?.let { Instant.ofEpochMilli(it).toString() },
     )
 
     fun conversationDtoToDomain(dto: ConversationDto): Conversation = conversationEntityToDomain(conversationDtoToEntity(dto))

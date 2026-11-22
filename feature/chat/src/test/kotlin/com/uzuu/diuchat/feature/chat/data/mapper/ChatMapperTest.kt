@@ -10,8 +10,11 @@ import com.uzuu.diuchat.feature.chat.domain.model.MessageMediaType
 import com.uzuu.diuchat.feature.chat.domain.model.MessageReaction
 import com.uzuu.diuchat.feature.chat.domain.model.MessageStatus
 import com.uzuu.diuchat.feature.chat.domain.model.MoodType
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import org.amshove.kluent.shouldBeEqualTo
 import org.junit.jupiter.api.Test
+import java.time.Instant
 
 class ChatMapperTest {
     private val sut = ChatMapper()
@@ -55,26 +58,28 @@ class ChatMapperTest {
 
     @Test
     fun `message dto maps to entity and domain accurately`() {
+        val createdAtIso = Instant.ofEpochMilli(1_700_000_100_000L).toString()
         val dto = MessageDto(
             id = "m2",
             conversationId = "c1",
             senderId = "partner",
-            senderName = "Minh",
+            type = "text",
             content = "Chào buổi tối",
-            mood = MoodType.BINHYEN.id,
-            status = MessageStatus.READ.value,
-            createdAtEpochMs = 1_700_000_100_000L,
-            isFromMe = false,
-            mediaType = "TEXT",
+            moodId = MoodType.BINHYEN.id,
+            metadata = buildJsonObject {
+                put("sender_name", "Minh")
+            },
+            createdAt = createdAtIso,
         )
 
-        val entity = sut.messageDtoToEntity(dto)
-        val domain = sut.messageDtoToDomain(dto)
+        val entity = sut.messageDtoToEntity(dto, currentUserId = "me")
+        val domain = sut.messageDtoToDomain(dto, currentUserId = "me")
 
         sut.messageEntityToDto(entity) shouldBeEqualTo dto
         domain.id shouldBeEqualTo "m2"
         domain.mood shouldBeEqualTo MoodType.BINHYEN
-        domain.status shouldBeEqualTo MessageStatus.READ
+        domain.senderName shouldBeEqualTo "Minh"
+        domain.isFromMe shouldBeEqualTo false
     }
 
     @Test
@@ -120,16 +125,13 @@ class ChatMapperTest {
 
     @Test
     fun `conversation dto maps to entity and domain accurately`() {
+        val updatedIso = Instant.ofEpochMilli(1_700_000_300_000L).toString()
         val dto = ConversationDto(
             id = "c2",
+            type = "direct",
             title = "Thảo",
-            mood = MoodType.NHO.id,
-            lastMessage = "Ngủ ngon nhé",
-            lastMessageTimeEpochMs = 1_700_000_300_000L,
-            unreadCount = 1,
-            isGroup = false,
-            daysTogether = 120,
-            anniversaryDate = "14/02/2024",
+            moodId = MoodType.NHO.id,
+            updatedAt = updatedIso,
         )
 
         val entity = sut.conversationDtoToEntity(dto)
@@ -138,6 +140,6 @@ class ChatMapperTest {
         sut.conversationEntityToDto(entity) shouldBeEqualTo dto
         domain.id shouldBeEqualTo "c2"
         domain.mood shouldBeEqualTo MoodType.NHO
-        domain.daysTogether shouldBeEqualTo 120
+        domain.isGroup shouldBeEqualTo false
     }
 }

@@ -105,7 +105,7 @@ class ContactsRepositoryImplTest {
 
         result.isSuccess.shouldBeTrue()
         coVerify(exactly = 1) {
-            contactsSupabaseService.respondToRequest("req_1", true, "LOVE")
+            contactsSupabaseService.respondToRequest("req_1", true, "LOVE", "u_hoang")
             contactDao.acceptConnectionRequest(
                 "req_1",
                 match {
@@ -123,7 +123,7 @@ class ContactsRepositoryImplTest {
 
         result.isSuccess.shouldBeTrue()
         coVerify(exactly = 1) {
-            contactsSupabaseService.respondToRequest("req_1", false, "FRIENDS")
+            contactsSupabaseService.respondToRequest("req_1", false, "FRIENDS", "u_hoang")
             contactDao.deleteRequest("req_1")
         }
     }

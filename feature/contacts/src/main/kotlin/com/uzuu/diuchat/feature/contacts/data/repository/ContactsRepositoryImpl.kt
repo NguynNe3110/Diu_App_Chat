@@ -52,6 +52,7 @@ class ContactsRepositoryImpl(
             requestId = requestId,
             accept = accept,
             circle = circle.name,
+            senderId = request.senderId,
         )
 
         if (accept) {
@@ -82,6 +83,18 @@ class ContactsRepositoryImpl(
                 ?.let(contactMapper::toDomain)
 
         localMatch ?: contactsSupabaseService.searchUserByPhone(clean)?.let(contactMapper::toDomain)
+    }
+
+    override suspend fun connectByInviteCode(code: String): Result<Contact> = runCatching {
+        val dto = contactsSupabaseService.connectByQuery(code).getOrThrow()
+        val entity = contactMapper.toEntity(dto)
+        contactDao.insertAll(listOf(entity))
+        contactMapper.toDomain(entity)
+    }
+
+    override suspend fun openDirectChat(contactId: String): Result<String> = runCatching {
+        contactsSupabaseService.getOrCreateDirectConversation(contactId)
+            ?: contactId
     }
 
     override fun getMyInviteLink(): Flow<String> = flow {

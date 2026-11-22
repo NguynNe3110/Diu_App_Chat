@@ -6,6 +6,7 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -15,6 +16,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -58,11 +60,15 @@ import com.uzuu.diuchat.feature.onboarding.presentation.screen.OnBoardingScreen
 import com.uzuu.diuchat.feature.settings.presentation.screen.SettingsScreen
 
 @Composable
-fun MainShowcaseScreen(modifier: Modifier = Modifier) {
+fun MainShowcaseScreen(
+    modifier: Modifier = Modifier,
+    sessionViewModel: AppSessionViewModel = koinViewModel(),
+) {
     // tạo và lưu trữ trạng thái của NavController
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
     val isOnline by rememberIsOnline()
+    val startupDestination by sessionViewModel.startupDestination.collectAsState()
 
     if (BuildConfig.DEBUG) {
         addOnDestinationChangedListener(navController)
@@ -112,300 +118,320 @@ fun MainShowcaseScreen(modifier: Modifier = Modifier) {
             ) {
                 DiuOfflineBanner(visible = !isOnline)
 
-                NavHost(
-                    navController = navController,
-                    // ponytail: luôn mở onboarding; lưu cờ hoàn tất khi cần chỉ hiện lần đầu.
-                    startDestination = NavigationRoute.OnBoarding,
-                    modifier = Modifier.weight(1f),
-                ) {
-                    composable<NavigationRoute.OnBoarding> {
-                        OnBoardingScreen(
-                            onFinish = {
-                                navController.navigate(NavigationRoute.Auth) {
-                                    popUpTo<NavigationRoute.OnBoarding> { inclusive = true }
-                                    launchSingleTop = true
-                                }
-                            },
-                        )
+                val resolvedStart = startupDestination
+                if (resolvedStart is StartupDestination.Loading) {
+                    Box(modifier = Modifier.weight(1f))
+                } else {
+                    val startRoute: NavigationRoute = when (resolvedStart) {
+                        StartupDestination.OnBoarding -> NavigationRoute.OnBoarding
+                        is StartupDestination.Auth -> NavigationRoute.Auth
+                        StartupDestination.Home -> NavigationRoute.Home
+                        StartupDestination.Loading -> NavigationRoute.OnBoarding
                     }
-                    composable<NavigationRoute.Auth> {
-                        AuthScreen(
-                            onAuthSuccess = {
-                                navController.navigate(NavigationRoute.Home) {
-                                    popUpTo<NavigationRoute.Auth> { inclusive = true }
-                                    launchSingleTop = true
-                                }
-                            },
-                        )
-                    }
-                    composable<NavigationRoute.Home> {
-                        HomeScreen(
-                            onOpenChat = { conversationId ->
-                                navController.navigate(NavigationRoute.Chat(conversationId))
-                            },
-                            onOpenContacts = {
-                                navController.navigate(NavigationRoute.Contacts)
-                            },
-                            onOpenCheckin = {
-                                navController.navigate(NavigationRoute.Journal)
-                            },
-                            onOpenQuietHours = {
-                                navController.navigate(NavigationRoute.Settings)
-                            },
-                            onInvite = {
-                                navController.navigate(NavigationRoute.Contacts)
-                            },
-                            onSearchClick = {
-                                navController.navigate(NavigationRoute.Search())
-                            },
-                        )
-                    }
-                    composable<NavigationRoute.Contacts> {
-                        ContactsScreen(
-                            onNavigateToChat = { conversationId ->
-                                navController.navigate(NavigationRoute.Chat(conversationId))
-                            },
-                            onStartCall = { peerId ->
-                                val (peerName, peerMoodHex) = resolveContactCallMetadata(peerId)
-                                navController.navigate(
-                                    NavigationRoute.Call(
-                                        peerId = peerId,
-                                        peerName = peerName,
-                                        peerMoodHex = peerMoodHex,
-                                        isVideo = false,
-                                    ),
-                                )
-                            },
-                        )
-                    }
-                    composable<NavigationRoute.Chat> { backStackEntry ->
-                        val args = backStackEntry.toRoute<NavigationRoute.Chat>()
-                        ChatScreen(
-                            conversationId = args.conversationId,
-                            onBackClick = {
-                                navController.popBackStack()
-                            },
-                            onStartVoiceCall = { peerId, peerName, peerMoodHex ->
-                                navController.navigate(
-                                    NavigationRoute.Call(
-                                        peerId = peerId,
-                                        peerName = peerName,
-                                        peerMoodHex = peerMoodHex,
-                                        isVideo = false,
-                                    ),
-                                )
-                            },
-                            onStartVideoCall = { peerId, peerName, peerMoodHex ->
-                                navController.navigate(
-                                    NavigationRoute.Call(
-                                        peerId = peerId,
-                                        peerName = peerName,
-                                        peerMoodHex = peerMoodHex,
-                                        isVideo = true,
-                                    ),
-                                )
-                            },
-                            onOpenPhotoViewer = { caption, moodName, senderName, timestamp ->
-                                navController.navigate(
-                                    NavigationRoute.PhotoViewer(
-                                        caption = caption,
-                                        moodName = moodName,
-                                        senderName = senderName,
-                                        timestamp = timestamp,
-                                    ),
-                                )
-                            },
-                            onAttachLocationClick = {
-                                navController.navigate(NavigationRoute.LocationPicker(args.conversationId))
-                            },
-                            onSendDelayedLetterClick = {
-                                navController.navigate(NavigationRoute.Letters)
-                            },
-                            onSearchInChatClick = {
-                                navController.navigate(NavigationRoute.Search(conversationId = args.conversationId))
-                            },
-                            onOpenSharedMediaClick = {
-                                navController.navigate(NavigationRoute.Media(args.conversationId))
-                            },
-                            onOpenPendingLettersClick = {
-                                navController.navigate(NavigationRoute.Letters)
-                            },
-                        )
-                    }
-                    composable<NavigationRoute.Media> {
-                        MediaVaultScreen(
-                            onBackClick = {
-                                navController.popBackStack()
-                            },
-                            onOpenPhoto = { photo ->
-                                navController.navigate(
-                                    NavigationRoute.PhotoViewer(
-                                        caption = photo.caption,
-                                        moodName = photo.moodName,
-                                        senderName = photo.senderName,
-                                        timestamp = photo.timestamp,
-                                    ),
-                                )
-                            },
-                            onOpenStorage = {
-                                navController.navigate(NavigationRoute.Storage)
-                            },
-                        )
-                    }
-                    composable<NavigationRoute.PhotoViewer> { backStackEntry ->
-                        val args = backStackEntry.toRoute<NavigationRoute.PhotoViewer>()
-                        PhotoViewerScreen(
-                            caption = args.caption,
-                            moodName = args.moodName,
-                            senderName = args.senderName,
-                            timestamp = args.timestamp,
-                            onBackClick = {
-                                navController.popBackStack()
-                            },
-                            onShareClick = {},
-                        )
-                    }
-                    composable<NavigationRoute.Storage> {
-                        StorageScreen(
-                            onBackClick = {
-                                navController.popBackStack()
-                            },
-                        )
-                    }
-                    composable<NavigationRoute.Settings> {
-                        SettingsScreen(
-                            onBackClick = {
-                                navController.popBackStack()
-                            },
-                            onNavigateToStorage = {
-                                navController.navigate(NavigationRoute.Storage)
-                            },
-                            onNavigateToJournal = {
-                                navController.navigate(NavigationRoute.Journal)
-                            },
-                            onNavigateToLetters = {
-                                navController.navigate(NavigationRoute.Letters)
-                            },
-                            onNavigateToContacts = {
-                                navController.navigate(NavigationRoute.Contacts)
-                            },
-                            onNavigateToFavourites = {
-                                navController.navigate(NavigationRoute.Favourites)
-                            },
-                            onNavigateToOnBoarding = {
-                                navController.navigate(NavigationRoute.OnBoarding)
-                            },
-                            onReplayOnboarding = {
-                                navController.navigate(NavigationRoute.OnBoarding)
-                            },
-                        )
-                    }
-                    composable<NavigationRoute.Letters> {
-                        LettersScreen(
-                            onBackClick = {
-                                navController.popBackStack()
-                            },
-                        )
-                    }
-                    composable<NavigationRoute.Journal> {
-                        JournalScreen(
-                            onBackClick = {
-                                navController.popBackStack()
-                            },
-                            onOpenSearch = {
-                                navController.navigate(NavigationRoute.Search())
-                            },
-                        )
-                    }
-                    composable<NavigationRoute.Search> { backStackEntry ->
-                        val args = backStackEntry.toRoute<NavigationRoute.Search>()
-                        SearchScreen(
-                            conversationId = args.conversationId,
-                            conversationName = args.conversationName,
-                            onBackClick = {
-                                navController.popBackStack()
-                            },
-                        )
-                    }
-                    composable<NavigationRoute.Call> { backStackEntry ->
-                        val args = backStackEntry.toRoute<NavigationRoute.Call>()
-                        val viewModel: CallViewModel = koinViewModel()
-                        CallScreen(
-                            viewModel = viewModel,
-                            peerId = args.peerId,
-                            peerName = args.peerName,
-                            peerMoodHex = args.peerMoodHex,
-                            isVideo = args.isVideo,
-                            isIncoming = args.isIncoming,
-                            onNavigateBack = {
-                                navController.popBackStack()
-                            },
-                        )
-                    }
-                    composable<NavigationRoute.CallHistory> {
-                        val viewModel: CallHistoryViewModel = koinViewModel()
-                        CallHistoryScreen(
-                            viewModel = viewModel,
-                            onNavigateBack = {
-                                navController.popBackStack()
-                            },
-                            onStartCall = { peerId, peerName, peerMoodHex, isVideo ->
-                                navController.navigate(
-                                    NavigationRoute.Call(
-                                        peerId = peerId,
-                                        peerName = peerName,
-                                        peerMoodHex = peerMoodHex,
-                                        isVideo = isVideo,
-                                    ),
-                                )
-                            },
-                        )
-                    }
-                    composable<NavigationRoute.NewGroup> {
-                        NewGroupScreen(
-                            onBackClick = {
-                                navController.popBackStack()
-                            },
-                            onCreateGroupSuccess = { conversationId ->
-                                navController.navigate(NavigationRoute.Chat(conversationId)) {
-                                    popUpTo<NavigationRoute.NewGroup> { inclusive = true }
-                                }
-                            },
-                        )
-                    }
-                    composable<NavigationRoute.LocationPicker> { backStackEntry ->
-                        val args = backStackEntry.toRoute<NavigationRoute.LocationPicker>()
-                        LocationPickerScreen(
-                            conversationId = args.conversationId,
-                            onBackClick = {
-                                navController.popBackStack()
-                            },
-                            onSendLocation = {
-                                navController.popBackStack()
-                            },
-                            onStartLiveSession = { session ->
-                                navController.navigate(NavigationRoute.LiveLocation(session.sessionId)) {
-                                    popUpTo<NavigationRoute.LocationPicker> { inclusive = true }
-                                }
-                            },
-                        )
-                    }
-                    composable<NavigationRoute.LiveLocation> { backStackEntry ->
-                        val args = backStackEntry.toRoute<NavigationRoute.LiveLocation>()
-                        LiveLocationScreen(
-                            sessionId = args.sessionId,
-                            onBackClick = {
-                                navController.popBackStack()
-                            },
-                        )
-                    }
-                    composable<NavigationRoute.Favourites> {
-                        FavouritesScreen(
-                            onBackClick = {
-                                navController.popBackStack()
-                            },
-                        )
-                    }
+                    val requireUsernameSetup = (resolvedStart as? StartupDestination.Auth)?.requireUsernameSetup == true
+
+                    NavHost(
+                        navController = navController,
+                        startDestination = startRoute,
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        composable<NavigationRoute.OnBoarding> {
+                            OnBoardingScreen(
+                                onFinish = {
+                                    sessionViewModel.markOnboardingCompleted()
+                                    navController.navigate(NavigationRoute.Auth) {
+                                        popUpTo<NavigationRoute.OnBoarding> { inclusive = true }
+                                        launchSingleTop = true
+                                    }
+                                },
+                            )
+                        }
+                        composable<NavigationRoute.Auth> {
+                            AuthScreen(
+                                requireUsernameSetup = requireUsernameSetup,
+                                onAuthSuccess = {
+                                    sessionViewModel.onAuthenticated()
+                                    navController.navigate(NavigationRoute.Home) {
+                                        popUpTo<NavigationRoute.Auth> { inclusive = true }
+                                        launchSingleTop = true
+                                    }
+                                },
+                            )
+                        }
+                        composable<NavigationRoute.Home> {
+                            HomeScreen(
+                                onOpenChat = { conversationId ->
+                                    navController.navigate(NavigationRoute.Chat(conversationId))
+                                },
+                                onOpenContacts = {
+                                    navController.navigate(NavigationRoute.Contacts)
+                                },
+                                onOpenCheckin = {
+                                    navController.navigate(NavigationRoute.Journal)
+                                },
+                                onOpenQuietHours = {
+                                    navController.navigate(NavigationRoute.Settings)
+                                },
+                                onInvite = {
+                                    navController.navigate(NavigationRoute.Contacts)
+                                },
+                                onSearchClick = {
+                                    navController.navigate(NavigationRoute.Search())
+                                },
+                            )
+                        }
+                        composable<NavigationRoute.Contacts> {
+                            ContactsScreen(
+                                onNavigateToChat = { conversationId ->
+                                    navController.navigate(NavigationRoute.Chat(conversationId))
+                                },
+                                onStartCall = { peerId ->
+                                    val (peerName, peerMoodHex) = resolveContactCallMetadata(peerId)
+                                    navController.navigate(
+                                        NavigationRoute.Call(
+                                            peerId = peerId,
+                                            peerName = peerName,
+                                            peerMoodHex = peerMoodHex,
+                                            isVideo = false,
+                                        ),
+                                    )
+                                },
+                            )
+                        }
+                        composable<NavigationRoute.Chat> { backStackEntry ->
+                            val args = backStackEntry.toRoute<NavigationRoute.Chat>()
+                            ChatScreen(
+                                conversationId = args.conversationId,
+                                onBackClick = {
+                                    navController.popBackStack()
+                                },
+                                onStartVoiceCall = { peerId, peerName, peerMoodHex ->
+                                    navController.navigate(
+                                        NavigationRoute.Call(
+                                            peerId = peerId,
+                                            peerName = peerName,
+                                            peerMoodHex = peerMoodHex,
+                                            isVideo = false,
+                                        ),
+                                    )
+                                },
+                                onStartVideoCall = { peerId, peerName, peerMoodHex ->
+                                    navController.navigate(
+                                        NavigationRoute.Call(
+                                            peerId = peerId,
+                                            peerName = peerName,
+                                            peerMoodHex = peerMoodHex,
+                                            isVideo = true,
+                                        ),
+                                    )
+                                },
+                                onOpenPhotoViewer = { caption, moodName, senderName, timestamp ->
+                                    navController.navigate(
+                                        NavigationRoute.PhotoViewer(
+                                            caption = caption,
+                                            moodName = moodName,
+                                            senderName = senderName,
+                                            timestamp = timestamp,
+                                        ),
+                                    )
+                                },
+                                onAttachLocationClick = {
+                                    navController.navigate(NavigationRoute.LocationPicker(args.conversationId))
+                                },
+                                onSendDelayedLetterClick = {
+                                    navController.navigate(NavigationRoute.Letters)
+                                },
+                                onSearchInChatClick = {
+                                    navController.navigate(NavigationRoute.Search(conversationId = args.conversationId))
+                                },
+                                onOpenSharedMediaClick = {
+                                    navController.navigate(NavigationRoute.Media(args.conversationId))
+                                },
+                                onOpenPendingLettersClick = {
+                                    navController.navigate(NavigationRoute.Letters)
+                                },
+                            )
+                        }
+                        composable<NavigationRoute.Media> {
+                            MediaVaultScreen(
+                                onBackClick = {
+                                    navController.popBackStack()
+                                },
+                                onOpenPhoto = { photo ->
+                                    navController.navigate(
+                                        NavigationRoute.PhotoViewer(
+                                            caption = photo.caption,
+                                            moodName = photo.moodName,
+                                            senderName = photo.senderName,
+                                            timestamp = photo.timestamp,
+                                        ),
+                                    )
+                                },
+                                onOpenStorage = {
+                                    navController.navigate(NavigationRoute.Storage)
+                                },
+                            )
+                        }
+                        composable<NavigationRoute.PhotoViewer> { backStackEntry ->
+                            val args = backStackEntry.toRoute<NavigationRoute.PhotoViewer>()
+                            PhotoViewerScreen(
+                                caption = args.caption,
+                                moodName = args.moodName,
+                                senderName = args.senderName,
+                                timestamp = args.timestamp,
+                                onBackClick = {
+                                    navController.popBackStack()
+                                },
+                                onShareClick = {},
+                            )
+                        }
+                        composable<NavigationRoute.Storage> {
+                            StorageScreen(
+                                onBackClick = {
+                                    navController.popBackStack()
+                                },
+                            )
+                        }
+                        composable<NavigationRoute.Settings> {
+                            SettingsScreen(
+                                onBackClick = {
+                                    navController.popBackStack()
+                                },
+                                onNavigateToStorage = {
+                                    navController.navigate(NavigationRoute.Storage)
+                                },
+                                onNavigateToJournal = {
+                                    navController.navigate(NavigationRoute.Journal)
+                                },
+                                onNavigateToLetters = {
+                                    navController.navigate(NavigationRoute.Letters)
+                                },
+                                onNavigateToContacts = {
+                                    navController.navigate(NavigationRoute.Contacts)
+                                },
+                                onNavigateToFavourites = {
+                                    navController.navigate(NavigationRoute.Favourites)
+                                },
+                                onNavigateToOnBoarding = {
+                                    navController.navigate(NavigationRoute.OnBoarding)
+                                },
+                                onReplayOnboarding = {
+                                    navController.navigate(NavigationRoute.OnBoarding)
+                                },
+                                onLoggedOut = {
+                                    navController.navigate(NavigationRoute.Auth) {
+                                        popUpTo(0) { inclusive = true }
+                                        launchSingleTop = true
+                                    }
+                                },
+                            )
+                        }
+                        composable<NavigationRoute.Letters> {
+                            LettersScreen(
+                                onBackClick = {
+                                    navController.popBackStack()
+                                },
+                            )
+                        }
+                        composable<NavigationRoute.Journal> {
+                            JournalScreen(
+                                onBackClick = {
+                                    navController.popBackStack()
+                                },
+                                onOpenSearch = {
+                                    navController.navigate(NavigationRoute.Search())
+                                },
+                            )
+                        }
+                        composable<NavigationRoute.Search> { backStackEntry ->
+                            val args = backStackEntry.toRoute<NavigationRoute.Search>()
+                            SearchScreen(
+                                conversationId = args.conversationId,
+                                conversationName = args.conversationName,
+                                onBackClick = {
+                                    navController.popBackStack()
+                                },
+                            )
+                        }
+                        composable<NavigationRoute.Call> { backStackEntry ->
+                            val args = backStackEntry.toRoute<NavigationRoute.Call>()
+                            val viewModel: CallViewModel = koinViewModel()
+                            CallScreen(
+                                viewModel = viewModel,
+                                peerId = args.peerId,
+                                peerName = args.peerName,
+                                peerMoodHex = args.peerMoodHex,
+                                isVideo = args.isVideo,
+                                isIncoming = args.isIncoming,
+                                onNavigateBack = {
+                                    navController.popBackStack()
+                                },
+                            )
+                        }
+                        composable<NavigationRoute.CallHistory> {
+                            val viewModel: CallHistoryViewModel = koinViewModel()
+                            CallHistoryScreen(
+                                viewModel = viewModel,
+                                onNavigateBack = {
+                                    navController.popBackStack()
+                                },
+                                onStartCall = { peerId, peerName, peerMoodHex, isVideo ->
+                                    navController.navigate(
+                                        NavigationRoute.Call(
+                                            peerId = peerId,
+                                            peerName = peerName,
+                                            peerMoodHex = peerMoodHex,
+                                            isVideo = isVideo,
+                                        ),
+                                    )
+                                },
+                            )
+                        }
+                        composable<NavigationRoute.NewGroup> {
+                            NewGroupScreen(
+                                onBackClick = {
+                                    navController.popBackStack()
+                                },
+                                onCreateGroupSuccess = { conversationId ->
+                                    navController.navigate(NavigationRoute.Chat(conversationId)) {
+                                        popUpTo<NavigationRoute.NewGroup> { inclusive = true }
+                                    }
+                                },
+                            )
+                        }
+                        composable<NavigationRoute.LocationPicker> { backStackEntry ->
+                            val args = backStackEntry.toRoute<NavigationRoute.LocationPicker>()
+                            LocationPickerScreen(
+                                conversationId = args.conversationId,
+                                onBackClick = {
+                                    navController.popBackStack()
+                                },
+                                onSendLocation = {
+                                    navController.popBackStack()
+                                },
+                                onStartLiveSession = { session ->
+                                    navController.navigate(NavigationRoute.LiveLocation(session.sessionId)) {
+                                        popUpTo<NavigationRoute.LocationPicker> { inclusive = true }
+                                    }
+                                },
+                            )
+                        }
+                        composable<NavigationRoute.LiveLocation> { backStackEntry ->
+                            val args = backStackEntry.toRoute<NavigationRoute.LiveLocation>()
+                            LiveLocationScreen(
+                                sessionId = args.sessionId,
+                                onBackClick = {
+                                    navController.popBackStack()
+                                },
+                            )
+                        }
+                        composable<NavigationRoute.Favourites> {
+                            FavouritesScreen(
+                                onBackClick = {
+                                    navController.popBackStack()
+                                },
+                            )
+                        }
 //            composable<NavigationRoute.AboutLibraries> {
 //                AboutLibrariesScreen(
 //                    onBackClick = {
@@ -413,6 +439,7 @@ fun MainShowcaseScreen(modifier: Modifier = Modifier) {
 //                    },
 //                )
 //            }
+                    }
                 }
             }
         }

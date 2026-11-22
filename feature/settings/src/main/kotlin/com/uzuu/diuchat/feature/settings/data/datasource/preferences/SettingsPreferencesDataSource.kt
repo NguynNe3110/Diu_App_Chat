@@ -18,6 +18,10 @@ import kotlinx.coroutines.flow.map
 class SettingsPreferencesDataSource(
     private val dataStore: DataStore<Preferences>,
 ) {
+    val onboardingCompletedFlow: Flow<Boolean> = dataStore.data.map { preferences ->
+        preferences[KEY_ONBOARDING_COMPLETED] ?: false
+    }
+
     val themeModeFlow: Flow<String> = dataStore.data.map { preferences ->
         preferences[KEY_THEME_MODE] ?: DEFAULT_THEME_MODE
     }
@@ -87,6 +91,12 @@ class SettingsPreferencesDataSource(
                     null
                 }
             }
+        }
+    }
+
+    suspend fun updateOnboardingCompleted(completed: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[KEY_ONBOARDING_COMPLETED] = completed
         }
     }
 
@@ -161,6 +171,7 @@ class SettingsPreferencesDataSource(
         private const val DEFAULT_READ_RECEIPTS_ENABLED = true
         private const val DEFAULT_SOFT_SEND_ANIMATION_ENABLED = true
 
+        val KEY_ONBOARDING_COMPLETED = booleanPreferencesKey("diu_onboarding_completed")
         val KEY_THEME_MODE = stringPreferencesKey("diu_theme_mode")
         val KEY_READ_RECEIPTS_ENABLED = booleanPreferencesKey("diu_read_receipts_enabled")
         val KEY_SOFT_SEND_ANIMATION_ENABLED = booleanPreferencesKey("diu_soft_send_animation_enabled")

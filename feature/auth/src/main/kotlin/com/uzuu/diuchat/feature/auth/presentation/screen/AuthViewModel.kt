@@ -91,7 +91,6 @@ class AuthViewModel(
             verifyOtpUseCase(phone, code)
                 .onSuccess {
                     cooldownJob?.cancel()
-                    sendAction(AuthAction.SetSuccess(phone))
                     checkUsernameAndNavigate(onAuthSuccess)
                 }.onFailure { error ->
                     val awaiting = uiStateFlow.value.otpState as? OtpState.AwaitingCode
@@ -140,11 +139,18 @@ class AuthViewModel(
         sendAction(AuthAction.ClearGoogleError)
     }
 
+    fun requireUsernameSetup() {
+        if (!uiStateFlow.value.isChoosingUsername) {
+            sendAction(AuthAction.ShowChooseUsername())
+        }
+    }
+
     private suspend fun checkUsernameAndNavigate(onAuthSuccess: () -> Unit) {
         checkHasUsernameUseCase()
             .onSuccess { hasUsername ->
                 sendAction(AuthAction.SetGoogleLoading(isLoading = false))
                 if (hasUsername) {
+                    sendAction(AuthAction.SetSuccess(uiStateFlow.value.rawPhone))
                     onAuthSuccess()
                 } else {
                     sendAction(AuthAction.ShowChooseUsername())

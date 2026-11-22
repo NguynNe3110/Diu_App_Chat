@@ -58,12 +58,19 @@ import org.koin.androidx.compose.koinViewModel
 fun AuthScreen(
     onAuthSuccess: () -> Unit,
     modifier: Modifier = Modifier,
+    requireUsernameSetup: Boolean = false,
     viewModel: AuthViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.uiStateFlow.collectAsState()
     val currentOnAuthSuccess by rememberUpdatedState(onAuthSuccess)
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
+
+    LaunchedEffect(requireUsernameSetup) {
+        if (requireUsernameSetup) {
+            viewModel.requireUsernameSetup()
+        }
+    }
 
     LaunchedEffect(uiState.otpState) {
         if (uiState.otpState is OtpState.Success && !uiState.isChoosingUsername) {

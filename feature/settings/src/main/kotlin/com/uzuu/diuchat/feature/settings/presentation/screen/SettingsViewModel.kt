@@ -256,6 +256,10 @@ class SettingsViewModel(
         }
     }
 
+    fun consumeLoggedOut() {
+        sendAction(SettingsAction.SetLoggedOut(false))
+    }
+
     fun showDeleteAccount(show: Boolean) {
         sendAction(SettingsAction.SetShowDeleteAccountDialog(show))
     }

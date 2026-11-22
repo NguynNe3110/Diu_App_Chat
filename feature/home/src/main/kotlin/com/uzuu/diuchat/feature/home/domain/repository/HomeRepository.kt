@@ -8,4 +8,6 @@ interface HomeRepository {
     fun getStars(isQuiet: Boolean): Flow<List<StarPerson>>
 
     fun getRecentChats(): Flow<List<RecentChat>>
+
+    suspend fun refreshFromRemote() {}
 }

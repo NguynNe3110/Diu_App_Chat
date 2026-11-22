@@ -25,6 +25,7 @@ internal class SettingsRepositoryImpl(
     private val userSettingsMapper: UserSettingsMapper = UserSettingsMapper(),
 ) : SettingsRepository {
 
+    private val inMemoryOnboardingCompletedFlow = MutableStateFlow(false)
     private val inMemoryThemeModeFlow = MutableStateFlow("SYSTEM")
     private val inMemoryReadReceiptsFlow = MutableStateFlow(true)
     private val inMemorySoftSendAnimationFlow = MutableStateFlow(true)
@@ -58,6 +59,19 @@ internal class SettingsRepositoryImpl(
             avatarUrl = null,
         ),
     )
+
+    @Suppress("MaxLineLength")
+    override fun getOnboardingCompleted(): Flow<Boolean> = preferencesDataSource?.onboardingCompletedFlow ?: inMemoryOnboardingCompletedFlow.asStateFlow()
+
+    override suspend fun setOnboardingCompleted(completed: Boolean) {
+        preferencesDataSource?.updateOnboardingCompleted(completed) ?: run {
+            inMemoryOnboardingCompletedFlow.value = completed
+        }
+    }
+
+    override suspend fun refreshFromRemote() {
+        syncFromRemote()
+    }
 
     override fun getThemeMode(): Flow<String> = preferencesDataSource?.themeModeFlow ?: inMemoryThemeModeFlow.asStateFlow()
 

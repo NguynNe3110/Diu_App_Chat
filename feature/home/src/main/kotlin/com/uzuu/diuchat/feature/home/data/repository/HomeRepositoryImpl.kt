@@ -38,13 +38,22 @@ class HomeRepositoryImpl(
 
     override fun getRecentChats(): Flow<List<RecentChat>> = recentChatsState.asStateFlow()
 
+    override suspend fun refreshFromRemote() {
+        syncFromRemote()
+    }
+
     suspend fun syncFromRemote() {
         val overview = homeSupabaseService.fetchOverview() ?: return
-        if (overview.stars.isNotEmpty()) {
+        if (homeSupabaseService.isAuthenticated()) {
             starsState.value = overview.stars.map(homeMapper::toDomain)
-        }
-        if (overview.recentChats.isNotEmpty()) {
             recentChatsState.value = overview.recentChats.map(homeMapper::toDomain)
+        } else {
+            if (overview.stars.isNotEmpty()) {
+                starsState.value = overview.stars.map(homeMapper::toDomain)
+            }
+            if (overview.recentChats.isNotEmpty()) {
+                recentChatsState.value = overview.recentChats.map(homeMapper::toDomain)
+            }
         }
     }
 

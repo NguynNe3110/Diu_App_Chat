@@ -3,6 +3,7 @@ package com.uzuu.diuchat.feature.contacts.presentation.screen
 import androidx.lifecycle.viewModelScope
 import com.uzuu.diuchat.feature.base.presentation.viewmodel.BaseViewModel
 import com.uzuu.diuchat.feature.contacts.domain.model.ContactCircle
+import com.uzuu.diuchat.feature.contacts.domain.repository.ContactsRepository
 import com.uzuu.diuchat.feature.contacts.domain.usecase.GetContactsUseCase
 import com.uzuu.diuchat.feature.contacts.domain.usecase.GetPendingRequestsUseCase
 import com.uzuu.diuchat.feature.contacts.domain.usecase.RespondConnectionRequestUseCase
@@ -17,6 +18,7 @@ class ContactsViewModel(
     private val getContactsUseCase: GetContactsUseCase,
     private val getPendingRequestsUseCase: GetPendingRequestsUseCase,
     private val respondConnectionRequestUseCase: RespondConnectionRequestUseCase,
+    private val contactsRepository: ContactsRepository,
 ) : BaseViewModel<ContactsUiState, ContactsAction>(ContactsUiState()) {
     init {
         observeData()
@@ -71,15 +73,42 @@ class ContactsViewModel(
     fun onSubmitInviteCode(code: String = uiStateFlow.value.inviteCodeInput) {
         val trimmed = code.trim()
         if (trimmed.isEmpty()) {
-            sendAction(ContactsAction.SetScanResultMessage("Vui lòng nhập mã kết nối"))
+            sendAction(ContactsAction.SetScanResultMessage("Vui lòng nhập @username, số điện thoại hoặc mã QR"))
             return
         }
-        sendAction(
-            ContactsAction.SetScanResultMessage(
-                message = "Đã gửi lời mời kết nối tới $trimmed",
-                clearInput = true,
-            ),
-        )
+        viewModelScope.launch {
+            contactsRepository.connectByInviteCode(trimmed)
+                .onSuccess { contact ->
+                    sendAction(
+                        ContactsAction.SetScanResultMessage(
+                            message = "Đã kết nối với ${contact.name}",
+                            clearInput = true,
+                        ),
+                    )
+                }
+                .onFailure { error ->
+                    sendAction(
+                        ContactsAction.SetScanResultMessage(
+                            message = error.message ?: "Không tìm thấy người dùng để kết nối",
+                        ),
+                    )
+                }
+        }
+    }
+
+    fun onOpenContactChat(
+        contactId: String,
+        onNavigateToChat: (String) -> Unit,
+    ) {
+        viewModelScope.launch {
+            contactsRepository.openDirectChat(contactId)
+                .onSuccess { conversationId ->
+                    onNavigateToChat(conversationId)
+                }
+                .onFailure {
+                    onNavigateToChat(contactId)
+                }
+        }
     }
 
     fun onCopyInviteLink() {

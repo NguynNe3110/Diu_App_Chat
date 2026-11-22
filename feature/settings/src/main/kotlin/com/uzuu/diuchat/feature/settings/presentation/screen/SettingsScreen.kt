@@ -38,10 +38,12 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -112,9 +114,18 @@ fun SettingsScreen(
     onNavigateToFavourites: () -> Unit = {},
     onNavigateToOnBoarding: () -> Unit = {},
     onReplayOnboarding: () -> Unit = onNavigateToOnBoarding,
+    onLoggedOut: () -> Unit = {},
     viewModel: SettingsViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.uiStateFlow.collectAsState()
+    val currentOnLoggedOut by rememberUpdatedState(onLoggedOut)
+
+    LaunchedEffect(uiState.isLoggedOut) {
+        if (uiState.isLoggedOut) {
+            viewModel.consumeLoggedOut()
+            currentOnLoggedOut()
+        }
+    }
 
     BackHandler(enabled = uiState.subScreen != SettingsSubScreen.PROFILE_OVERVIEW) {
         if (uiState.subScreen == SettingsSubScreen.BLOCKED_CONTACTS) {

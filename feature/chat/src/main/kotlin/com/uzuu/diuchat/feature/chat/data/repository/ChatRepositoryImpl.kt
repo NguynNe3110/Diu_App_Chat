@@ -178,7 +178,7 @@ class ChatRepositoryImpl(
         mood: MoodType,
         memberIds: List<String>,
     ): Conversation {
-        val groupId = "group_${UUID.randomUUID()}"
+        val groupId = UUID.randomUUID().toString()
         val now = System.currentTimeMillis()
 
         val membersList = mutableListOf(
@@ -214,7 +214,9 @@ class ChatRepositoryImpl(
         )
 
         conversationDao.upsert(entity)
-        supabaseService.upsertConversation(chatMapper.conversationEntityToDto(entity))
+        supabaseService.upsertConversation(
+            chatMapper.conversationEntityToDto(entity).copy(createdBy = currentUserId()),
+        )
         return chatMapper.conversationEntityToDomain(entity)
     }
 
@@ -410,24 +412,19 @@ class ChatRepositoryImpl(
         }
         val activeUserId = currentUserId()
         response.messages.forEach { dto ->
-            val resolved = dto.copy(isFromMe = dto.senderId == activeUserId)
-            messageDao.insert(chatMapper.messageDtoToEntity(resolved))
+            messageDao.insert(chatMapper.messageDtoToEntity(dto, activeUserId))
         }
     }
 
     private suspend fun upsertIncomingMessage(dto: MessageDto) {
         val activeUserId = currentUserId()
-        val resolved =
-            dto.copy(
-                isFromMe = dto.senderId == activeUserId,
-                status = MessageStatus.SENT.value,
-            )
-        messageDao.insert(chatMapper.messageDtoToEntity(resolved))
+        val entity = chatMapper.messageDtoToEntity(dto, activeUserId)
+        messageDao.insert(entity)
         updateConversationSummary(
-            conversationId = resolved.conversationId,
-            lastMessage = resolved.content,
-            mood = MoodType.fromId(resolved.mood),
-            now = resolved.createdAtEpochMs,
+            conversationId = entity.conversationId,
+            lastMessage = entity.content,
+            mood = MoodType.fromId(entity.mood),
+            now = entity.createdAtEpochMs,
         )
     }
 

@@ -6,6 +6,7 @@ import com.uzuu.diuchat.feature.home.data.datasource.api.response.HomeOverviewRe
 import com.uzuu.diuchat.feature.home.data.datasource.api.service.HomeSupabaseService
 import com.uzuu.diuchat.feature.home.data.mapper.HomeMapper
 import io.mockk.coEvery
+import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -28,6 +29,7 @@ class HomeRepositoryImplTest {
 
     @BeforeEach
     fun setUp() {
+        every { homeSupabaseService.isAuthenticated() } returns false
         coEvery { homeSupabaseService.fetchOverview() } returns null
         sut = HomeRepositoryImpl(
             homeSupabaseService = homeSupabaseService,
@@ -103,8 +105,7 @@ class HomeRepositoryImplTest {
     fun `HomeSupabaseService returns null safely when supabaseClient is null`() = runTest {
         val service = HomeSupabaseService(supabaseClient = null)
 
+        assertFalse(service.isAuthenticated())
         assertNull(service.fetchOverview())
-        assertNull(service.fetchStars())
-        assertNull(service.fetchRecentChats())
     }
 }
