@@ -34,9 +34,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.uzuu.diuchat.feature.base.common.res.AppIcons
 import com.uzuu.diuchat.feature.base.common.res.AppTheme
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuCard
+import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuCardSkeleton
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuEmptyState
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuIconButton
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuOrbAvatar
+import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuShimmerContainer
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuTopBar
 import com.uzuu.diuchat.feature.journal.domain.model.FavouriteMemory
 import com.uzuu.diuchat.feature.journal.domain.model.JournalMoodType
@@ -93,7 +95,24 @@ fun FavouritesContent(
             .statusBarsPadding()
             .navigationBarsPadding(),
     ) { paddingValues ->
-        if (state.memories.isEmpty() && !state.isLoading) {
+        if (state.isLoading && state.memories.isEmpty()) {
+            DiuShimmerContainer(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues),
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    repeat(3) {
+                        DiuCardSkeleton(lineCount = 2)
+                    }
+                }
+            }
+        } else if (state.memories.isEmpty() && !state.isLoading) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
