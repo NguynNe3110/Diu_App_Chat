@@ -52,8 +52,17 @@ class ChatRepositoryImpl(
         }
     }
 
-    override fun observeConversations(): Flow<List<Conversation>> = conversationDao.observeConversations().map { entities ->
-        entities.map(chatMapper::conversationEntityToDomain)
+    override fun observeConversations(): Flow<List<Conversation>> = channelFlow {
+        launch {
+            supabaseService.fetchConversations().getOrNull()?.forEach { dto ->
+                conversationDao.upsert(chatMapper.conversationDtoToEntity(dto))
+            }
+        }
+        launch {
+            conversationDao.observeConversations().collect { entities ->
+                send(entities.map(chatMapper::conversationEntityToDomain))
+            }
+        }
     }
 
     override fun observeConversation(
@@ -214,8 +223,14 @@ class ChatRepositoryImpl(
         )
 
         conversationDao.upsert(entity)
+        val creatorId = currentUserId()
         supabaseService.upsertConversation(
-            chatMapper.conversationEntityToDto(entity).copy(createdBy = currentUserId()),
+            chatMapper.conversationEntityToDto(entity).copy(createdBy = creatorId),
+        )
+        supabaseService.insertConversationMembers(
+            conversationId = groupId,
+            memberIds = memberIds,
+            creatorId = creatorId,
         )
         return chatMapper.conversationEntityToDomain(entity)
     }

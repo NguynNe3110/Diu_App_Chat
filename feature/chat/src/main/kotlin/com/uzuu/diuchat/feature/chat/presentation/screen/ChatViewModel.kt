@@ -12,6 +12,8 @@ import com.uzuu.diuchat.feature.chat.domain.model.MoodType
 import com.uzuu.diuchat.feature.chat.domain.model.VoiceRecordingState
 import com.uzuu.diuchat.feature.chat.domain.usecase.CreateGroupUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.ForwardMessageUseCase
+import com.uzuu.diuchat.feature.chat.domain.usecase.GetConversationUseCase
+import com.uzuu.diuchat.feature.chat.domain.usecase.GetConversationsUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.GetMessagesUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.LeaveGroupUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.ManageGroupMemberUseCase
@@ -21,13 +23,16 @@ import com.uzuu.diuchat.feature.chat.domain.usecase.SendVoiceMessageUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.TogglePinMessageUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.ToggleReactionUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.UpdateGroupInfoUseCase
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
 
-@Suppress("TooManyFunctions")
+@Suppress("TooManyFunctions", "LongParameterList")
 class ChatViewModel(
     private val createGroupUseCase: CreateGroupUseCase,
     private val forwardMessageUseCase: ForwardMessageUseCase,
+    private val getConversationUseCase: GetConversationUseCase,
+    private val getConversationsUseCase: GetConversationsUseCase,
     private val getMessagesUseCase: GetMessagesUseCase,
     private val leaveGroupUseCase: LeaveGroupUseCase,
     private val manageGroupMemberUseCase: ManageGroupMemberUseCase,
@@ -38,19 +43,47 @@ class ChatViewModel(
     private val toggleReactionUseCase: ToggleReactionUseCase,
     private val updateGroupInfoUseCase: UpdateGroupInfoUseCase,
 ) : BaseViewModel<ChatUiState, ChatAction>(ChatUiState()) {
+    private var messagesJob: Job? = null
+    private var conversationJob: Job? = null
+
     init {
-        loadMessages()
+        observeAvailableConversations()
+        if (uiStateFlow.value.conversationId.isNotBlank()) {
+            loadMessages()
+        }
+    }
+
+    private fun observeAvailableConversations() {
+        viewModelScope.launch {
+            getConversationsUseCase()
+                .catch { /* handle error */ }
+                .collect { conversations ->
+                    sendAction(ChatAction.SetAvailableConversations(conversations))
+                }
+        }
     }
 
     fun loadMessages(conversationId: String = uiStateFlow.value.conversationId) {
+        if (conversationId.isBlank()) return
         if (uiStateFlow.value.conversationId != conversationId) {
             sendAction(ChatAction.SetConversationId(conversationId))
         }
-        viewModelScope.launch {
+        messagesJob?.cancel()
+        messagesJob = viewModelScope.launch {
             getMessagesUseCase(conversationId)
                 .catch { /* handle error */ }
                 .collect { messages ->
                     sendAction(ChatAction.SetMessages(messages))
+                }
+        }
+        conversationJob?.cancel()
+        conversationJob = viewModelScope.launch {
+            getConversationUseCase(conversationId)
+                .catch { /* handle error */ }
+                .collect { conversation ->
+                    if (conversation != null) {
+                        sendAction(ChatAction.SetConversation(conversation))
+                    }
                 }
         }
     }

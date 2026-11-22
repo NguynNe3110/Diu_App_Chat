@@ -2,6 +2,8 @@ package com.uzuu.diuchat.feature.chat.domain
 
 import com.uzuu.diuchat.feature.chat.domain.usecase.CreateGroupUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.ForwardMessageUseCase
+import com.uzuu.diuchat.feature.chat.domain.usecase.GetConversationUseCase
+import com.uzuu.diuchat.feature.chat.domain.usecase.GetConversationsUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.GetMessagesUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.LeaveGroupUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.ManageGroupMemberUseCase
@@ -16,6 +18,8 @@ import org.koin.dsl.module
 val domainModule = module {
     factory { CreateGroupUseCase(get()) }
     factory { ForwardMessageUseCase(get()) }
+    factory { GetConversationUseCase(get()) }
+    factory { GetConversationsUseCase(get()) }
     factory { GetMessagesUseCase(get()) }
     factory { LeaveGroupUseCase(get()) }
     factory { ManageGroupMemberUseCase(get()) }

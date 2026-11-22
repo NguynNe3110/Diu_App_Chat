@@ -84,7 +84,7 @@ fun ChatComposer(
     onStartVoiceRecording: () -> Unit,
     onSendClick: () -> Unit,
     modifier: Modifier = Modifier,
-    partnerName: String = "Minh",
+    partnerName: String = "",
     isAttachmentOpen: Boolean = false,
     onSlowSendClick: () -> Unit = {},
     voiceRecordingState: VoiceRecordingState = VoiceRecordingState.Idle,
