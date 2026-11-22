@@ -6,8 +6,8 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -60,6 +60,7 @@ import org.koin.compose.koinInject
 import com.uzuu.diuchat.feature.media.presentation.vault.MediaVaultScreen
 import com.uzuu.diuchat.feature.media.presentation.viewer.PhotoViewerScreen
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuAmbientBackground
+import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuPersonListSkeleton
 import com.uzuu.diuchat.feature.onboarding.presentation.screen.OnBoardingScreen
 import com.uzuu.diuchat.feature.settings.presentation.screen.SettingsScreen
 
@@ -79,8 +80,10 @@ fun MainShowcaseScreen(
     }
 
     val destination = backStackEntry?.destination
+    val isStartupLoading = startupDestination is StartupDestination.Loading
     val hideBottomBar =
-        destination?.hasRoute<NavigationRoute.OnBoarding>() == true ||
+        isStartupLoading ||
+            destination?.hasRoute<NavigationRoute.OnBoarding>() == true ||
             destination?.hasRoute<NavigationRoute.Auth>() == true ||
             destination?.hasRoute<NavigationRoute.Chat>() == true ||
             destination?.hasRoute<NavigationRoute.Call>() == true ||
@@ -118,13 +121,19 @@ fun MainShowcaseScreen(
                     .padding(
                         top = innerPadding.calculateTopPadding(),
                         bottom = if (hideBottomBar) innerPadding.calculateBottomPadding() else 0.dp,
-                    ),
+                    )
+                    .consumeWindowInsets(innerPadding),
             ) {
                 DiuOfflineBanner(visible = !isOnline)
 
                 val resolvedStart = startupDestination
                 if (resolvedStart is StartupDestination.Loading) {
-                    Box(modifier = Modifier.weight(1f))
+                    DiuPersonListSkeleton(
+                        itemCount = 6,
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(top = 24.dp),
+                    )
                 } else {
                     val startRoute: NavigationRoute = when (resolvedStart) {
                         StartupDestination.OnBoarding -> NavigationRoute.OnBoarding

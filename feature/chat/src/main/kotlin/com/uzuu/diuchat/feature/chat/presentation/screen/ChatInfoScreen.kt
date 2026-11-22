@@ -124,6 +124,17 @@ fun ChatInfoScreen(
     val mediaCount = remember(messages) {
         messages.count { it.mediaType == MessageMediaType.PHOTO || it.mediaType == MessageMediaType.VOICE }
     }
+    val pendingLettersCount = remember(messages) {
+        messages.count { it.mediaType == MessageMediaType.SEALED_LETTER && !it.isSealedRevealed }
+    }
+    val connectedDays = remember(messages) {
+        val earliestMs = messages.minOfOrNull { it.createdAtEpochMs }?.takeIf { it > 0L }
+        if (earliestMs != null) {
+            (((System.currentTimeMillis() - earliestMs) / 86_400_000L) + 1L).coerceAtLeast(1L).toInt()
+        } else {
+            1
+        }
+    }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -252,13 +263,12 @@ fun ChatInfoScreen(
             // 3-column real stats card for 1-1 chat
             if (!conversation.isGroup) {
                 item {
-                    val daysCount = (conversation.daysTogether ?: 1).coerceAtLeast(1)
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
                         AnniversaryStatCard(
-                            value = "$daysCount",
+                            value = "$connectedDays",
                             label = "ngày kết nối",
                             modifier = Modifier.weight(1f),
                         )
@@ -469,18 +479,22 @@ fun ChatInfoScreen(
                             title = "Thư hẹn đang chờ",
                             subtitle = "Lời nhắn niêm phong chờ đến giờ",
                             onClick = onOpenPendingLettersClick,
-                            trailing = {
-                                Surface(
-                                    shape = CircleShape,
-                                    color = colors.peach.copy(alpha = 0.6f),
-                                ) {
-                                    Text(
-                                        text = "1",
-                                        style = AppTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
-                                        color = colors.ink,
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-                                    )
+                            trailing = if (pendingLettersCount > 0) {
+                                {
+                                    Surface(
+                                        shape = CircleShape,
+                                        color = colors.peach.copy(alpha = 0.6f),
+                                    ) {
+                                        Text(
+                                            text = "$pendingLettersCount",
+                                            style = AppTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+                                            color = colors.ink,
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                                        )
+                                    }
                                 }
+                            } else {
+                                null
                             },
                         )
                         HorizontalDivider(color = colors.line)

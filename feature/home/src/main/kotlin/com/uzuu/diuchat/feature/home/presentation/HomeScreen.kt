@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -257,15 +258,17 @@ fun HomeScreenContent(
                                     }
                                 }
                                 if (chat.unreadCount > 0) {
+                                    val unreadLabel = if (chat.unreadCount > 9) "9+" else "${chat.unreadCount}"
                                     Box(
                                         modifier = Modifier
-                                            .size(20.dp)
+                                            .defaultMinSize(minWidth = 20.dp, minHeight = 20.dp)
                                             .clip(CircleShape)
-                                            .background(chat.moodColor),
+                                            .background(chat.moodColor)
+                                            .padding(horizontal = 5.dp),
                                         contentAlignment = Alignment.Center,
                                     ) {
                                         Text(
-                                            text = "${chat.unreadCount}",
+                                            text = unreadLabel,
                                             fontSize = 11.sp,
                                             fontWeight = FontWeight.Bold,
                                             color = AppPalette.BubbleTextOnMood,

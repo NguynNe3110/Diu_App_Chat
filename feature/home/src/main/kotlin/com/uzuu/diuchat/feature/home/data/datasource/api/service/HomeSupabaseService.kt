@@ -28,15 +28,19 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonPrimitive
 import timber.log.Timber
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.coroutines.cancellation.CancellationException
 
 class HomeSupabaseService(
     private val supabaseClient: SupabaseClient?,
 ) {
+    private val localReadAtByConversation = ConcurrentHashMap<String, Instant>()
     fun isConfigured(): Boolean = supabaseClient != null
 
     fun isAuthenticated(): Boolean = supabaseClient?.auth?.currentUserOrNull() != null
@@ -72,6 +76,15 @@ class HomeSupabaseService(
                 broadcastChannel.broadcastFlow<JsonObject>(event = EVENT_NEW_MESSAGE).map { }
             val profileBroadcasts =
                 broadcastChannel.broadcastFlow<JsonObject>(event = EVENT_PROFILE_UPDATED).map { }
+            val readBroadcasts =
+                broadcastChannel.broadcastFlow<JsonObject>(event = EVENT_CONVERSATION_READ).map { payload ->
+                    val convoId = payload["conversation_id"]?.jsonPrimitive?.contentOrNull
+                    val readerId = payload["user_id"]?.jsonPrimitive?.contentOrNull
+                    val myId = client.auth.currentUserOrNull()?.id
+                    if (!convoId.isNullOrBlank() && (readerId == null || readerId == myId)) {
+                        localReadAtByConversation[convoId] = Instant.now()
+                    }
+                }
 
             launch {
                 merge(
@@ -80,6 +93,7 @@ class HomeSupabaseService(
                     conversationChanges,
                     newMessageBroadcasts,
                     profileBroadcasts,
+                    readBroadcasts,
                 ).collect { send(Unit) }
             }
 
@@ -241,7 +255,7 @@ class HomeSupabaseService(
         val displayName = resolveDisplayName(convo, peerMember, peerProfile)
         val latestMsg = convoMessages.firstOrNull()
         val preview = resolveMessagePreviewWithSender(latestMsg, currentUserId, profilesById)
-        val unreadCount = computeUnreadCount(convoMessages, currentUserId, myMember?.lastReadAt)
+        val unreadCount = computeUnreadCount(convo.id, convoMessages, currentUserId, myMember?.lastReadAt)
         val moodHex = moodToHex(peerProfile?.currentMood ?: convo.moodId)
         val safeAvatar = peerProfile?.avatarUrl?.takeUnless { url ->
             url.contains("googleusercontent.com", ignoreCase = true)
@@ -276,19 +290,27 @@ class HomeSupabaseService(
     }
 
     private fun computeUnreadCount(
+        conversationId: String,
         convoMessages: List<MessageSummaryRow>,
         currentUserId: String,
         lastReadAtIso: String?,
     ): Int {
-        val lastReadInstant = lastReadAtIso?.let { runCatching { Instant.parse(it) }.getOrNull() }
+        val remoteRead = lastReadAtIso?.let { runCatching { Instant.parse(it) }.getOrNull() }
+        val localRead = localReadAtByConversation[conversationId]
+        val effectiveLastRead =
+            if (remoteRead != null && localRead != null) {
+                if (localRead.isAfter(remoteRead)) localRead else remoteRead
+            } else {
+                remoteRead ?: localRead
+            }
         return convoMessages.count { msg ->
             if (msg.senderId == currentUserId) {
                 false
-            } else if (lastReadInstant == null) {
+            } else if (effectiveLastRead == null) {
                 true
             } else {
                 val msgInstant = msg.createdAt?.let { runCatching { Instant.parse(it) }.getOrNull() }
-                msgInstant != null && msgInstant.isAfter(lastReadInstant)
+                msgInstant != null && msgInstant.isAfter(effectiveLastRead)
             }
         }
     }
@@ -436,6 +458,7 @@ class HomeSupabaseService(
         const val CHANNEL_GLOBAL_SYNC = "diu_global_sync"
         const val EVENT_NEW_MESSAGE = "new_message"
         const val EVENT_PROFILE_UPDATED = "profile_updated"
+        const val EVENT_CONVERSATION_READ = "conversation_read"
         const val RECENT_MESSAGES_LIMIT = 100L
         val TIME_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
         val STAR_POSITIONS = listOf(
