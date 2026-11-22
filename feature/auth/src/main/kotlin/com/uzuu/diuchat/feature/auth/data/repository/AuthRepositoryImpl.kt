@@ -3,6 +3,8 @@ package com.uzuu.diuchat.feature.auth.data.repository
 import com.uzuu.diuchat.feature.auth.data.datasource.api.service.AuthSupabaseService
 import com.uzuu.diuchat.feature.auth.data.mapper.AuthMapper
 import com.uzuu.diuchat.feature.auth.domain.repository.AuthRepository
+import com.uzuu.diuchat.feature.base.domain.repository.NoOpPushRegistration
+import com.uzuu.diuchat.feature.base.domain.repository.PushRegistration
 import kotlinx.coroutines.CancellationException
 
 private const val OTP_DIGITS = 6
@@ -12,6 +14,7 @@ private val USERNAME_REGEX = Regex("^[a-z0-9_]{3,30}$")
 class AuthRepositoryImpl(
     private val supabaseService: AuthSupabaseService,
     private val authMapper: AuthMapper,
+    private val pushRegistration: PushRegistration = NoOpPushRegistration,
 ) : AuthRepository {
     override suspend fun sendOtp(phoneNumber: String): Result<Unit> = runCatching {
         val normalizedPhone = normalizePhone(phoneNumber)
@@ -36,7 +39,11 @@ class AuthRepositoryImpl(
 
     override suspend fun checkHasUsername(): Result<Boolean> = runCatching {
         val response = supabaseService.fetchCurrentUserProfile().getOrThrow()
-        authMapper.hasUsername(response.profile)
+        val hasUsername = authMapper.hasUsername(response.profile)
+        if (hasUsername) {
+            pushRegistration.requestSync()
+        }
+        hasUsername
     }.onFailure(::rethrowCancellation)
 
     override suspend fun claimUsername(
@@ -48,6 +55,7 @@ class AuthRepositoryImpl(
             "Username phải từ 3 đến 30 ký tự, chỉ gồm chữ thường (a-z), số (0-9) và dấu gạch dưới (_)"
         }
         supabaseService.claimUsername(canonical, displayName).getOrThrow()
+        pushRegistration.requestSync()
     }.onFailure(::rethrowCancellation)
 
     private fun normalizePhone(phoneNumber: String): String {

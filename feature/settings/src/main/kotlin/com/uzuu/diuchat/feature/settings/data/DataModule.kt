@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStore
+import com.uzuu.diuchat.feature.base.domain.repository.PushRegistration
 import com.uzuu.diuchat.feature.settings.data.datasource.api.SettingRemoteDataSource
 import com.uzuu.diuchat.feature.settings.data.datasource.api.SettingRemoteDataSourceImpl
 import com.uzuu.diuchat.feature.settings.data.datasource.api.service.SettingsSupabaseService
@@ -23,7 +24,12 @@ val dataModule = module {
         androidContext().settingsDataStore
     }
     single { SettingsPreferencesDataSource(get()) }
-    single { SettingsSupabaseService(supabaseClient = getOrNull<SupabaseClient>()) }
+    single {
+        SettingsSupabaseService(
+            supabaseClient = getOrNull<SupabaseClient>(),
+            pushRegistration = getOrNull<PushRegistration>(),
+        )
+    }
     single<SettingRemoteDataSource> {
         SettingRemoteDataSourceImpl(supabaseService = get())
     }

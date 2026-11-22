@@ -15,6 +15,9 @@ import com.uzuu.diuchat.feature.onboarding.featureOnboardingModules
 import com.uzuu.diuchat.feature.settings.featureSettingsModules
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import com.uzuu.diuchat.app.data.push.SupabasePushRegistration
 import org.koin.core.context.GlobalContext
 import timber.log.Timber
 
@@ -22,8 +25,14 @@ class ShowcaseApplication : Application() {
     override fun onCreate() {
         super.onCreate()
 
+        createNotificationChannels()
         initKoin()
         initTimber()
+
+        GlobalContext
+            .get()
+            .get<SupabasePushRegistration>()
+            .start()
     }
 
     private fun initKoin() {
@@ -50,5 +59,18 @@ class ShowcaseApplication : Application() {
         if (BuildConfig.DEBUG) {
             Timber.plant(Timber.DebugTree())
         }
+    }
+
+    private fun createNotificationChannels() {
+        val channel = NotificationChannel(
+            "chat_messages",
+            "Tin nhắn",
+            NotificationManager.IMPORTANCE_DEFAULT,
+        ).apply {
+            description = "Thông báo khi có tin nhắn mới"
+        }
+
+        getSystemService(NotificationManager::class.java)
+            .createNotificationChannel(channel)
     }
 }

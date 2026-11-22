@@ -13,4 +13,5 @@ plugins {
     alias(libs.plugins.detekt) apply false
     alias(libs.plugins.spotless) apply false
     alias(libs.plugins.junit5.android) apply false
+    alias(libs.plugins.google.services) apply false
 }

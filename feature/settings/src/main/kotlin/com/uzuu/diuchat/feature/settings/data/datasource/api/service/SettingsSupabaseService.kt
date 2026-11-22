@@ -1,5 +1,6 @@
 package com.uzuu.diuchat.feature.settings.data.datasource.api.service
 
+import com.uzuu.diuchat.feature.base.domain.repository.PushRegistration
 import com.uzuu.diuchat.feature.settings.data.datasource.api.model.UserProfileDto
 import com.uzuu.diuchat.feature.settings.data.datasource.api.model.UserSettingsDto
 import io.github.jan.supabase.SupabaseClient
@@ -15,6 +16,7 @@ import kotlinx.serialization.json.put
 
 internal class SettingsSupabaseService(
     private val supabaseClient: SupabaseClient?,
+    private val pushRegistration: PushRegistration? = null,
 ) {
     fun currentUserId(): String? = supabaseClient?.auth?.currentUserOrNull()?.id
 
@@ -95,8 +97,13 @@ internal class SettingsSupabaseService(
     }
 
     suspend fun signOut() {
-        val client = supabaseClient ?: return
-        client.auth.signOut()
+        val registration = pushRegistration
+        if (registration != null) {
+            registration.signOut()
+        } else {
+            val client = supabaseClient ?: return
+            client.auth.signOut()
+        }
     }
 
     private companion object {
