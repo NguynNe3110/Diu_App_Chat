@@ -91,23 +91,39 @@ class ContactsSupabaseService(
     ): Result<ContactDto> = runCatching {
         val client = supabaseClient ?: error("Chưa cấu hình Supabase")
         val currentUserId = client.auth.currentUserOrNull()?.id ?: error("Bạn cần đăng nhập để kết bạn")
-        val target = lookupUser(query)
-            ?: error("Không tìm thấy người dùng với mã hoặc tên \"$query\"")
 
-        check(target.userId != currentUserId) { "Không thể tự kết bạn với chính mình" }
+        // Prefer atomic SECURITY DEFINER RPC (handles lookup + contacts upsert + direct conversation)
+        val rpcConnected = runCatching {
+            client.postgrest.rpc(
+                function = RPC_CONNECT_BY_INVITE_CODE,
+                parameters = buildJsonObject {
+                    put("p_query", query.trim())
+                    put("p_circle", circle.toDbCircle())
+                },
+            ).decodeList<LookupUserResult>().firstOrNull()
+        }.getOrNull()
 
-        client.postgrest.from(TABLE_CONTACTS).upsert(
-            ContactInsertRow(
-                userId = currentUserId,
-                contactUserId = target.userId,
-                circle = circle.toDbCircle(),
-            ),
-        ) {
-            onConflict = "user_id,contact_user_id"
+        if (rpcConnected != null) {
+            rpcConnected.toContactDto(circle = circle)
+        } else {
+            val target = lookupUser(query)
+                ?: error("Không tìm thấy người dùng với mã hoặc tên \"$query\"")
+
+            check(target.userId != currentUserId) { "Không thể tự kết bạn với chính mình" }
+
+            client.postgrest.from(TABLE_CONTACTS).upsert(
+                ContactInsertRow(
+                    userId = currentUserId,
+                    contactUserId = target.userId,
+                    circle = circle.toDbCircle(),
+                ),
+            ) {
+                onConflict = "user_id,contact_user_id"
+            }
+
+            getOrCreateDirectConversation(target.userId)
+            target.toContactDto(circle = circle)
         }
-
-        getOrCreateDirectConversation(target.userId)
-        target.toContactDto(circle = circle)
     }
 
     @Suppress("TooGenericExceptionCaught")
@@ -248,10 +264,11 @@ class ContactsSupabaseService(
             }.decodeSingleOrNull<UserSettingsTokenRow>()
 
         val slug = profile?.username?.takeIf { it.isNotBlank() } ?: "diu"
-        val token = settings?.qrToken ?: userId
+        val rawToken = settings?.qrToken ?: userId
+        val shortCode = rawToken.replace("-", "").take(SHORT_CODE_LENGTH).uppercase()
         InviteLinkDto(
-            code = token,
-            url = "diu.vn/$slug/$token",
+            code = shortCode,
+            url = "diu.vn/$slug/$shortCode",
         )
     } catch (error: CancellationException) {
         throw error
@@ -438,8 +455,10 @@ class ContactsSupabaseService(
         const val TABLE_CONTACTS = "contacts"
         const val TABLE_USER_PROFILES = "user_profiles"
         const val TABLE_USER_SETTINGS = "user_settings"
+        const val RPC_CONNECT_BY_INVITE_CODE = "connect_by_invite_code"
         const val RPC_LOOKUP_USER_FOR_CONNECT = "lookup_user_for_connect"
         const val RPC_LOOKUP_BY_QR_TOKEN = "lookup_by_qr_token"
         const val RPC_GET_OR_CREATE_DIRECT_CONVERSATION = "get_or_create_direct_conversation"
+        const val SHORT_CODE_LENGTH = 6
     }
 }
