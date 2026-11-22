@@ -128,34 +128,36 @@ fun CallHistoryContent(
             )
         }
 
-        // Favorites row (matching prototype .fav-row)
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState())
-                .padding(horizontal = 22.dp, vertical = 10.dp),
-            horizontalArrangement = Arrangement.spacedBy(18.dp),
-        ) {
-            uiState.favoriteCallers.forEach { favorite ->
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(16.dp))
-                        .clickable { onFavoriteClick(favorite) }
-                        .padding(horizontal = 4.dp, vertical = 4.dp),
-                ) {
-                    DiuOrbAvatar(
-                        initials = favorite.initials,
-                        moodColor = parseMoodColorHex(favorite.moodHex),
-                        size = 56.dp,
-                    )
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Text(
-                        text = favorite.name,
-                        style = AppTheme.typography.bodySmall,
-                        fontSize = 12.sp,
-                        color = colors.inkSecondary,
-                    )
+        // Favorites row (only when user has call peers)
+        if (uiState.favoriteCallers.isNotEmpty()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState())
+                    .padding(horizontal = 22.dp, vertical = 10.dp),
+                horizontalArrangement = Arrangement.spacedBy(18.dp),
+            ) {
+                uiState.favoriteCallers.forEach { favorite ->
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(16.dp))
+                            .clickable { onFavoriteClick(favorite) }
+                            .padding(horizontal = 4.dp, vertical = 4.dp),
+                    ) {
+                        DiuOrbAvatar(
+                            initials = favorite.initials,
+                            moodColor = parseMoodColorHex(favorite.moodHex),
+                            size = 56.dp,
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = favorite.name,
+                            style = AppTheme.typography.bodySmall,
+                            fontSize = 12.sp,
+                            color = colors.inkSecondary,
+                        )
+                    }
                 }
             }
         }

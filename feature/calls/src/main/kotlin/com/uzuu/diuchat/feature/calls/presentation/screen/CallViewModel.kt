@@ -35,8 +35,8 @@ class CallViewModel(
     }
 
     fun initializeCallFromRoute(
-        peerId: String = "minh",
-        peerName: String = "Minh",
+        peerId: String = "",
+        peerName: String = "",
         peerMoodHex: String = "#F7A3A9",
         isVideo: Boolean = false,
         isIncoming: Boolean = false,
@@ -51,8 +51,8 @@ class CallViewModel(
     }
 
     fun ensureCallSession(
-        peerId: String = "minh",
-        peerName: String = "Minh",
+        peerId: String = "",
+        peerName: String = "",
         peerMoodHex: String = "#F7A3A9",
         isVideo: Boolean = false,
         isIncoming: Boolean = false,

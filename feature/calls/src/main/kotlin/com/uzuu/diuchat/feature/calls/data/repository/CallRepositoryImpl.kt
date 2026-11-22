@@ -2,6 +2,7 @@ package com.uzuu.diuchat.feature.calls.data.repository
 
 import com.uzuu.diuchat.feature.calls.data.CallMediaEngine
 import com.uzuu.diuchat.feature.calls.data.CallServiceCoordinator
+import com.uzuu.diuchat.feature.calls.data.CallSupabaseService
 import com.uzuu.diuchat.feature.calls.data.CallTokenService
 import com.uzuu.diuchat.feature.calls.data.WebRtcSignalingAdapter
 import com.uzuu.diuchat.feature.calls.domain.model.CallEndReason
@@ -37,6 +38,7 @@ class CallRepositoryImpl(
     private val coroutineDispatcher: CoroutineDispatcher = Dispatchers.Default,
     private val callTokenService: CallTokenService? = null,
     private val callMediaEngine: CallMediaEngine? = null,
+    private val callSupabaseService: CallSupabaseService? = null,
 ) : CallRepository {
 
     private val repositoryScope = CoroutineScope(coroutineDispatcher)
@@ -44,11 +46,18 @@ class CallRepositoryImpl(
     private val _currentCallSession = MutableStateFlow<CallSession?>(null)
     override val currentCallSession: StateFlow<CallSession?> = _currentCallSession.asStateFlow()
 
-    private val callLogsStateFlow = MutableStateFlow(createInitialCallLogs())
+    private val callLogsStateFlow = MutableStateFlow(
+        if (callSupabaseService?.isConfigured() == true) emptyList() else createInitialCallLogs(),
+    )
 
     private var durationTickerJob: Job? = null
 
     init {
+        repositoryScope.launch {
+            callSupabaseService?.fetchCallLogs()?.let { remoteLogs ->
+                callLogsStateFlow.value = remoteLogs
+            }
+        }
         repositoryScope.launch {
             webRtcSignalingAdapter.signalingEvents.collect { message ->
                 handleIncomingSignaling(message)
@@ -106,10 +115,11 @@ class CallRepositoryImpl(
             "Cuộc gọi khác đang diễn ra"
         }
 
-        val callId = "call_${UUID.randomUUID()}"
+        val callId = UUID.randomUUID().toString()
+        val callerId = callSupabaseService?.currentUserId() ?: "user_me"
         val session = CallSession(
             callId = callId,
-            callerId = "user_me",
+            callerId = callerId,
             callerName = "Tôi",
             calleeId = calleeId,
             calleeName = calleeName,
@@ -241,7 +251,16 @@ class CallRepositoryImpl(
         newFront
     }
 
-    override fun getCallLogs(): Flow<List<CallLog>> = callLogsStateFlow.asStateFlow()
+    override fun getCallLogs(): Flow<List<CallLog>> {
+        if (callSupabaseService?.isConfigured() == true) {
+            repositoryScope.launch {
+                callSupabaseService.fetchCallLogs()?.let { remoteLogs ->
+                    callLogsStateFlow.value = remoteLogs
+                }
+            }
+        }
+        return callLogsStateFlow.asStateFlow()
+    }
 
     private fun startDurationTicker() {
         durationTickerJob?.cancel()

@@ -5,8 +5,8 @@ import com.uzuu.diuchat.feature.calls.domain.model.CallSession
 
 data class CallUiState(
     val callSession: CallSession? = null,
-    val peerId: String = "minh",
-    val peerName: String = "Minh",
+    val peerId: String = "",
+    val peerName: String = "",
     val peerMoodHex: String = "#F7A3A9",
     val isMuted: Boolean = false,
     val isSpeakerOn: Boolean = false,

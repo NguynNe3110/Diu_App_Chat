@@ -30,7 +30,7 @@ data class CallHistoryUiState(
     val callLogs: List<CallLog> = emptyList(),
     val filter: CallHistoryFilter = CallHistoryFilter.ALL,
     val isLoading: Boolean = false,
-    val favoriteCallers: List<FavoriteCaller> = defaultFavoriteCallers(),
+    val favoriteCallers: List<FavoriteCaller> = emptyList(),
 ) : BaseState {
     val filteredLogs: List<CallLog>
         get() = when (filter) {
