@@ -30,6 +30,7 @@ class LettersViewModel(
     }
 
     private fun observeLetters() {
+        sendAction(LettersAction.SetLoading(true))
         getLettersUseCase()
             .onEach { sendAction(LettersAction.SetLetters(it)) }
             .launchIn(viewModelScope)

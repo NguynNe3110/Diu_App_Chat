@@ -7,10 +7,19 @@ import com.uzuu.diuchat.feature.chat.domain.model.MoodType
 import com.uzuu.diuchat.feature.chat.domain.model.VoiceRecordingState
 
 sealed interface ChatAction : BaseAction<ChatUiState> {
+    data class SetLoadingMessages(
+        val isLoading: Boolean,
+    ) : ChatAction {
+        override fun reduce(state: ChatUiState): ChatUiState = state.copy(isLoadingMessages = isLoading)
+    }
+
     data class SetMessages(
         val messages: List<ChatMessage>,
     ) : ChatAction {
-        override fun reduce(state: ChatUiState): ChatUiState = state.copy(messages = messages)
+        override fun reduce(state: ChatUiState): ChatUiState = state.copy(
+            messages = messages,
+            isLoadingMessages = false,
+        )
     }
 
     data class SetConversation(

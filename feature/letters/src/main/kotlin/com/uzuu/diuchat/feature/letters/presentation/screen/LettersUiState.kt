@@ -6,6 +6,7 @@ import com.uzuu.diuchat.feature.letters.domain.model.LetterStatus
 import com.uzuu.diuchat.feature.letters.domain.model.SealedLetter
 
 data class LettersUiState(
+    val isLoading: Boolean = false,
     val letters: List<SealedLetter> = emptyList(),
     val selectedTab: LetterTab = LetterTab.ALL,
     val isComposing: Boolean = false,

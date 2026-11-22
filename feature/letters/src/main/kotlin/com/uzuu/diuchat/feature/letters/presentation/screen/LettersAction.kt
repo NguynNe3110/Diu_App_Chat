@@ -5,8 +5,15 @@ import com.uzuu.diuchat.feature.letters.domain.model.LetterScheduleType
 import com.uzuu.diuchat.feature.letters.domain.model.SealedLetter
 
 sealed class LettersAction : BaseAction<LettersUiState> {
+    data class SetLoading(val isLoading: Boolean) : LettersAction() {
+        override fun reduce(state: LettersUiState): LettersUiState = state.copy(isLoading = isLoading)
+    }
+
     data class SetLetters(val letters: List<SealedLetter>) : LettersAction() {
-        override fun reduce(state: LettersUiState): LettersUiState = state.copy(letters = letters)
+        override fun reduce(state: LettersUiState): LettersUiState = state.copy(
+            letters = letters,
+            isLoading = false,
+        )
     }
 
     data class SetTab(val tab: LetterTab) : LettersAction() {

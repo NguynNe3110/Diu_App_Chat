@@ -13,6 +13,7 @@ data class ChatUiState(
     val conversationTitle: String = "",
     val partnerMood: MoodType = MoodType.BINHYEN,
     val isPartnerInQuietHours: Boolean = false,
+    val isLoadingMessages: Boolean = false,
     val messages: List<ChatMessage> = emptyList(),
     val inputContent: String = "",
     val selectedMood: MoodType = MoodType.THUONG,
