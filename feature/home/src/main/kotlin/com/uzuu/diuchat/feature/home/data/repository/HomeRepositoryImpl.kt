@@ -34,6 +34,13 @@ class HomeRepositoryImpl(
         ioScope.launch {
             syncFromRemote()
         }
+        if (homeSupabaseService.isConfigured()) {
+            ioScope.launch {
+                homeSupabaseService.observeRealtimeUpdates().collect {
+                    syncFromRemote()
+                }
+            }
+        }
     }
 
     override fun getStars(isQuiet: Boolean): Flow<List<StarPerson>> {

@@ -26,6 +26,7 @@ fun DiuPersonRow(
     moodColor: Color,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    avatarUrl: String? = null,
     subtitle: String? = null,
     timestamp: String? = null,
     trailing: (@Composable () -> Unit)? = null,
@@ -40,7 +41,7 @@ fun DiuPersonRow(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        DiuOrbAvatar(initials, moodColor, floatOffsetY = 1.dp)
+        DiuOrbAvatar(initials, moodColor, floatOffsetY = 1.dp, avatarUrl = avatarUrl)
         Column(Modifier.weight(1f)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),

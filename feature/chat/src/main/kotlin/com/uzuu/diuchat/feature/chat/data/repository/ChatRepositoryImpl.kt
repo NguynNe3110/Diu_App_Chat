@@ -41,6 +41,8 @@ class ChatRepositoryImpl(
     ): Flow<List<ChatMessage>> = channelFlow {
         launch {
             syncInitialMessages(conversationId)
+        }
+        launch {
             supabaseService.observeRealtimeMessages(conversationId).collect { dto ->
                 upsertIncomingMessage(dto)
             }
@@ -67,8 +69,19 @@ class ChatRepositoryImpl(
 
     override fun observeConversation(
         conversationId: String,
-    ): Flow<Conversation?> = conversationDao.observeConversation(conversationId).map { entity ->
-        entity?.let(chatMapper::conversationEntityToDomain)
+    ): Flow<Conversation?> = channelFlow {
+        launch {
+            supabaseService.observeProfileUpdates().collect {
+                supabaseService.fetchConversations().getOrNull()?.firstOrNull { it.id == conversationId }?.let { dto ->
+                    conversationDao.upsert(chatMapper.conversationDtoToEntity(dto))
+                }
+            }
+        }
+        launch {
+            conversationDao.observeConversation(conversationId).collect { entity ->
+                send(entity?.let(chatMapper::conversationEntityToDomain))
+            }
+        }
     }
 
     override suspend fun sendMessage(

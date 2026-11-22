@@ -23,4 +23,6 @@ data class HomeStarDto(
     val isQuiet: Boolean = false,
     @SerialName("member_count")
     val memberCount: Int = 1,
+    @SerialName("avatar_url")
+    val avatarUrl: String? = null,
 )

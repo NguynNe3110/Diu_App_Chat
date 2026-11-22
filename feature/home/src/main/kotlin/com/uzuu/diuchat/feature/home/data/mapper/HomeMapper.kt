@@ -21,6 +21,7 @@ class HomeMapper {
         yPercent = dto.yPercent,
         isQuiet = dto.isQuiet,
         memberCount = dto.memberCount,
+        avatarUrl = dto.avatarUrl,
     )
 
     fun toDto(domain: StarPerson): HomeStarDto = HomeStarDto(
@@ -33,6 +34,7 @@ class HomeMapper {
         yPercent = domain.yPercent,
         isQuiet = domain.isQuiet,
         memberCount = domain.memberCount,
+        avatarUrl = domain.avatarUrl,
     )
 
     fun toDomain(dto: RecentChatDto): RecentChat = RecentChat(
@@ -45,6 +47,7 @@ class HomeMapper {
         unreadCount = dto.unreadCount,
         isPendingLetter = dto.isPendingLetter,
         isQuiet = dto.isQuiet,
+        avatarUrl = dto.avatarUrl,
     )
 
     fun toDto(domain: RecentChat): RecentChatDto = RecentChatDto(
@@ -57,6 +60,7 @@ class HomeMapper {
         unreadCount = domain.unreadCount,
         isPendingLetter = domain.isPendingLetter,
         isQuiet = domain.isQuiet,
+        avatarUrl = domain.avatarUrl,
     )
 
     private fun parseMoodColor(hex: String): Color {

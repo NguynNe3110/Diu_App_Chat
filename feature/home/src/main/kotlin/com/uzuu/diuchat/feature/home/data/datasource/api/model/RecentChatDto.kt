@@ -23,4 +23,6 @@ data class RecentChatDto(
     val isPendingLetter: Boolean = false,
     @SerialName("is_quiet")
     val isQuiet: Boolean = false,
+    @SerialName("avatar_url")
+    val avatarUrl: String? = null,
 )

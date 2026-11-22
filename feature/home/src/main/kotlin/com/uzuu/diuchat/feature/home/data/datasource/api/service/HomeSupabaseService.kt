@@ -7,8 +7,27 @@ import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Order
+import io.github.jan.supabase.realtime.PostgresAction
+import io.github.jan.supabase.realtime.RealtimeChannel
+import io.github.jan.supabase.realtime.broadcastFlow
+import io.github.jan.supabase.realtime.channel
+import io.github.jan.supabase.realtime.postgresChangeFlow
+import io.github.jan.supabase.realtime.realtime
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.channelFlow
+import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.merge
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonObject
 import timber.log.Timber
 import java.time.Instant
 import java.time.ZoneId
@@ -21,6 +40,61 @@ class HomeSupabaseService(
     fun isConfigured(): Boolean = supabaseClient != null
 
     fun isAuthenticated(): Boolean = supabaseClient?.auth?.currentUserOrNull() != null
+
+    /**
+     * Lắng nghe thay đổi Realtime cho màn Home (tin nhắn mới, hội thoại, đổi avatar/mood)
+     * qua cả Postgres Changes lẫn Broadcast trên kênh toàn cục để cập nhật ngay khi ở ngoài ChatScreen.
+     */
+    fun observeRealtimeUpdates(): Flow<Unit> {
+        val client = supabaseClient ?: return emptyFlow()
+        return channelFlow {
+            val dbChannel = client.channel(CHANNEL_HOME_DB_UPDATES)
+            val messagesChanges =
+                dbChannel
+                    .postgresChangeFlow<PostgresAction>(schema = SCHEMA_PUBLIC) {
+                        table = TABLE_MESSAGES
+                    }.map { }
+            val profileChanges =
+                dbChannel
+                    .postgresChangeFlow<PostgresAction>(schema = SCHEMA_PUBLIC) {
+                        table = TABLE_USER_PROFILES
+                    }.map { }
+            val conversationChanges =
+                dbChannel
+                    .postgresChangeFlow<PostgresAction>(schema = SCHEMA_PUBLIC) {
+                        table = TABLE_CONVERSATIONS
+                    }.map { }
+
+            val broadcastChannel =
+                client.realtime.subscriptions["realtime:$CHANNEL_GLOBAL_SYNC"]
+                    ?: client.channel(CHANNEL_GLOBAL_SYNC)
+            val newMessageBroadcasts =
+                broadcastChannel.broadcastFlow<JsonObject>(event = EVENT_NEW_MESSAGE).map { }
+            val profileBroadcasts =
+                broadcastChannel.broadcastFlow<JsonObject>(event = EVENT_PROFILE_UPDATED).map { }
+
+            launch {
+                merge(
+                    messagesChanges,
+                    profileChanges,
+                    conversationChanges,
+                    newMessageBroadcasts,
+                    profileBroadcasts,
+                ).collect { send(Unit) }
+            }
+
+            runCatching { dbChannel.subscribe() }.onFailure(::rethrowCancellation)
+            if (broadcastChannel.status.value != RealtimeChannel.Status.SUBSCRIBED) {
+                runCatching { broadcastChannel.subscribe() }.onFailure(::rethrowCancellation)
+            }
+
+            awaitClose {
+                CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
+                    removeChannelSafely(client, dbChannel)
+                }
+            }
+        }
+    }
 
     @Suppress("TooGenericExceptionCaught")
     suspend fun fetchOverview(): HomeOverviewResponse? {
@@ -167,6 +241,9 @@ class HomeSupabaseService(
         val displayName = resolveDisplayName(convo, peerMember, peerProfile)
         val preview = resolveMessagePreview(latestMsg)
         val moodHex = moodToHex(peerProfile?.currentMood ?: convo.moodId)
+        val safeAvatar = peerProfile?.avatarUrl?.takeUnless { url ->
+            url.contains("googleusercontent.com", ignoreCase = true)
+        }
         return RecentChatDto(
             id = convo.id,
             contactName = displayName,
@@ -177,6 +254,7 @@ class HomeSupabaseService(
             unreadCount = 0,
             isPendingLetter = latestMsg?.type == "sealed_letter",
             isQuiet = myMember?.isMuted == true,
+            avatarUrl = safeAvatar,
         )
     }
 
@@ -215,6 +293,7 @@ class HomeSupabaseService(
             yPercent = pos.yPercent,
             isQuiet = chat.isQuiet,
             memberCount = if (conversations.getOrNull(index)?.type == "group") memberCount else 1,
+            avatarUrl = chat.avatarUrl,
         )
     }
 
@@ -276,7 +355,23 @@ class HomeSupabaseService(
         val displayName: String,
         @SerialName("current_mood")
         val currentMood: String? = null,
+        @SerialName("avatar_url")
+        val avatarUrl: String? = null,
     )
+
+    private suspend fun removeChannelSafely(
+        client: SupabaseClient,
+        channel: RealtimeChannel,
+    ) {
+        withContext(NonCancellable) {
+            runCatching { channel.unsubscribe() }
+            runCatching { client.realtime.removeChannel(channel) }
+        }
+    }
+
+    private fun rethrowCancellation(error: Throwable) {
+        if (error is CancellationException) throw error
+    }
 
     @Serializable
     private data class MessageSummaryRow(
@@ -297,6 +392,11 @@ class HomeSupabaseService(
         const val TABLE_CONVERSATIONS = "conversations"
         const val TABLE_USER_PROFILES = "user_profiles"
         const val TABLE_MESSAGES = "messages"
+        const val SCHEMA_PUBLIC = "public"
+        const val CHANNEL_HOME_DB_UPDATES = "home_db_updates"
+        const val CHANNEL_GLOBAL_SYNC = "diu_global_sync"
+        const val EVENT_NEW_MESSAGE = "new_message"
+        const val EVENT_PROFILE_UPDATED = "profile_updated"
         const val RECENT_MESSAGES_LIMIT = 100L
         val TIME_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
         val STAR_POSITIONS = listOf(

@@ -14,6 +14,7 @@ data class FavoriteCaller(
     val name: String,
     val initials: String,
     val moodHex: String,
+    val avatarUrl: String? = null,
 ) {
     val moodColorHex: String
         get() = moodHex
