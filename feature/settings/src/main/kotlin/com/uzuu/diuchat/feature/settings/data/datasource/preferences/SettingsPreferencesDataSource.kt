@@ -34,6 +34,14 @@ class SettingsPreferencesDataSource(
         preferences[KEY_SOFT_SEND_ANIMATION_ENABLED] ?: DEFAULT_SOFT_SEND_ANIMATION_ENABLED
     }
 
+    val vibrateOnceFlow: Flow<Boolean> = dataStore.data.map { preferences ->
+        preferences[KEY_VIBRATE_ONCE_ENABLED] ?: DEFAULT_VIBRATE_ONCE_ENABLED
+    }
+
+    val eveningGroupDigestFlow: Flow<Boolean> = dataStore.data.map { preferences ->
+        preferences[KEY_EVENING_GROUP_DIGEST_ENABLED] ?: DEFAULT_EVENING_GROUP_DIGEST_ENABLED
+    }
+
     val notificationPrivacyFlow: Flow<NotificationPrivacy> = dataStore.data.map { preferences ->
         val raw = preferences[KEY_NOTIFICATION_PRIVACY] ?: NotificationPrivacy.FULL_CONTENT.name
         runCatching { NotificationPrivacy.valueOf(raw) }.getOrDefault(NotificationPrivacy.FULL_CONTENT)
@@ -117,6 +125,18 @@ class SettingsPreferencesDataSource(
         }
     }
 
+    suspend fun updateVibrateOnce(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[KEY_VIBRATE_ONCE_ENABLED] = enabled
+        }
+    }
+
+    suspend fun updateEveningGroupDigest(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[KEY_EVENING_GROUP_DIGEST_ENABLED] = enabled
+        }
+    }
+
     suspend fun updateNotificationPrivacy(privacy: NotificationPrivacy) {
         dataStore.edit { preferences ->
             preferences[KEY_NOTIFICATION_PRIVACY] = privacy.name
@@ -169,11 +189,15 @@ class SettingsPreferencesDataSource(
         private const val DEFAULT_THEME_MODE = "SYSTEM"
         private const val DEFAULT_READ_RECEIPTS_ENABLED = true
         private const val DEFAULT_SOFT_SEND_ANIMATION_ENABLED = true
+        private const val DEFAULT_VIBRATE_ONCE_ENABLED = true
+        private const val DEFAULT_EVENING_GROUP_DIGEST_ENABLED = true
 
         val KEY_ONBOARDING_COMPLETED = booleanPreferencesKey("diu_onboarding_completed")
         val KEY_THEME_MODE = stringPreferencesKey("diu_theme_mode")
         val KEY_READ_RECEIPTS_ENABLED = booleanPreferencesKey("diu_read_receipts_enabled")
         val KEY_SOFT_SEND_ANIMATION_ENABLED = booleanPreferencesKey("diu_soft_send_animation_enabled")
+        val KEY_VIBRATE_ONCE_ENABLED = booleanPreferencesKey("diu_vibrate_once_enabled")
+        val KEY_EVENING_GROUP_DIGEST_ENABLED = booleanPreferencesKey("diu_evening_group_digest_enabled")
         val KEY_NOTIFICATION_PRIVACY = stringPreferencesKey("diu_notification_privacy")
         val KEY_NOTIFICATION_SOUND = stringPreferencesKey("diu_notification_sound")
         val KEY_QUIET_HOURS_ENABLED = booleanPreferencesKey("diu_quiet_hours_enabled")

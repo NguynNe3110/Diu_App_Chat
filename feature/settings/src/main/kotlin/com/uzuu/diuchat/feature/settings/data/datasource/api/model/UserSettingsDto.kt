@@ -8,11 +8,15 @@ internal data class UserSettingsDto(
     @SerialName("user_id")
     val userId: String,
     @SerialName("theme_mode")
-    val themeMode: String = DEFAULT_THEME_MODE,
+    val themeMode: String? = DEFAULT_THEME_MODE,
     @SerialName("read_receipts_enabled")
-    val readReceiptsEnabled: Boolean = true,
+    val readReceiptsEnabled: Boolean? = true,
     @SerialName("soft_send_animation_enabled")
-    val softSendAnimationEnabled: Boolean = true,
+    val softSendAnimationEnabled: Boolean? = true,
+    @SerialName("vibrate_once_enabled")
+    val vibrateOnceEnabled: Boolean? = true,
+    @SerialName("evening_group_digest_enabled")
+    val eveningGroupDigestEnabled: Boolean? = true,
     @SerialName("notification_privacy")
     val notificationPrivacy: String = DEFAULT_NOTIFICATION_PRIVACY,
     @SerialName("notification_sound")

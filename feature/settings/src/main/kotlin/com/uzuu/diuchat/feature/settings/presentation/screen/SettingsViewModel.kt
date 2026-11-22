@@ -7,6 +7,7 @@ import com.uzuu.diuchat.feature.settings.domain.model.NotificationPrivacy
 import com.uzuu.diuchat.feature.settings.domain.model.NotificationSound
 import com.uzuu.diuchat.feature.settings.domain.usecase.DeleteAccountUseCase
 import com.uzuu.diuchat.feature.settings.domain.usecase.GetBlockedContactsUseCase
+import com.uzuu.diuchat.feature.settings.domain.usecase.GetEveningGroupDigestEnabledUseCase
 import com.uzuu.diuchat.feature.settings.domain.usecase.GetNotificationPrivacyUseCase
 import com.uzuu.diuchat.feature.settings.domain.usecase.GetNotificationSoundUseCase
 import com.uzuu.diuchat.feature.settings.domain.usecase.GetProfileUseCase
@@ -14,8 +15,10 @@ import com.uzuu.diuchat.feature.settings.domain.usecase.GetQuietScheduleUseCase
 import com.uzuu.diuchat.feature.settings.domain.usecase.GetReadReceiptsEnabledUseCase
 import com.uzuu.diuchat.feature.settings.domain.usecase.GetSoftSendAnimationEnabledUseCase
 import com.uzuu.diuchat.feature.settings.domain.usecase.GetThemeModeUseCase
+import com.uzuu.diuchat.feature.settings.domain.usecase.GetVibrateOnceEnabledUseCase
 import com.uzuu.diuchat.feature.settings.domain.usecase.LogoutUseCase
 import com.uzuu.diuchat.feature.settings.domain.usecase.UnblockContactUseCase
+import com.uzuu.diuchat.feature.settings.domain.usecase.UpdateEveningGroupDigestEnabledUseCase
 import com.uzuu.diuchat.feature.settings.domain.usecase.UpdateNotificationPrivacyUseCase
 import com.uzuu.diuchat.feature.settings.domain.usecase.UpdateNotificationSoundUseCase
 import com.uzuu.diuchat.feature.settings.domain.usecase.UpdateProfileUseCase
@@ -23,6 +26,7 @@ import com.uzuu.diuchat.feature.settings.domain.usecase.UpdateQuietScheduleUseCa
 import com.uzuu.diuchat.feature.settings.domain.usecase.UpdateReadReceiptsEnabledUseCase
 import com.uzuu.diuchat.feature.settings.domain.usecase.UpdateSoftSendAnimationEnabledUseCase
 import com.uzuu.diuchat.feature.settings.domain.usecase.UpdateThemeModeUseCase
+import com.uzuu.diuchat.feature.settings.domain.usecase.UpdateVibrateOnceEnabledUseCase
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
@@ -31,6 +35,7 @@ import kotlinx.coroutines.launch
 class SettingsViewModel(
     private val deleteAccountUseCase: DeleteAccountUseCase,
     private val getBlockedContactsUseCase: GetBlockedContactsUseCase,
+    private val getEveningGroupDigestEnabledUseCase: GetEveningGroupDigestEnabledUseCase,
     private val getNotificationPrivacyUseCase: GetNotificationPrivacyUseCase,
     private val getNotificationSoundUseCase: GetNotificationSoundUseCase,
     private val getProfileUseCase: GetProfileUseCase,
@@ -38,8 +43,10 @@ class SettingsViewModel(
     private val getReadReceiptsEnabledUseCase: GetReadReceiptsEnabledUseCase,
     private val getSoftSendAnimationEnabledUseCase: GetSoftSendAnimationEnabledUseCase,
     private val getThemeModeUseCase: GetThemeModeUseCase,
+    private val getVibrateOnceEnabledUseCase: GetVibrateOnceEnabledUseCase,
     private val logoutUseCase: LogoutUseCase,
     private val unblockContactUseCase: UnblockContactUseCase,
+    private val updateEveningGroupDigestEnabledUseCase: UpdateEveningGroupDigestEnabledUseCase,
     private val updateNotificationPrivacyUseCase: UpdateNotificationPrivacyUseCase,
     private val updateNotificationSoundUseCase: UpdateNotificationSoundUseCase,
     private val updateProfileUseCase: UpdateProfileUseCase,
@@ -47,6 +54,7 @@ class SettingsViewModel(
     private val updateReadReceiptsEnabledUseCase: UpdateReadReceiptsEnabledUseCase,
     private val updateSoftSendAnimationEnabledUseCase: UpdateSoftSendAnimationEnabledUseCase,
     private val updateThemeModeUseCase: UpdateThemeModeUseCase,
+    private val updateVibrateOnceEnabledUseCase: UpdateVibrateOnceEnabledUseCase,
 ) : BaseViewModel<SettingsUiState, SettingsAction>(SettingsUiState()) {
 
     init {
@@ -84,6 +92,14 @@ class SettingsViewModel(
 
         getNotificationSoundUseCase()
             .onEach { sendAction(SettingsAction.SetNotificationSound(it)) }
+            .launchIn(viewModelScope)
+
+        getVibrateOnceEnabledUseCase()
+            .onEach { sendAction(SettingsAction.ToggleVibrateOnce(it)) }
+            .launchIn(viewModelScope)
+
+        getEveningGroupDigestEnabledUseCase()
+            .onEach { sendAction(SettingsAction.ToggleEveningGroupDigest(it)) }
             .launchIn(viewModelScope)
     }
 
@@ -143,11 +159,15 @@ class SettingsViewModel(
     }
 
     fun toggleVibrateOnce(enabled: Boolean) {
-        sendAction(SettingsAction.ToggleVibrateOnce(enabled))
+        viewModelScope.launch {
+            updateVibrateOnceEnabledUseCase(enabled)
+        }
     }
 
     fun toggleEveningGroupDigest(enabled: Boolean) {
-        sendAction(SettingsAction.ToggleEveningGroupDigest(enabled))
+        viewModelScope.launch {
+            updateEveningGroupDigestEnabledUseCase(enabled)
+        }
     }
 
     fun setNotificationSound(sound: NotificationSound) {

@@ -9,6 +9,7 @@ val presentationModule = module {
         SettingsViewModel(
             deleteAccountUseCase = get(),
             getBlockedContactsUseCase = get(),
+            getEveningGroupDigestEnabledUseCase = get(),
             getNotificationPrivacyUseCase = get(),
             getNotificationSoundUseCase = get(),
             getProfileUseCase = get(),
@@ -16,8 +17,10 @@ val presentationModule = module {
             getReadReceiptsEnabledUseCase = get(),
             getSoftSendAnimationEnabledUseCase = get(),
             getThemeModeUseCase = get(),
+            getVibrateOnceEnabledUseCase = get(),
             logoutUseCase = get(),
             unblockContactUseCase = get(),
+            updateEveningGroupDigestEnabledUseCase = get(),
             updateNotificationPrivacyUseCase = get(),
             updateNotificationSoundUseCase = get(),
             updateProfileUseCase = get(),
@@ -25,6 +28,7 @@ val presentationModule = module {
             updateReadReceiptsEnabledUseCase = get(),
             updateSoftSendAnimationEnabledUseCase = get(),
             updateThemeModeUseCase = get(),
+            updateVibrateOnceEnabledUseCase = get(),
         )
     }
 }

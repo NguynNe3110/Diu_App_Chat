@@ -6,7 +6,9 @@ import com.uzuu.diuchat.feature.settings.domain.model.NotificationSound
 import com.uzuu.diuchat.feature.settings.domain.model.QuietSchedule
 import com.uzuu.diuchat.feature.settings.domain.model.UserProfile
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 
+@Suppress("ComplexInterface", "TooManyFunctions")
 interface SettingsRepository {
     fun getQuietSchedule(): Flow<QuietSchedule>
     suspend fun updateQuietSchedule(quietSchedule: QuietSchedule)
@@ -32,4 +34,8 @@ interface SettingsRepository {
     suspend fun updateSoftSendAnimationEnabled(enabled: Boolean)
     fun getNotificationSound(): Flow<NotificationSound>
     suspend fun updateNotificationSound(sound: NotificationSound)
+    fun getVibrateOnceEnabled(): Flow<Boolean> = flowOf(true)
+    suspend fun updateVibrateOnceEnabled(enabled: Boolean) {}
+    fun getEveningGroupDigestEnabled(): Flow<Boolean> = flowOf(true)
+    suspend fun updateEveningGroupDigestEnabled(enabled: Boolean) {}
 }

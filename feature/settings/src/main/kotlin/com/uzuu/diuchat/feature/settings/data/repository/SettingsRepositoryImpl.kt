@@ -29,6 +29,8 @@ internal class SettingsRepositoryImpl(
     private val inMemoryThemeModeFlow = MutableStateFlow("SYSTEM")
     private val inMemoryReadReceiptsFlow = MutableStateFlow(true)
     private val inMemorySoftSendAnimationFlow = MutableStateFlow(true)
+    private val inMemoryVibrateOnceFlow = MutableStateFlow(true)
+    private val inMemoryEveningGroupDigestFlow = MutableStateFlow(true)
 
     private val inMemoryQuietScheduleFlow = MutableStateFlow(
         QuietSchedule(
@@ -101,6 +103,22 @@ internal class SettingsRepositoryImpl(
 
     override suspend fun updateNotificationSound(sound: NotificationSound) {
         saveNotificationSoundLocally(sound)
+        syncSettingsToRemote()
+    }
+
+    @Suppress("MaxLineLength")
+    override fun getVibrateOnceEnabled(): Flow<Boolean> = preferencesDataSource?.vibrateOnceFlow ?: inMemoryVibrateOnceFlow.asStateFlow()
+
+    override suspend fun updateVibrateOnceEnabled(enabled: Boolean) {
+        saveVibrateOnceLocally(enabled)
+        syncSettingsToRemote()
+    }
+
+    @Suppress("MaxLineLength")
+    override fun getEveningGroupDigestEnabled(): Flow<Boolean> = preferencesDataSource?.eveningGroupDigestFlow ?: inMemoryEveningGroupDigestFlow.asStateFlow()
+
+    override suspend fun updateEveningGroupDigestEnabled(enabled: Boolean) {
+        saveEveningGroupDigestLocally(enabled)
         syncSettingsToRemote()
     }
 
@@ -206,9 +224,18 @@ internal class SettingsRepositoryImpl(
             saveUserProfileLocally(userProfileMapper.toDomain(profileDto))
         }
         bundle.settings?.let { settingsDto ->
-            saveThemeModeLocally(settingsDto.themeMode)
-            saveReadReceiptsLocally(settingsDto.readReceiptsEnabled)
-            saveSoftSendAnimationLocally(settingsDto.softSendAnimationEnabled)
+            settingsDto.themeMode?.let { remoteTheme ->
+                val currentLocalTheme = getThemeMode().first()
+                val shouldKeepSystem = remoteTheme.equals("LIGHT", ignoreCase = true) &&
+                    currentLocalTheme.equals("SYSTEM", ignoreCase = true)
+                if (!shouldKeepSystem) {
+                    saveThemeModeLocally(remoteTheme)
+                }
+            }
+            settingsDto.readReceiptsEnabled?.let { saveReadReceiptsLocally(it) }
+            settingsDto.softSendAnimationEnabled?.let { saveSoftSendAnimationLocally(it) }
+            settingsDto.vibrateOnceEnabled?.let { saveVibrateOnceLocally(it) }
+            settingsDto.eveningGroupDigestEnabled?.let { saveEveningGroupDigestLocally(it) }
             saveNotificationPrivacyLocally(userSettingsMapper.toNotificationPrivacy(settingsDto))
             saveNotificationSoundLocally(userSettingsMapper.toNotificationSound(settingsDto))
             saveQuietScheduleLocally(userSettingsMapper.toQuietSchedule(settingsDto))
@@ -218,7 +245,6 @@ internal class SettingsRepositoryImpl(
     private suspend fun syncSettingsToRemote() {
         val remote = remoteDataSource ?: return
         val userId = getUserProfile().first().id
-        if (userId.isBlank()) return
 
         val dto = userSettingsMapper.toDto(
             userId = userId,
@@ -226,6 +252,8 @@ internal class SettingsRepositoryImpl(
                 themeMode = getThemeMode().first(),
                 readReceiptsEnabled = getReadReceiptsEnabled().first(),
                 softSendAnimationEnabled = getSoftSendAnimationEnabled().first(),
+                vibrateOnceEnabled = getVibrateOnceEnabled().first(),
+                eveningGroupDigestEnabled = getEveningGroupDigestEnabled().first(),
                 notificationPrivacy = getNotificationPrivacy().first(),
                 notificationSound = getNotificationSound().first(),
                 quietSchedule = getQuietSchedule().first(),
@@ -251,6 +279,18 @@ internal class SettingsRepositoryImpl(
     private suspend fun saveSoftSendAnimationLocally(enabled: Boolean) {
         preferencesDataSource?.updateSoftSendAnimation(enabled) ?: run {
             inMemorySoftSendAnimationFlow.value = enabled
+        }
+    }
+
+    private suspend fun saveVibrateOnceLocally(enabled: Boolean) {
+        preferencesDataSource?.updateVibrateOnce(enabled) ?: run {
+            inMemoryVibrateOnceFlow.value = enabled
+        }
+    }
+
+    private suspend fun saveEveningGroupDigestLocally(enabled: Boolean) {
+        preferencesDataSource?.updateEveningGroupDigest(enabled) ?: run {
+            inMemoryEveningGroupDigestFlow.value = enabled
         }
     }
 
