@@ -54,7 +54,7 @@ class SettingsRepositoryImplTest {
 
         coVerify {
             remoteDataSource.upsertUserSettings(
-                match { it.userId == "user_me" && !it.readReceiptsEnabled },
+                match { it.userId == "user_me" && it.readReceiptsEnabled == false },
             )
         }
     }
@@ -176,5 +176,38 @@ class SettingsRepositoryImplTest {
         updated.phone shouldBeEqualTo ""
 
         coVerify { remoteDataSource.signOut() }
+    }
+
+    @Test
+    fun `syncFromRemote preserves local-only settings when remote fields are null`() = runTest {
+        sut.updateReadReceiptsEnabled(false)
+        sut.updateSoftSendAnimationEnabled(false)
+        sut.updateThemeMode("SYSTEM")
+
+        coEvery { remoteDataSource.fetchUserBundle() } returns UserSettingsResponse(
+            profile = null,
+            settings = UserSettingsDto(
+                userId = "remote-1",
+                themeMode = "LIGHT",
+                readReceiptsEnabled = null,
+                softSendAnimationEnabled = null,
+                vibrateOnceEnabled = false,
+                eveningGroupDigestEnabled = false,
+                notificationPrivacy = NotificationPrivacy.MOOD_COLOR_ONLY.name,
+                notificationSound = NotificationSound.SILENT.name,
+                quietHoursEnabled = false,
+            ),
+        )
+
+        sut.syncFromRemote()
+
+        sut.getThemeMode().first() shouldBeEqualTo "SYSTEM"
+        sut.getReadReceiptsEnabled().first() shouldBeEqualTo false
+        sut.getSoftSendAnimationEnabled().first() shouldBeEqualTo false
+        sut.getVibrateOnceEnabled().first() shouldBeEqualTo false
+        sut.getEveningGroupDigestEnabled().first() shouldBeEqualTo false
+        sut.getNotificationPrivacy().first() shouldBeEqualTo NotificationPrivacy.MOOD_COLOR_ONLY
+        sut.getNotificationSound().first() shouldBeEqualTo NotificationSound.SILENT
+        sut.getQuietSchedule().first().enabled shouldBeEqualTo false
     }
 }

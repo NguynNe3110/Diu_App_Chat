@@ -8,6 +8,7 @@ import com.uzuu.diuchat.feature.settings.domain.model.QuietSchedule
 import com.uzuu.diuchat.feature.settings.domain.model.UserProfile
 import com.uzuu.diuchat.feature.settings.domain.usecase.DeleteAccountUseCase
 import com.uzuu.diuchat.feature.settings.domain.usecase.GetBlockedContactsUseCase
+import com.uzuu.diuchat.feature.settings.domain.usecase.GetEveningGroupDigestEnabledUseCase
 import com.uzuu.diuchat.feature.settings.domain.usecase.GetNotificationPrivacyUseCase
 import com.uzuu.diuchat.feature.settings.domain.usecase.GetNotificationSoundUseCase
 import com.uzuu.diuchat.feature.settings.domain.usecase.GetProfileUseCase
@@ -15,8 +16,10 @@ import com.uzuu.diuchat.feature.settings.domain.usecase.GetQuietScheduleUseCase
 import com.uzuu.diuchat.feature.settings.domain.usecase.GetReadReceiptsEnabledUseCase
 import com.uzuu.diuchat.feature.settings.domain.usecase.GetSoftSendAnimationEnabledUseCase
 import com.uzuu.diuchat.feature.settings.domain.usecase.GetThemeModeUseCase
+import com.uzuu.diuchat.feature.settings.domain.usecase.GetVibrateOnceEnabledUseCase
 import com.uzuu.diuchat.feature.settings.domain.usecase.LogoutUseCase
 import com.uzuu.diuchat.feature.settings.domain.usecase.UnblockContactUseCase
+import com.uzuu.diuchat.feature.settings.domain.usecase.UpdateEveningGroupDigestEnabledUseCase
 import com.uzuu.diuchat.feature.settings.domain.usecase.UpdateNotificationPrivacyUseCase
 import com.uzuu.diuchat.feature.settings.domain.usecase.UpdateNotificationSoundUseCase
 import com.uzuu.diuchat.feature.settings.domain.usecase.UpdateProfileUseCase
@@ -24,6 +27,7 @@ import com.uzuu.diuchat.feature.settings.domain.usecase.UpdateQuietScheduleUseCa
 import com.uzuu.diuchat.feature.settings.domain.usecase.UpdateReadReceiptsEnabledUseCase
 import com.uzuu.diuchat.feature.settings.domain.usecase.UpdateSoftSendAnimationEnabledUseCase
 import com.uzuu.diuchat.feature.settings.domain.usecase.UpdateThemeModeUseCase
+import com.uzuu.diuchat.feature.settings.domain.usecase.UpdateVibrateOnceEnabledUseCase
 import com.uzuu.diuchat.library.testutils.CoroutinesTestDispatcherExtension
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -46,6 +50,7 @@ class SettingsViewModelTest {
 
     private val deleteAccountUseCase: DeleteAccountUseCase = mockk(relaxed = true)
     private val getBlockedContactsUseCase: GetBlockedContactsUseCase = mockk()
+    private val getEveningGroupDigestEnabledUseCase: GetEveningGroupDigestEnabledUseCase = mockk()
     private val getNotificationPrivacyUseCase: GetNotificationPrivacyUseCase = mockk()
     private val getNotificationSoundUseCase: GetNotificationSoundUseCase = mockk()
     private val getProfileUseCase: GetProfileUseCase = mockk()
@@ -53,8 +58,10 @@ class SettingsViewModelTest {
     private val getReadReceiptsEnabledUseCase: GetReadReceiptsEnabledUseCase = mockk()
     private val getSoftSendAnimationEnabledUseCase: GetSoftSendAnimationEnabledUseCase = mockk()
     private val getThemeModeUseCase: GetThemeModeUseCase = mockk()
+    private val getVibrateOnceEnabledUseCase: GetVibrateOnceEnabledUseCase = mockk()
     private val logoutUseCase: LogoutUseCase = mockk(relaxed = true)
     private val unblockContactUseCase: UnblockContactUseCase = mockk(relaxed = true)
+    private val updateEveningGroupDigestEnabledUseCase: UpdateEveningGroupDigestEnabledUseCase = mockk(relaxed = true)
     private val updateNotificationPrivacyUseCase: UpdateNotificationPrivacyUseCase = mockk(relaxed = true)
     private val updateNotificationSoundUseCase: UpdateNotificationSoundUseCase = mockk(relaxed = true)
     private val updateProfileUseCase: UpdateProfileUseCase = mockk(relaxed = true)
@@ -62,6 +69,7 @@ class SettingsViewModelTest {
     private val updateReadReceiptsEnabledUseCase: UpdateReadReceiptsEnabledUseCase = mockk(relaxed = true)
     private val updateSoftSendAnimationEnabledUseCase: UpdateSoftSendAnimationEnabledUseCase = mockk(relaxed = true)
     private val updateThemeModeUseCase: UpdateThemeModeUseCase = mockk(relaxed = true)
+    private val updateVibrateOnceEnabledUseCase: UpdateVibrateOnceEnabledUseCase = mockk(relaxed = true)
 
     private val testProfile = UserProfile(
         id = "u1",
@@ -95,10 +103,13 @@ class SettingsViewModelTest {
         every { getReadReceiptsEnabledUseCase() } returns flowOf(true)
         every { getSoftSendAnimationEnabledUseCase() } returns flowOf(true)
         every { getThemeModeUseCase() } returns flowOf("SYSTEM")
+        every { getVibrateOnceEnabledUseCase() } returns flowOf(true)
+        every { getEveningGroupDigestEnabledUseCase() } returns flowOf(true)
 
         sut = SettingsViewModel(
             deleteAccountUseCase = deleteAccountUseCase,
             getBlockedContactsUseCase = getBlockedContactsUseCase,
+            getEveningGroupDigestEnabledUseCase = getEveningGroupDigestEnabledUseCase,
             getNotificationPrivacyUseCase = getNotificationPrivacyUseCase,
             getNotificationSoundUseCase = getNotificationSoundUseCase,
             getProfileUseCase = getProfileUseCase,
@@ -106,8 +117,10 @@ class SettingsViewModelTest {
             getReadReceiptsEnabledUseCase = getReadReceiptsEnabledUseCase,
             getSoftSendAnimationEnabledUseCase = getSoftSendAnimationEnabledUseCase,
             getThemeModeUseCase = getThemeModeUseCase,
+            getVibrateOnceEnabledUseCase = getVibrateOnceEnabledUseCase,
             logoutUseCase = logoutUseCase,
             unblockContactUseCase = unblockContactUseCase,
+            updateEveningGroupDigestEnabledUseCase = updateEveningGroupDigestEnabledUseCase,
             updateNotificationPrivacyUseCase = updateNotificationPrivacyUseCase,
             updateNotificationSoundUseCase = updateNotificationSoundUseCase,
             updateProfileUseCase = updateProfileUseCase,
@@ -115,6 +128,7 @@ class SettingsViewModelTest {
             updateReadReceiptsEnabledUseCase = updateReadReceiptsEnabledUseCase,
             updateSoftSendAnimationEnabledUseCase = updateSoftSendAnimationEnabledUseCase,
             updateThemeModeUseCase = updateThemeModeUseCase,
+            updateVibrateOnceEnabledUseCase = updateVibrateOnceEnabledUseCase,
         )
     }
 
