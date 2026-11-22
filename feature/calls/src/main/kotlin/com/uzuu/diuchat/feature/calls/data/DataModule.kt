@@ -5,8 +5,8 @@ import com.uzuu.diuchat.feature.calls.domain.repository.CallRepository
 import org.koin.dsl.module
 
 val dataModule = module {
-    single<WebRtcSignalingAdapter> { WebRtcSignalingAdapterImpl() }
-    single<CallServiceCoordinator> { CallServiceCoordinatorImpl() }
+    single<WebRtcSignalingAdapter> { WebRtcSignalingAdapterImpl(supabaseClient = getOrNull()) }
+    single<CallServiceCoordinator> { CallServiceCoordinatorImpl(context = getOrNull()) }
     single<CallRepository> {
         CallRepositoryImpl(
             callServiceCoordinator = get(),

@@ -7,6 +7,8 @@ import com.uzuu.diuchat.feature.calls.domain.model.CallLog
 import com.uzuu.diuchat.feature.calls.domain.model.CallSession
 import com.uzuu.diuchat.feature.calls.domain.model.CallStatus
 import com.uzuu.diuchat.feature.calls.domain.model.CallType
+import com.uzuu.diuchat.feature.calls.domain.model.RtcSignalingMessage
+import com.uzuu.diuchat.feature.calls.domain.model.SignalingType
 import com.uzuu.diuchat.feature.calls.domain.repository.CallRepository
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -41,6 +43,53 @@ class CallRepositoryImpl(
     private val callLogsStateFlow = MutableStateFlow(createInitialCallLogs())
 
     private var durationTickerJob: Job? = null
+
+    init {
+        repositoryScope.launch {
+            webRtcSignalingAdapter.signalingEvents.collect { message ->
+                handleIncomingSignaling(message)
+            }
+        }
+    }
+
+    private suspend fun handleIncomingSignaling(message: RtcSignalingMessage) {
+        val current = _currentCallSession.value ?: return
+        if (message.sessionId != current.callId) return
+
+        when (message.type) {
+            SignalingType.ANSWER -> {
+                if (current.status == CallStatus.INVITING || current.status == CallStatus.CONNECTING) {
+                    _currentCallSession.value = current.copy(
+                        status = CallStatus.ACTIVE,
+                        startedAtEpochMs = current.startedAtEpochMs ?: System.currentTimeMillis(),
+                    )
+                    startDurationTicker()
+                    Timber.d("Incoming ANSWER transitioned call %s to ACTIVE", current.callId)
+                }
+            }
+
+            SignalingType.BYE,
+            SignalingType.DECLINE,
+            -> {
+                val isFromRemotePeer = message.senderId != "local_peer" && message.senderId != current.callerId
+                if (isFromRemotePeer && current.status != CallStatus.ENDED) {
+                    val reason = if (message.type == SignalingType.DECLINE) {
+                        CallEndReason.REJECTED
+                    } else {
+                        CallEndReason.COMPLETED
+                    }
+                    Timber.d("Incoming %s from %s ended call %s", message.type, message.senderId, current.callId)
+                    finalizeCall(current, reason)
+                }
+            }
+
+            SignalingType.OFFER,
+            SignalingType.ICE_CANDIDATE,
+            -> {
+                // Handled by WebRTC peer connection layer when media engine is attached
+            }
+        }
+    }
 
     override suspend fun startCall(
         calleeId: String,
@@ -99,6 +148,15 @@ class CallRepositoryImpl(
             isVideo = current.type == CallType.VIDEO,
         )
 
+        webRtcSignalingAdapter.sendSignaling(
+            RtcSignalingMessage(
+                sessionId = callId,
+                senderId = "local_peer",
+                targetId = "remote_peer",
+                type = SignalingType.ANSWER,
+            ),
+        )
+
         startDurationTicker()
         Timber.d("Accepted call: %s, transition to ACTIVE", callId)
         activeSession
@@ -107,6 +165,14 @@ class CallRepositoryImpl(
     override suspend fun rejectCall(callId: String, reason: CallEndReason): Result<Unit> = runCatching {
         val current = _currentCallSession.value
         if (current != null && current.callId == callId && current.status != CallStatus.ENDED) {
+            webRtcSignalingAdapter.sendSignaling(
+                RtcSignalingMessage(
+                    sessionId = callId,
+                    senderId = "local_peer",
+                    targetId = "remote_peer",
+                    type = SignalingType.DECLINE,
+                ),
+            )
             finalizeCall(current, reason)
             Timber.d("Rejected call: %s, reason: %s", callId, reason)
         }
