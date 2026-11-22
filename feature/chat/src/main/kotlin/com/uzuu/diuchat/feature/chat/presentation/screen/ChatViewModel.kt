@@ -497,11 +497,18 @@ class ChatViewModel(
     }
 
     fun onToggleRevealSealedMessage(messageId: String) {
+        val target = uiStateFlow.value.messages.find { it.id == messageId } ?: return
+        val unlockAt = target.unlockAtEpochMs
+        val isTimeReached = unlockAt == null || System.currentTimeMillis() >= unlockAt
+        if (!target.isFromMe && !isTimeReached) return
         sendAction(ChatAction.ToggleRevealSealedMessage(messageId))
     }
 
     fun onCancelSealedMessage(messageId: String) {
         sendAction(ChatAction.CancelSealedMessage(messageId))
+        viewModelScope.launch {
+            deleteMessageUseCase(messageId)
+        }
     }
 
     fun onSendLocationBubble(

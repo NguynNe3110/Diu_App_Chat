@@ -5,20 +5,21 @@ import com.uzuu.diuchat.feature.base.presentation.viewmodel.BaseViewModel
 import com.uzuu.diuchat.feature.home.domain.model.RecentChat
 import com.uzuu.diuchat.feature.home.domain.model.StarPerson
 import com.uzuu.diuchat.feature.home.domain.usecase.DeleteHomeConversationUseCase
+import com.uzuu.diuchat.feature.home.domain.usecase.GetHomeQuietHoursUseCase
 import com.uzuu.diuchat.feature.home.domain.usecase.GetHomeStarsUseCase
 import com.uzuu.diuchat.feature.home.domain.usecase.GetRecentChatsUseCase
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
-import java.util.Calendar
 
-private const val QUIET_START_HOUR = 22
-private const val QUIET_END_HOUR = 6
-
+@OptIn(ExperimentalCoroutinesApi::class)
 class HomeViewModel(
     private val deleteHomeConversationUseCase: DeleteHomeConversationUseCase,
+    private val getHomeQuietHoursUseCase: GetHomeQuietHoursUseCase,
     private val getHomeStarsUseCase: GetHomeStarsUseCase,
     private val getRecentChatsUseCase: GetRecentChatsUseCase,
 ) : BaseViewModel<HomeUiState, HomeAction>(HomeUiState()) {
@@ -29,19 +30,25 @@ class HomeViewModel(
     }
 
     fun loadHomeData() {
-        val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
-        val isQuiet = hour >= QUIET_START_HOUR || hour < QUIET_END_HOUR
         sendAction(HomeAction.SetLoading(true))
         observeJob?.cancel()
         observeJob =
-            combine(
-                getHomeStarsUseCase(isQuiet),
-                getRecentChatsUseCase(),
-            ) { stars, recentChats ->
-                HomeAction.SetData(stars, recentChats, isQuiet)
-            }.onEach { action ->
-                sendAction(action)
-            }.launchIn(viewModelScope)
+            getHomeQuietHoursUseCase()
+                .flatMapLatest { quietStatus ->
+                    combine(
+                        getHomeStarsUseCase(quietStatus.isActive),
+                        getRecentChatsUseCase(),
+                    ) { stars, recentChats ->
+                        HomeAction.SetData(
+                            stars = stars,
+                            recentChats = recentChats,
+                            isQuietModeActive = quietStatus.isActive,
+                            quietBannerText = quietStatus.bannerText,
+                        )
+                    }
+                }.onEach { action ->
+                    sendAction(action)
+                }.launchIn(viewModelScope)
     }
 
     fun onClearData() {

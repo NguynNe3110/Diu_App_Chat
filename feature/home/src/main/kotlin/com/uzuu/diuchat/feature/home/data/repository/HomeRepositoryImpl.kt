@@ -2,6 +2,8 @@ package com.uzuu.diuchat.feature.home.data.repository
 
 import androidx.compose.ui.unit.dp
 import com.uzuu.diuchat.feature.base.common.res.AppPalette
+import com.uzuu.diuchat.feature.base.domain.repository.QuietHoursObserver
+import com.uzuu.diuchat.feature.base.domain.repository.QuietHoursStatus
 import com.uzuu.diuchat.feature.home.data.datasource.api.service.HomeSupabaseService
 import com.uzuu.diuchat.feature.home.data.mapper.HomeMapper
 import com.uzuu.diuchat.feature.home.domain.model.RecentChat
@@ -15,12 +17,14 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 class HomeRepositoryImpl(
     private val homeSupabaseService: HomeSupabaseService,
     private val homeMapper: HomeMapper,
+    private val quietHoursObserver: QuietHoursObserver? = null,
     coroutineScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
 ) : HomeRepository {
     private val starsFlow = MutableSharedFlow<List<StarPerson>>(replay = 1)
@@ -59,6 +63,11 @@ class HomeRepositoryImpl(
     override fun getRecentChats(): Flow<List<RecentChat>> = recentChatsFlow.asSharedFlow()
 
     override fun getUserDisplayName(): Flow<String> = userDisplayNameState.asStateFlow()
+
+    override fun observeQuietHoursStatus(): Flow<QuietHoursStatus> {
+        val observer = quietHoursObserver ?: return flowOf(QuietHoursStatus())
+        return observer.observeQuietHoursStatus()
+    }
 
     override suspend fun refreshFromRemote() {
         syncFromRemote()

@@ -9,6 +9,7 @@ import com.uzuu.diuchat.feature.settings.domain.model.QuietSchedule
 import com.uzuu.diuchat.feature.settings.domain.model.UserProfile
 
 data class SettingsUiState(
+    val isLoaded: Boolean = false,
     val userProfile: UserProfile = UserProfile(),
     val quietSchedule: QuietSchedule = QuietSchedule(),
     val notificationPrivacy: NotificationPrivacy = NotificationPrivacy.FULL_CONTENT,

@@ -1,5 +1,6 @@
 package com.uzuu.diuchat.feature.home.data
 
+import com.uzuu.diuchat.feature.base.domain.repository.QuietHoursObserver
 import com.uzuu.diuchat.feature.home.data.datasource.api.service.HomeSupabaseService
 import com.uzuu.diuchat.feature.home.data.mapper.HomeMapper
 import com.uzuu.diuchat.feature.home.data.repository.HomeRepositoryImpl
@@ -19,6 +20,7 @@ internal val dataModule =
             HomeRepositoryImpl(
                 homeSupabaseService = get(),
                 homeMapper = get(),
+                quietHoursObserver = getOrNull<QuietHoursObserver>(),
             )
         }
     }
