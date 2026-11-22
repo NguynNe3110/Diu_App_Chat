@@ -28,6 +28,7 @@ class HomeViewModel(
     fun loadHomeData() {
         val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
         val isQuiet = hour >= QUIET_START_HOUR || hour < QUIET_END_HOUR
+        sendAction(HomeAction.SetLoading(true))
         observeJob?.cancel()
         observeJob =
             combine(

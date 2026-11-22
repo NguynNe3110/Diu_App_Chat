@@ -20,6 +20,7 @@ class CallHistoryViewModel(
     }
 
     private fun observeCallHistory() {
+        sendAction(CallHistoryAction.SetLoading(true))
         getCallHistoryUseCase()
             .onEach { logs ->
                 sendAction(CallHistoryAction.SetCallLogs(logs))

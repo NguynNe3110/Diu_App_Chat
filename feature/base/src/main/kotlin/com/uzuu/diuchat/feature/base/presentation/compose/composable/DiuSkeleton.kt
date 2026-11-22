@@ -356,6 +356,42 @@ fun DiuCardSkeleton(
     }
 }
 
+/**
+ * Skeleton dạng luồng tin nhắn chat xen kẽ trái/phải đồng pha shimmer.
+ */
+@Composable
+fun DiuChatMessagesSkeleton(
+    modifier: Modifier = Modifier,
+    bubbleCount: Int = 5,
+) {
+    val widthFractions = listOf(0.68f, 0.56f, 0.74f, 0.48f, 0.62f)
+    DiuShimmerContainer(modifier = modifier.fillMaxWidth()) {
+        Column(
+            modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            repeat(bubbleCount.coerceAtLeast(1)) { index ->
+                val isMine = index % 2 == 1
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = if (isMine) Arrangement.End else Arrangement.Start,
+                ) {
+                    DiuSkeletonBox(
+                        modifier =
+                        Modifier
+                            .fillMaxWidth(widthFractions[index % widthFractions.size])
+                            .height(if (index % 3 == 0) 58.dp else 44.dp),
+                        shape = RoundedCornerShape(18.dp),
+                    )
+                }
+            }
+        }
+    }
+}
+
 @Preview(name = "Skeleton — Light", showBackground = true)
 @Preview(name = "Skeleton — Dark", uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Composable

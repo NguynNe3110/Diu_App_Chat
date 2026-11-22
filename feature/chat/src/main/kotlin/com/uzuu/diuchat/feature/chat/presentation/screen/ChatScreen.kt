@@ -63,6 +63,7 @@ import com.uzuu.diuchat.feature.base.common.res.AppPalette
 import com.uzuu.diuchat.feature.base.common.res.AppTheme
 import com.uzuu.diuchat.feature.base.common.res.DiuSerif
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuButton
+import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuChatMessagesSkeleton
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuIconButton
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuMediaSourceSheet
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuMoodDot
@@ -527,7 +528,9 @@ fun ChatContent(
                 .fillMaxSize()
                 .padding(paddingValues),
         ) {
-            if (state.messages.isEmpty()) {
+            if (state.isLoadingMessages && state.messages.isEmpty()) {
+                DiuChatMessagesSkeleton(modifier = Modifier.fillMaxSize())
+            } else if (state.messages.isEmpty()) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center,

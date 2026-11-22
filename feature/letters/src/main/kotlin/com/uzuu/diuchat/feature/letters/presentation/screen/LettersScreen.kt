@@ -59,10 +59,12 @@ import com.uzuu.diuchat.feature.base.common.res.AppTheme
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuButton
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuButtonVariant
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuCard
+import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuCardSkeleton
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuEmptyState
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuFilterChip
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuOrbAvatar
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuSectionHeader
+import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuShimmerContainer
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuTopBar
 import com.uzuu.diuchat.feature.letters.domain.model.LetterStatus
 import com.uzuu.diuchat.feature.letters.domain.model.SealedLetter
@@ -169,7 +171,19 @@ fun LettersContent(
                 }
 
                 // Danh sách thư
-                if (uiState.filteredLetters.isEmpty()) {
+                if (uiState.isLoading && uiState.filteredLetters.isEmpty()) {
+                    DiuShimmerContainer(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(16.dp),
+                    ) {
+                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            repeat(3) {
+                                DiuCardSkeleton(lineCount = 2)
+                            }
+                        }
+                    }
+                } else if (uiState.filteredLetters.isEmpty()) {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),

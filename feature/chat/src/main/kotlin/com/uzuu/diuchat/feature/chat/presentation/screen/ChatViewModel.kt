@@ -68,6 +68,7 @@ class ChatViewModel(
         if (uiStateFlow.value.conversationId != conversationId) {
             sendAction(ChatAction.SetConversationId(conversationId))
         }
+        sendAction(ChatAction.SetLoadingMessages(true))
         messagesJob?.cancel()
         messagesJob = viewModelScope.launch {
             getMessagesUseCase(conversationId)
