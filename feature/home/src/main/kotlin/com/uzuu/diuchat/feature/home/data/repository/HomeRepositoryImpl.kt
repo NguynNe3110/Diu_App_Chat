@@ -21,29 +21,51 @@ class HomeRepositoryImpl(
     private val homeMapper: HomeMapper,
     coroutineScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
 ) : HomeRepository {
-    private val starsState = MutableStateFlow(seedStars())
-    private val recentChatsState = MutableStateFlow(seedRecentChats())
+    private val starsState = MutableStateFlow(
+        if (homeSupabaseService.isConfigured()) emptyList() else seedStars(),
+    )
+    private val recentChatsState = MutableStateFlow(
+        if (homeSupabaseService.isConfigured()) emptyList() else seedRecentChats(),
+    )
+    private val userDisplayNameState = MutableStateFlow("")
+    private val ioScope = coroutineScope
 
     init {
-        coroutineScope.launch {
+        ioScope.launch {
             syncFromRemote()
         }
     }
 
-    override fun getStars(isQuiet: Boolean): Flow<List<StarPerson>> = starsState.map { stars ->
-        stars.map { star ->
-            if (star.id == "minh") star.copy(isQuiet = isQuiet) else star
+    override fun getStars(isQuiet: Boolean): Flow<List<StarPerson>> {
+        if (starsState.value.isEmpty() && homeSupabaseService.isAuthenticated()) {
+            ioScope.launch { syncFromRemote() }
+        }
+        return starsState.map { stars ->
+            stars.map { star ->
+                if (star.id == "minh") star.copy(isQuiet = isQuiet) else star
+            }
         }
     }
 
     override fun getRecentChats(): Flow<List<RecentChat>> = recentChatsState.asStateFlow()
 
+    override fun getUserDisplayName(): Flow<String> = userDisplayNameState.asStateFlow()
+
     override suspend fun refreshFromRemote() {
         syncFromRemote()
     }
 
+    override suspend fun clearLocalData() {
+        if (homeSupabaseService.isConfigured()) {
+            starsState.value = emptyList()
+            recentChatsState.value = emptyList()
+            userDisplayNameState.value = ""
+        }
+    }
+
     suspend fun syncFromRemote() {
         val overview = homeSupabaseService.fetchOverview() ?: return
+        overview.userDisplayName?.let { userDisplayNameState.value = it }
         if (homeSupabaseService.isAuthenticated()) {
             starsState.value = overview.stars.map(homeMapper::toDomain)
             recentChatsState.value = overview.recentChats.map(homeMapper::toDomain)

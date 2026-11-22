@@ -29,6 +29,7 @@ class HomeRepositoryImplTest {
 
     @BeforeEach
     fun setUp() {
+        every { homeSupabaseService.isConfigured() } returns false
         every { homeSupabaseService.isAuthenticated() } returns false
         coEvery { homeSupabaseService.fetchOverview() } returns null
         sut = HomeRepositoryImpl(
@@ -105,6 +106,7 @@ class HomeRepositoryImplTest {
     fun `HomeSupabaseService returns null safely when supabaseClient is null`() = runTest {
         val service = HomeSupabaseService(supabaseClient = null)
 
+        assertFalse(service.isConfigured())
         assertFalse(service.isAuthenticated())
         assertNull(service.fetchOverview())
     }

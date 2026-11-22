@@ -102,18 +102,32 @@ class ContactsRepositoryImpl(
         emit(remoteUrl ?: DEFAULT_INVITE_LINK)
     }
 
+    override suspend fun refreshFromRemote() {
+        syncOrSeedInitialData()
+    }
+
+    override suspend fun clearLocalData() {
+        if (contactsSupabaseService.isConfigured()) {
+            contactDao.deleteAllContacts()
+            contactDao.deleteAllRequests()
+        }
+    }
+
     suspend fun syncOrSeedInitialData() {
         val remoteSync = contactsSupabaseService.syncContacts()
         if (remoteSync != null) {
-            if (remoteSync.contacts.isNotEmpty()) {
-                contactDao.insertAll(remoteSync.contacts.map(contactMapper::toEntity))
-            }
-            if (remoteSync.pendingRequests.isNotEmpty()) {
-                contactDao.insertAllRequests(remoteSync.pendingRequests.map(connectionRequestMapper::toEntity))
-            }
+            contactDao.replaceAll(
+                contacts = remoteSync.contacts.map(contactMapper::toEntity),
+                requests = remoteSync.pendingRequests.map(connectionRequestMapper::toEntity),
+            )
             return
         }
-        seedInitialDataIfNeeded()
+        if (!contactsSupabaseService.isConfigured()) {
+            seedInitialDataIfNeeded()
+        } else {
+            contactDao.deleteAllContacts()
+            contactDao.deleteAllRequests()
+        }
     }
 
     private suspend fun seedInitialDataIfNeeded() {

@@ -18,6 +18,8 @@ import kotlin.coroutines.cancellation.CancellationException
 class HomeSupabaseService(
     private val supabaseClient: SupabaseClient?,
 ) {
+    fun isConfigured(): Boolean = supabaseClient != null
+
     fun isAuthenticated(): Boolean = supabaseClient?.auth?.currentUserOrNull() != null
 
     @Suppress("TooGenericExceptionCaught")
@@ -26,11 +28,16 @@ class HomeSupabaseService(
         val currentUserId = client.auth.currentUserOrNull()?.id ?: return null
 
         return try {
+            val userDisplayName = fetchCurrentUserDisplayName(client, currentUserId)
             val myMemberships = fetchActiveMemberships(client, currentUserId)
             if (myMemberships.isEmpty()) {
-                HomeOverviewResponse(stars = emptyList(), recentChats = emptyList())
+                HomeOverviewResponse(
+                    userDisplayName = userDisplayName,
+                    stars = emptyList(),
+                    recentChats = emptyList(),
+                )
             } else {
-                loadOverviewForMemberships(client, currentUserId, myMemberships)
+                loadOverviewForMemberships(client, currentUserId, userDisplayName, myMemberships)
             }
         } catch (error: CancellationException) {
             throw error
@@ -40,9 +47,22 @@ class HomeSupabaseService(
         }
     }
 
+    private suspend fun fetchCurrentUserDisplayName(
+        client: SupabaseClient,
+        userId: String,
+    ): String? = runCatching {
+        client.postgrest
+            .from(TABLE_USER_PROFILES)
+            .select {
+                filter { eq("id", userId) }
+            }.decodeSingleOrNull<ProfileRow>()
+            ?.displayName
+    }.getOrNull()
+
     private suspend fun loadOverviewForMemberships(
         client: SupabaseClient,
         currentUserId: String,
+        userDisplayName: String?,
         myMemberships: List<MemberRow>,
     ): HomeOverviewResponse {
         val convoIds = myMemberships.map { it.conversationId }.distinct()
@@ -66,7 +86,11 @@ class HomeSupabaseService(
             )
         }
         val stars = buildStars(recentChats, conversations, membersByConvo)
-        return HomeOverviewResponse(stars = stars, recentChats = recentChats)
+        return HomeOverviewResponse(
+            userDisplayName = userDisplayName,
+            stars = stars,
+            recentChats = recentChats,
+        )
     }
 
     private suspend fun fetchActiveMemberships(

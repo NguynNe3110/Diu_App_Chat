@@ -71,6 +71,7 @@ class ContactsViewModelTest {
     fun setUp() {
         every { mockGetContactsUseCase() } returns flowOf(testContacts)
         every { mockGetPendingRequestsUseCase() } returns flowOf(testRequests)
+        coEvery { mockContactsRepository.refreshFromRemote() } returns Unit
 
         sut =
             ContactsViewModel(

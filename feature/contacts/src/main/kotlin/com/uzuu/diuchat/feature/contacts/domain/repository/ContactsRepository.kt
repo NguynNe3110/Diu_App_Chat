@@ -22,5 +22,9 @@ interface ContactsRepository {
 
     suspend fun openDirectChat(contactId: String): Result<String>
 
+    suspend fun refreshFromRemote() {}
+
+    suspend fun clearLocalData() {}
+
     fun getMyInviteLink(): Flow<String>
 }

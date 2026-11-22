@@ -7,6 +7,8 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class HomeOverviewResponse(
+    @SerialName("user_display_name")
+    val userDisplayName: String? = null,
     @SerialName("stars")
     val stars: List<HomeStarDto> = emptyList(),
     @SerialName("recent_chats")

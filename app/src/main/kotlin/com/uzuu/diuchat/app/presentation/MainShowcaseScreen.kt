@@ -319,6 +319,7 @@ fun MainShowcaseScreen(
                                     navController.navigate(NavigationRoute.OnBoarding)
                                 },
                                 onLoggedOut = {
+                                    sessionViewModel.onLoggedOut()
                                     navController.navigate(NavigationRoute.Auth) {
                                         popUpTo(0) { inclusive = true }
                                         launchSingleTop = true

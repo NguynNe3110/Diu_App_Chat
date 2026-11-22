@@ -32,9 +32,13 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -43,6 +47,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -106,8 +111,13 @@ fun HomeScreenContent(
         ) {
             // ── Top Header ──────────────────────────────────────────────
             item {
+                val greetingText = if (state.userName.isNotBlank()) {
+                    "${state.greeting}, ${state.userName}"
+                } else {
+                    state.greeting
+                }
                 HomeHeader(
-                    greeting = "${state.greeting}, ${state.userName}",
+                    greeting = greetingText,
                     onSearchClick = onSearchClick,
                 )
             }
@@ -356,13 +366,18 @@ private fun ConstellationSection(
         stars.forEachIndexed { index, star ->
             val phaseFactor = if (index % 2 == 0) 1f else -1f
             val currentOffset = (floatOffset * phaseFactor).roundToInt()
+            var itemSize by remember { mutableStateOf(IntSize.Zero) }
 
-            val targetX = (widthPx * star.xPercent).roundToInt()
-            val targetY = (heightPx * star.yPercent).roundToInt()
+            val maxX = (constraints.maxWidth - itemSize.width).coerceAtLeast(0)
+            val maxY = (constraints.maxHeight - itemSize.height).coerceAtLeast(0)
+            val targetX = ((widthPx * star.xPercent).roundToInt() - itemSize.width / 2).coerceIn(0, maxX)
+            val targetY = ((heightPx * star.yPercent).roundToInt() - itemSize.height / 2 + currentOffset)
+                .coerceIn(0, maxY)
 
             Box(
                 modifier = Modifier
-                    .offset { IntOffset(targetX, targetY + currentOffset) }
+                    .offset { IntOffset(targetX, targetY) }
+                    .onSizeChanged { itemSize = it }
                     .clickable(
                         role = Role.Button,
                         onClick = { onStarClick(star.id) },

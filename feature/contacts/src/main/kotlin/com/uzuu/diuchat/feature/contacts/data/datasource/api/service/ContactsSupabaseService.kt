@@ -18,6 +18,8 @@ import kotlin.coroutines.cancellation.CancellationException
 class ContactsSupabaseService(
     private val supabaseClient: SupabaseClient?,
 ) {
+    fun isConfigured(): Boolean = supabaseClient != null
+
     suspend fun syncContacts(): ContactsSyncResponse? {
         val client = supabaseClient ?: return null
         val userId = client.auth.currentUserOrNull()?.id ?: return null

@@ -63,6 +63,7 @@ class ContactsRepositoryImplTest {
 
     @BeforeEach
     fun setUp() {
+        every { contactsSupabaseService.isConfigured() } returns false
         coEvery { contactDao.getCount() } returns 1
         coEvery { contactDao.getRequestCount() } returns 1
         coEvery { contactsSupabaseService.syncContacts() } returns null
@@ -201,8 +202,10 @@ class ContactsRepositoryImplTest {
         sut.syncOrSeedInitialData()
 
         coVerify(exactly = 1) {
-            contactDao.insertAll(match { it.size == 1 && it.first().id == "c_remote" })
-            contactDao.insertAllRequests(match { it.size == 1 && it.first().id == "req_remote" })
+            contactDao.replaceAll(
+                contacts = match { it.size == 1 && it.first().id == "c_remote" },
+                requests = match { it.size == 1 && it.first().id == "req_remote" },
+            )
         }
     }
 

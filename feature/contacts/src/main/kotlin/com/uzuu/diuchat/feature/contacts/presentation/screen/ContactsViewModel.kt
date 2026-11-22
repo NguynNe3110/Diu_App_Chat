@@ -22,6 +22,9 @@ class ContactsViewModel(
 ) : BaseViewModel<ContactsUiState, ContactsAction>(ContactsUiState()) {
     init {
         observeData()
+        viewModelScope.launch {
+            contactsRepository.refreshFromRemote()
+        }
     }
 
     private fun observeData() {
