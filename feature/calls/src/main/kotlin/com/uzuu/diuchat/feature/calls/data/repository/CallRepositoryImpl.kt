@@ -58,6 +58,15 @@ class CallRepositoryImpl(
                 callLogsStateFlow.value = remoteLogs
             }
         }
+        if (callSupabaseService?.isConfigured() == true) {
+            repositoryScope.launch {
+                callSupabaseService.observeRealtimeUpdates().collect {
+                    callSupabaseService.fetchCallLogs()?.let { remoteLogs ->
+                        callLogsStateFlow.value = remoteLogs
+                    }
+                }
+            }
+        }
         repositoryScope.launch {
             webRtcSignalingAdapter.signalingEvents.collect { message ->
                 handleIncomingSignaling(message)

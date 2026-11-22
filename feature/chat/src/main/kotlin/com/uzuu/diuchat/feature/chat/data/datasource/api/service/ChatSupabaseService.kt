@@ -28,12 +28,14 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
@@ -198,7 +200,7 @@ class ChatSupabaseService(
         conversations: List<ConversationDto>,
     ): List<ConversationDto> {
         val directIds = conversations
-            .filter { it.type.equals("direct", ignoreCase = true) && it.title.isNullOrBlank() }
+            .filter { it.type.equals("direct", ignoreCase = true) }
             .map { it.id }
         if (directIds.isEmpty()) return conversations
 
@@ -276,6 +278,38 @@ class ChatSupabaseService(
     }
 
     /** Broadcast không bắt buộc: lỗi ở đây không làm hỏng ACK của upsert. */
+    fun observeProfileUpdates(): Flow<Unit> {
+        val client = supabaseClient ?: return emptyFlow()
+        return channelFlow {
+            val dbChannel = client.channel(CHANNEL_CHAT_PROFILE_UPDATES)
+            val profileChanges =
+                dbChannel
+                    .postgresChangeFlow<PostgresAction>(schema = SCHEMA_PUBLIC) {
+                        table = TABLE_USER_PROFILES
+                    }.map { }
+            val globalChannel =
+                client.realtime.subscriptions["realtime:$CHANNEL_GLOBAL_SYNC"]
+                    ?: client.channel(CHANNEL_GLOBAL_SYNC)
+            val profileBroadcasts =
+                globalChannel.broadcastFlow<JsonObject>(event = EVENT_PROFILE_UPDATED).map { }
+
+            launch {
+                merge(profileChanges, profileBroadcasts).collect { send(Unit) }
+            }
+
+            runCatching { dbChannel.subscribe() }.onFailure(::rethrowCancellation)
+            if (globalChannel.status.value != RealtimeChannel.Status.SUBSCRIBED) {
+                runCatching { globalChannel.subscribe() }.onFailure(::rethrowCancellation)
+            }
+
+            awaitClose {
+                CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
+                    removeChannelSafely(client, dbChannel)
+                }
+            }
+        }
+    }
+
     private suspend fun broadcastNewMessage(
         client: SupabaseClient,
         message: MessageDto,
@@ -284,6 +318,19 @@ class ChatSupabaseService(
             client
                 .channel(channelName(message.conversationId))
                 .broadcast(event = EVENT_NEW_MESSAGE, message = message)
+        }.onFailure(::rethrowCancellation)
+        runCatching {
+            val globalChannel =
+                client.realtime.subscriptions["realtime:$CHANNEL_GLOBAL_SYNC"]
+                    ?: client.channel(CHANNEL_GLOBAL_SYNC)
+            globalChannel.broadcast(
+                event = EVENT_NEW_MESSAGE,
+                message =
+                buildJsonObject {
+                    put("conversation_id", message.conversationId)
+                    put("message_id", message.id)
+                },
+            )
         }.onFailure(::rethrowCancellation)
     }
 
@@ -340,7 +387,10 @@ class ChatSupabaseService(
         const val TABLE_MESSAGES = "messages"
         const val BUCKET_CHAT_MEDIA = "chat-media"
         const val SCHEMA_PUBLIC = "public"
+        const val CHANNEL_GLOBAL_SYNC = "diu_global_sync"
+        const val CHANNEL_CHAT_PROFILE_UPDATES = "chat_profile_updates"
         const val EVENT_NEW_MESSAGE = "new_message"
+        const val EVENT_PROFILE_UPDATED = "profile_updated"
 
         fun channelName(conversationId: String): String = "chat_messages_$conversationId"
     }

@@ -149,6 +149,7 @@ fun CallHistoryContent(
                             initials = favorite.initials.ifEmpty { favorite.name.take(1) }.uppercase(),
                             moodColor = parseMoodColorHex(favorite.moodHex),
                             size = 56.dp,
+                            avatarUrl = favorite.avatarUrl,
                         )
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
@@ -198,7 +199,7 @@ fun CallHistoryContent(
                     items(sectionLogs, key = { it.id }) { log ->
                         CallHistoryItem(
                             log = log,
-                            moodHex = inferPeerMoodHex(log.peerName, uiState.favoriteCallers),
+                            moodHex = log.peerMoodHex.ifBlank { inferPeerMoodHex(log.peerName, uiState.favoriteCallers) },
                             onRedial = { onRedial(log) },
                             modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
                         )
@@ -277,6 +278,7 @@ private fun CallHistoryItem(
                 initials = log.peerName.ifEmpty { "D" }.take(1).uppercase(),
                 moodColor = parseMoodColorHex(moodHex),
                 size = 44.dp,
+                avatarUrl = log.peerAvatarUrl,
             )
 
             Column {

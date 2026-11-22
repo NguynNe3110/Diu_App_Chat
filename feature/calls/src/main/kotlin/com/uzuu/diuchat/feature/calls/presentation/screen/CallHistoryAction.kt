@@ -17,7 +17,10 @@ sealed class CallHistoryAction : BaseAction<CallHistoryUiState> {
                         peerId = log.peerId,
                         name = log.peerName,
                         initials = log.peerName.trim().take(1).uppercase().ifEmpty { "?" },
-                        moodHex = FAVORITE_MOOD_PALETTE[index % FAVORITE_MOOD_PALETTE.size],
+                        moodHex = log.peerMoodHex.ifBlank {
+                            FAVORITE_MOOD_PALETTE[index % FAVORITE_MOOD_PALETTE.size]
+                        },
+                        avatarUrl = log.peerAvatarUrl,
                     )
                 }
             return state.copy(

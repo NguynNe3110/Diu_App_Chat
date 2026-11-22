@@ -12,4 +12,5 @@ data class RecentChat(
     val unreadCount: Int = 0,
     val isPendingLetter: Boolean = false,
     val isQuiet: Boolean = false,
+    val avatarUrl: String? = null,
 )

@@ -7,8 +7,27 @@ import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Order
+import io.github.jan.supabase.realtime.PostgresAction
+import io.github.jan.supabase.realtime.RealtimeChannel
+import io.github.jan.supabase.realtime.broadcastFlow
+import io.github.jan.supabase.realtime.channel
+import io.github.jan.supabase.realtime.postgresChangeFlow
+import io.github.jan.supabase.realtime.realtime
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.channelFlow
+import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.merge
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonObject
 import timber.log.Timber
 import java.time.Instant
 import kotlin.coroutines.cancellation.CancellationException
@@ -19,6 +38,44 @@ class CallSupabaseService(
     fun isConfigured(): Boolean = supabaseClient != null
 
     fun currentUserId(): String? = runCatching { supabaseClient?.auth?.currentUserOrNull()?.id }.getOrNull()
+
+    fun observeRealtimeUpdates(): Flow<Unit> {
+        val client = supabaseClient ?: return emptyFlow()
+        return channelFlow {
+            val dbChannel = client.channel(CHANNEL_CALLS_DB_UPDATES)
+            val callLogChanges =
+                dbChannel
+                    .postgresChangeFlow<PostgresAction>(schema = SCHEMA_PUBLIC) {
+                        table = TABLE_CALL_LOGS
+                    }.map { }
+            val profileChanges =
+                dbChannel
+                    .postgresChangeFlow<PostgresAction>(schema = SCHEMA_PUBLIC) {
+                        table = TABLE_USER_PROFILES
+                    }.map { }
+
+            val broadcastChannel =
+                client.realtime.subscriptions["realtime:$CHANNEL_GLOBAL_SYNC"]
+                    ?: client.channel(CHANNEL_GLOBAL_SYNC)
+            val profileBroadcasts =
+                broadcastChannel.broadcastFlow<JsonObject>(event = EVENT_PROFILE_UPDATED).map { }
+
+            launch {
+                merge(callLogChanges, profileChanges, profileBroadcasts).collect { send(Unit) }
+            }
+
+            runCatching { dbChannel.subscribe() }.onFailure(::rethrowCancellation)
+            if (broadcastChannel.status.value != RealtimeChannel.Status.SUBSCRIBED) {
+                runCatching { broadcastChannel.subscribe() }.onFailure(::rethrowCancellation)
+            }
+
+            awaitClose {
+                CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
+                    removeChannelSafely(client, dbChannel)
+                }
+            }
+        }
+    }
 
     @Suppress("TooGenericExceptionCaught")
     suspend fun fetchCallLogs(): List<CallLog>? {
@@ -66,7 +123,11 @@ class CallSupabaseService(
         return rows.map { row ->
             val isIncoming = row.calleeId == userId
             val peerId = if (isIncoming) row.callerId else row.calleeId
-            val peerName = profiles[peerId]?.displayName ?: "Người dùng"
+            val peerProfile = profiles[peerId]
+            val peerName = peerProfile?.displayName ?: "Người dùng"
+            val safeAvatar = peerProfile?.avatarUrl?.takeUnless { url ->
+                url.contains("googleusercontent.com", ignoreCase = true)
+            }
             CallLog(
                 id = row.id,
                 callId = row.id,
@@ -77,6 +138,8 @@ class CallSupabaseService(
                 durationSeconds = row.durationSec.toLong(),
                 timestampEpochMs = parseIsoMillis(row.startedAt),
                 isIncoming = isIncoming,
+                peerMoodHex = moodToHex(peerProfile?.currentMood),
+                peerAvatarUrl = safeAvatar,
             )
         }
     }
@@ -133,11 +196,42 @@ class CallSupabaseService(
         val id: String,
         @SerialName("display_name")
         val displayName: String,
+        @SerialName("current_mood")
+        val currentMood: String? = null,
+        @SerialName("avatar_url")
+        val avatarUrl: String? = null,
     )
+
+    private fun moodToHex(mood: String?): String = when (mood?.lowercase()) {
+        "thuong" -> "#F7A3A9"
+        "vui" -> "#FCD36D"
+        "nho" -> "#C4B5FD"
+        "tram" -> "#94A3B8"
+        "binhyen" -> "#7ED9B4"
+        else -> "#F7A3A9"
+    }
+
+    private suspend fun removeChannelSafely(
+        client: SupabaseClient,
+        channel: RealtimeChannel,
+    ) {
+        withContext(NonCancellable) {
+            runCatching { channel.unsubscribe() }
+            runCatching { client.realtime.removeChannel(channel) }
+        }
+    }
+
+    private fun rethrowCancellation(error: Throwable) {
+        if (error is CancellationException) throw error
+    }
 
     private companion object {
         const val TABLE_CALL_LOGS = "call_logs"
         const val TABLE_USER_PROFILES = "user_profiles"
+        const val SCHEMA_PUBLIC = "public"
+        const val CHANNEL_CALLS_DB_UPDATES = "calls_db_updates"
+        const val CHANNEL_GLOBAL_SYNC = "diu_global_sync"
+        const val EVENT_PROFILE_UPDATED = "profile_updated"
         const val CALL_LOGS_LIMIT = 50L
     }
 }

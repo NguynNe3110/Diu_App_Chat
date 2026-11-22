@@ -221,6 +221,7 @@ fun HomeScreenContent(
                         name = chat.contactName,
                         initials = chat.initials,
                         moodColor = chat.moodColor,
+                        avatarUrl = chat.avatarUrl,
                         subtitle = chat.lastMessage,
                         timestamp = chat.timestamp,
                         onClick = { onOpenChat(chat.id) },
@@ -402,6 +403,7 @@ private fun ConstellationSection(
                             moodColor = star.moodColor,
                             size = star.size,
                             contentDescription = star.name,
+                            avatarUrl = star.avatarUrl,
                         )
                         if (star.memberCount > 1) {
                             Box(

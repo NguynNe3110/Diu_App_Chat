@@ -14,4 +14,5 @@ data class StarPerson(
     val yPercent: Float = 0.5f,
     val isQuiet: Boolean = false,
     val memberCount: Int = 1,
+    val avatarUrl: String? = null,
 )

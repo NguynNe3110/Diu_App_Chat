@@ -5,8 +5,13 @@ import com.uzuu.diuchat.feature.settings.data.datasource.api.model.UserSettingsD
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.postgrest
+import io.github.jan.supabase.realtime.broadcast
+import io.github.jan.supabase.realtime.channel
+import io.github.jan.supabase.realtime.realtime
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.put
 
 internal class SettingsSupabaseService(
     private val supabaseClient: SupabaseClient?,
@@ -56,6 +61,18 @@ internal class SettingsSupabaseService(
         client.postgrest
             .from(TABLE_USER_PROFILES)
             .upsert(profile)
+        runCatching {
+            val globalChannel =
+                client.realtime.subscriptions["realtime:$CHANNEL_GLOBAL_SYNC"]
+                    ?: client.channel(CHANNEL_GLOBAL_SYNC)
+            globalChannel.broadcast(
+                event = EVENT_PROFILE_UPDATED,
+                message =
+                buildJsonObject {
+                    put("user_id", profile.id)
+                },
+            )
+        }
     }
 
     suspend fun fetchUserSettings(): UserSettingsDto? {
@@ -85,5 +102,7 @@ internal class SettingsSupabaseService(
     private companion object {
         const val TABLE_USER_PROFILES = "user_profiles"
         const val TABLE_USER_SETTINGS = "user_settings"
+        const val CHANNEL_GLOBAL_SYNC = "diu_global_sync"
+        const val EVENT_PROFILE_UPDATED = "profile_updated"
     }
 }

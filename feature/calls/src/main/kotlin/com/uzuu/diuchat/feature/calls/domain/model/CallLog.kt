@@ -10,4 +10,6 @@ data class CallLog(
     val durationSeconds: Long,
     val timestampEpochMs: Long,
     val isIncoming: Boolean,
+    val peerMoodHex: String = "#F7A3A9",
+    val peerAvatarUrl: String? = null,
 )
