@@ -81,6 +81,49 @@ class ContactsViewModel(
         sendAction(ContactsAction.UpdateInviteCodeInput(code))
     }
 
+    fun onOpenInviteConfirmDialog(code: String) {
+        val trimmed = code.trim()
+        if (trimmed.isNotEmpty()) {
+            sendAction(ContactsAction.OpenInviteConfirmDialog(trimmed))
+        }
+    }
+
+    fun onInviteConfirmCodeChange(code: String) {
+        sendAction(ContactsAction.UpdateInviteConfirmCode(code))
+    }
+
+    fun onDismissInviteConfirmDialog() {
+        sendAction(ContactsAction.DismissInviteConfirmDialog)
+    }
+
+    fun onConfirmInviteCode() {
+        val trimmed = uiStateFlow.value.inviteConfirmCode?.trim().orEmpty()
+        if (trimmed.isEmpty()) {
+            sendAction(ContactsAction.SetInviteConfirmError("Vui lòng nhập mã mời hợp lệ"))
+            return
+        }
+        sendAction(ContactsAction.SetInviteConfirmSubmitting(true))
+        viewModelScope.launch {
+            contactsRepository.connectByInviteCode(trimmed)
+                .onSuccess { contact ->
+                    sendAction(ContactsAction.DismissInviteConfirmDialog)
+                    sendAction(
+                        ContactsAction.SetScanResultMessage(
+                            message = "Đã kết nối với ${contact.name}",
+                            clearInput = true,
+                        ),
+                    )
+                }
+                .onFailure { error ->
+                    sendAction(
+                        ContactsAction.SetInviteConfirmError(
+                            error.message ?: "Không tìm thấy người dùng để kết nối",
+                        ),
+                    )
+                }
+        }
+    }
+
     fun onSubmitInviteCode(code: String = uiStateFlow.value.inviteCodeInput) {
         val trimmed = code.trim()
         if (trimmed.isEmpty()) {

@@ -85,6 +85,8 @@ fun MainShowcaseScreen(
     sessionViewModel: AppSessionViewModel = koinViewModel(),
     pendingIncomingCall: IncomingCallLaunchRequest? = null,
     onConsumePendingIncomingCall: () -> Unit = {},
+    pendingInviteCode: String? = null,
+    onConsumePendingInviteCode: () -> Unit = {},
     onCallLockScreenVisibilityChange: (Boolean) -> Unit = {},
 ) {
     // tạo và lưu trữ trạng thái của NavController
@@ -96,6 +98,7 @@ fun MainShowcaseScreen(
     val currentCallSession by callRepository.currentCallSession.collectAsState()
     val context = LocalContext.current
     val currentOnConsumePendingIncomingCall by rememberUpdatedState(onConsumePendingIncomingCall)
+    val currentOnConsumePendingInviteCode by rememberUpdatedState(onConsumePendingInviteCode)
     val currentOnCallLockScreenVisibilityChange by rememberUpdatedState(onCallLockScreenVisibilityChange)
 
     LaunchedEffect(currentCallSession?.status) {
@@ -144,6 +147,17 @@ fun MainShowcaseScreen(
                 }
             }
             currentOnConsumePendingIncomingCall()
+        }
+    }
+
+    LaunchedEffect(startupDestination, pendingInviteCode) {
+        if (!pendingInviteCode.isNullOrBlank() && startupDestination is StartupDestination.Home) {
+            val isAlreadyOnContacts = navController.currentDestination?.hasRoute<NavigationRoute.Contacts>() == true
+            if (!isAlreadyOnContacts) {
+                navController.navigate(NavigationRoute.Contacts) {
+                    launchSingleTop = true
+                }
+            }
         }
     }
 
@@ -298,6 +312,8 @@ fun MainShowcaseScreen(
                         }
                         composable<NavigationRoute.Contacts> {
                             ContactsScreen(
+                                pendingInviteCode = pendingInviteCode,
+                                onConsumePendingInviteCode = currentOnConsumePendingInviteCode,
                                 onNavigateToChat = { conversationId ->
                                     navController.navigate(NavigationRoute.Chat(conversationId))
                                 },

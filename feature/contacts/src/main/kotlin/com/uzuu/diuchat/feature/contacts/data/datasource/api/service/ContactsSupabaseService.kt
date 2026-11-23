@@ -3,6 +3,7 @@ package com.uzuu.diuchat.feature.contacts.data.datasource.api.service
 import com.uzuu.diuchat.feature.contacts.data.datasource.api.model.ConnectionRequestDto
 import com.uzuu.diuchat.feature.contacts.data.datasource.api.model.ContactDto
 import com.uzuu.diuchat.feature.contacts.data.datasource.api.model.InviteLinkDto
+import com.uzuu.diuchat.feature.contacts.domain.model.InviteDeepLinkParser
 import com.uzuu.diuchat.feature.contacts.data.datasource.api.response.ContactsSyncResponse
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.auth
@@ -92,12 +93,14 @@ class ContactsSupabaseService(
         val client = supabaseClient ?: error("Chưa cấu hình Supabase")
         val currentUserId = client.auth.currentUserOrNull()?.id ?: error("Bạn cần đăng nhập để kết bạn")
 
+        val normalizedQuery = InviteDeepLinkParser.normalizeConnectQuery(query)
+
         // Prefer atomic SECURITY DEFINER RPC (handles lookup + contacts upsert + direct conversation)
         val rpcConnected = runCatching {
             client.postgrest.rpc(
                 function = RPC_CONNECT_BY_INVITE_CODE,
                 parameters = buildJsonObject {
-                    put("p_query", query.trim())
+                    put("p_query", normalizedQuery)
                     put("p_circle", circle.toDbCircle())
                 },
             ).decodeList<LookupUserResult>().firstOrNull()
@@ -109,8 +112,8 @@ class ContactsSupabaseService(
         if (rpcConnected != null) {
             rpcConnected.toContactDto(circle = circle)
         } else {
-            val target = lookupUser(query)
-                ?: error("Không tìm thấy người dùng với mã hoặc tên \"$query\"")
+            val target = lookupUser(normalizedQuery)
+                ?: error("Không tìm thấy người dùng với mã hoặc tên \"$normalizedQuery\"")
 
             check(target.userId != currentUserId) { "Không thể tự kết bạn với chính mình" }
 
@@ -254,24 +257,17 @@ class ContactsSupabaseService(
         client: SupabaseClient,
         userId: String,
     ): InviteLinkDto? = try {
-        val profile = client.postgrest
-            .from(TABLE_USER_PROFILES)
-            .select {
-                filter { eq("id", userId) }
-            }.decodeSingleOrNull<UserProfileRow>()
-
         val settings = client.postgrest
             .from(TABLE_USER_SETTINGS)
             .select {
                 filter { eq("user_id", userId) }
             }.decodeSingleOrNull<UserSettingsTokenRow>()
 
-        val slug = profile?.username?.takeIf { it.isNotBlank() } ?: "diu"
         val rawToken = settings?.qrToken ?: userId
         val shortCode = rawToken.replace("-", "").take(SHORT_CODE_LENGTH).uppercase()
         InviteLinkDto(
             code = shortCode,
-            url = "diu.vn/$slug/$shortCode",
+            url = InviteDeepLinkParser.buildInviteUrl(shortCode),
         )
     } catch (error: CancellationException) {
         throw error

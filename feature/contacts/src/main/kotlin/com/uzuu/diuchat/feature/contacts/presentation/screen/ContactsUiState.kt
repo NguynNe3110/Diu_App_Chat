@@ -24,6 +24,9 @@ data class ContactsUiState(
     val scanResultMessage: String? = null,
     val myInviteLink: String = "",
     val copiedLink: Boolean = false,
+    val inviteConfirmCode: String? = null,
+    val isSubmittingInviteConfirm: Boolean = false,
+    val inviteConfirmError: String? = null,
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
 ) : BaseState {

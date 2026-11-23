@@ -9,6 +9,7 @@ import com.uzuu.diuchat.feature.contacts.data.mapper.ContactMapper
 import com.uzuu.diuchat.feature.contacts.domain.model.ConnectionRequest
 import com.uzuu.diuchat.feature.contacts.domain.model.Contact
 import com.uzuu.diuchat.feature.contacts.domain.model.ContactCircle
+import com.uzuu.diuchat.feature.contacts.domain.model.InviteDeepLinkParser
 import com.uzuu.diuchat.feature.contacts.domain.repository.ContactsRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -148,7 +149,7 @@ class ContactsRepositoryImpl(
     }
 
     companion object {
-        private const val DEFAULT_INVITE_LINK = "diu.vn/linh/7K2M9P"
+        private val DEFAULT_INVITE_LINK = InviteDeepLinkParser.buildInviteUrl("7K2M9P")
 
         private fun createInitialContacts(): List<ContactEntity> = listOf(
             ContactEntity(

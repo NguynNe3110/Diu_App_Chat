@@ -86,6 +86,51 @@ sealed interface ContactsAction : BaseAction<ContactsUiState> {
         override fun reduce(state: ContactsUiState): ContactsUiState = state.copy(myInviteLink = link)
     }
 
+    data class OpenInviteConfirmDialog(
+        val code: String,
+    ) : ContactsAction {
+        override fun reduce(state: ContactsUiState): ContactsUiState = state.copy(
+            inviteConfirmCode = code,
+            isSubmittingInviteConfirm = false,
+            inviteConfirmError = null,
+        )
+    }
+
+    data class UpdateInviteConfirmCode(
+        val code: String,
+    ) : ContactsAction {
+        override fun reduce(state: ContactsUiState): ContactsUiState = state.copy(
+            inviteConfirmCode = code,
+            inviteConfirmError = null,
+        )
+    }
+
+    data class SetInviteConfirmSubmitting(
+        val submitting: Boolean,
+    ) : ContactsAction {
+        override fun reduce(state: ContactsUiState): ContactsUiState = state.copy(
+            isSubmittingInviteConfirm = submitting,
+            inviteConfirmError = if (submitting) null else state.inviteConfirmError,
+        )
+    }
+
+    data class SetInviteConfirmError(
+        val message: String?,
+    ) : ContactsAction {
+        override fun reduce(state: ContactsUiState): ContactsUiState = state.copy(
+            isSubmittingInviteConfirm = false,
+            inviteConfirmError = message,
+        )
+    }
+
+    data object DismissInviteConfirmDialog : ContactsAction {
+        override fun reduce(state: ContactsUiState): ContactsUiState = state.copy(
+            inviteConfirmCode = null,
+            isSubmittingInviteConfirm = false,
+            inviteConfirmError = null,
+        )
+    }
+
     data class SetLoading(
         val loading: Boolean,
     ) : ContactsAction {
