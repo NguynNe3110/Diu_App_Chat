@@ -11,8 +11,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -26,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.dp
@@ -74,43 +75,40 @@ private fun Slide0Illustration() {
     )
 
     Box(
-        modifier =
-        Modifier
-            .fillMaxWidth()
-            .height(300.dp),
+        modifier = Modifier.fillMaxSize(),
     ) {
         // Orb L — Vui — to nhất, góc trái
         DiuOrbAvatar(
             initials = "L",
             moodColor = AppTheme.colors.moods.vui,
             size = 130.dp,
-            floatOffsetY = float1.dp,
             modifier =
             Modifier
                 .align(Alignment.TopStart)
-                .offset(x = 40.dp, y = 60.dp),
+                .offset(x = 40.dp, y = 60.dp)
+                .graphicsLayer { translationY = float1.dp.toPx() },
         )
 
         DiuOrbAvatar(
             initials = "M",
             moodColor = AppTheme.colors.moods.thuong,
             size = 80.dp,
-            floatOffsetY = float2.dp,
             modifier =
             Modifier
                 .align(Alignment.TopCenter)
-                .offset(x = 48.dp, y = 20.dp),
+                .offset(x = 48.dp, y = 20.dp)
+                .graphicsLayer { translationY = float2.dp.toPx() },
         )
 
         DiuOrbAvatar(
             initials = "N",
             moodColor = AppTheme.colors.moods.binhyen,
             size = 60.dp,
-            floatOffsetY = float3.dp,
             modifier =
             Modifier
                 .align(Alignment.TopEnd)
-                .offset(x = -54.dp, y = 140.dp),
+                .offset(x = (-54).dp, y = 140.dp)
+                .graphicsLayer { translationY = float3.dp.toPx() },
         )
     }
 }
@@ -171,17 +169,15 @@ private fun Slide2Illustration() {
     val quietPurple = AppPalette.QuietPurple
 
     Box(
-        modifier =
-        Modifier
-            .fillMaxWidth()
-            .height(260.dp),
+        modifier = Modifier.fillMaxSize(),
     ) {
         // Hình tròn phong thư ấm (lớn)
         Box(
             modifier =
             Modifier
                 .size(170.dp)
-                .offset(x = 44.dp, y = (52 + floatEnv).dp)
+                .offset(x = 44.dp, y = 52.dp)
+                .graphicsLayer { translationY = floatEnv.dp.toPx() }
                 .clip(CircleShape)
                 .background(
                     Brush.radialGradient(
@@ -208,7 +204,8 @@ private fun Slide2Illustration() {
             Modifier
                 .size(86.dp)
                 .align(Alignment.TopEnd)
-                .offset(x = (-24).dp, y = (24 + floatMoon).dp)
+                .offset(x = (-24).dp, y = 24.dp)
+                .graphicsLayer { translationY = floatMoon.dp.toPx() }
                 .clip(CircleShape)
                 .background(
                     Brush.radialGradient(

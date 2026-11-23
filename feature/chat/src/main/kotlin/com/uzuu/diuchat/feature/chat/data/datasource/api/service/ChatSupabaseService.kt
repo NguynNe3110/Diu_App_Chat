@@ -93,9 +93,10 @@ class ChatSupabaseService(
                         limit((safeLimit + 1).toLong())
                     }.decodeList<MessageDto>()
             val hasMore = fetchedDesc.size > safeLimit
+            val pageSlice = fetchedDesc.take(safeLimit)
+            val deletedMessageIds = pageSlice.filter { it.deletedAt != null }.map { it.id }
             val rawMessages =
-                fetchedDesc
-                    .take(safeLimit)
+                pageSlice
                     .filter { it.deletedAt == null }
                     .asReversed()
 
@@ -127,6 +128,7 @@ class ChatSupabaseService(
                 messages = resolvedMessages,
                 conversation = resolvedConversation,
                 hasMore = hasMore,
+                deletedMessageIds = deletedMessageIds,
             )
         }.onFailure(::rethrowCancellation)
     }
@@ -152,14 +154,48 @@ class ChatSupabaseService(
                         }
                     }
             val broadcastMessages = channel.broadcastFlow<MessageDto>(event = EVENT_NEW_MESSAGE)
+            val channelDeletes =
+                channel.broadcastFlow<JsonObject>(event = EVENT_MESSAGE_DELETED).mapNotNull { payload ->
+                    val deletedId = payload[COL_MESSAGE_ID]?.jsonPrimitive?.contentOrNull
+                        ?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
+                    MessageDto(
+                        id = deletedId,
+                        conversationId = conversationId,
+                        senderId = "",
+                        content = "",
+                        deletedAt = "deleted",
+                    )
+                }
+            val globalChannel =
+                client.realtime.subscriptions["realtime:$CHANNEL_GLOBAL_SYNC"]
+                    ?: client.channel(CHANNEL_GLOBAL_SYNC)
+            val globalDeletes =
+                globalChannel.broadcastFlow<JsonObject>(event = EVENT_MESSAGE_DELETED).mapNotNull { payload ->
+                    val deletedId = payload[COL_MESSAGE_ID]?.jsonPrimitive?.contentOrNull
+                        ?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
+                    val targetConvo = payload[COL_CONVERSATION_ID]?.jsonPrimitive?.contentOrNull
+                    if (!targetConvo.isNullOrBlank() && targetConvo != conversationId) {
+                        return@mapNotNull null
+                    }
+                    MessageDto(
+                        id = deletedId,
+                        conversationId = conversationId,
+                        senderId = "",
+                        content = "",
+                        deletedAt = "deleted",
+                    )
+                }
 
             launch {
-                merge(postgresMessages, broadcastMessages)
-                    .filter { it.conversationId == conversationId && it.deletedAt == null }
+                merge(postgresMessages, broadcastMessages, channelDeletes, globalDeletes)
+                    .filter { it.conversationId == conversationId }
                     .collect { send(it) }
             }
 
             runCatching { channel.subscribe() }.onFailure(::rethrowCancellation)
+            if (globalChannel.status.value != RealtimeChannel.Status.SUBSCRIBED) {
+                runCatching { globalChannel.subscribe() }.onFailure(::rethrowCancellation)
+            }
 
             awaitClose {
                 CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
@@ -415,7 +451,41 @@ class ChatSupabaseService(
         }
     }
 
-    suspend fun deleteMessage(messageId: String): Result<Unit> {
+    suspend fun fetchSealedLetterContent(messageId: String): Result<String?> {
+        val client = supabaseClient ?: return Result.success(null)
+        val myId = currentUserId()
+        return runCatching {
+            val row =
+                client.postgrest
+                    .from(TABLE_SEALED_LETTERS)
+                    .select {
+                        filter { eq(COL_MESSAGE_ID, messageId) }
+                    }.decodeSingleOrNull<SealedLetterContentRow>()
+            if (row != null && myId != null && row.recipientId == myId && !row.isOpened) {
+                runCatching {
+                    client.postgrest
+                        .from(TABLE_SEALED_LETTERS)
+                        .update(
+                            buildJsonObject {
+                                put("is_opened", true)
+                                put("opened_at", Instant.now().toString())
+                            },
+                        ) {
+                            filter { eq(COL_MESSAGE_ID, messageId) }
+                        }
+                }
+            }
+            row?.sealedContent
+        }.onFailure { error ->
+            rethrowCancellation(error)
+            Timber.w(error, "Failed to fetch sealed_letter content for %s", messageId)
+        }
+    }
+
+    suspend fun deleteMessage(
+        messageId: String,
+        conversationId: String = "",
+    ): Result<Unit> {
         val client = supabaseClient ?: return Result.success(Unit)
         return runCatching {
             runCatching {
@@ -436,6 +506,7 @@ class ChatSupabaseService(
                         eq("id", messageId)
                     }
                 }
+            broadcastMessageDeleted(client, messageId, conversationId)
         }.map { }.onFailure { error ->
             rethrowCancellation(error)
             Timber.w(error, "Failed to soft-delete message %s", messageId)
@@ -666,6 +737,40 @@ class ChatSupabaseService(
         }.onFailure(::rethrowCancellation)
     }
 
+    private suspend fun broadcastMessageDeleted(
+        client: SupabaseClient,
+        messageId: String,
+        conversationId: String,
+    ) {
+        val payload =
+            buildJsonObject {
+                put(COL_MESSAGE_ID, messageId)
+                if (conversationId.isNotBlank()) {
+                    put(COL_CONVERSATION_ID, conversationId)
+                }
+            }
+        if (conversationId.isNotBlank()) {
+            runCatching {
+                val ch =
+                    client.realtime.subscriptions["realtime:${channelName(conversationId)}"]
+                        ?: client.channel(channelName(conversationId))
+                if (ch.status.value != RealtimeChannel.Status.SUBSCRIBED) {
+                    runCatching { ch.subscribe() }
+                }
+                ch.broadcast(event = EVENT_MESSAGE_DELETED, message = payload)
+            }.onFailure(::rethrowCancellation)
+        }
+        runCatching {
+            val globalChannel =
+                client.realtime.subscriptions["realtime:$CHANNEL_GLOBAL_SYNC"]
+                    ?: client.channel(CHANNEL_GLOBAL_SYNC)
+            if (globalChannel.status.value != RealtimeChannel.Status.SUBSCRIBED) {
+                runCatching { globalChannel.subscribe() }
+            }
+            globalChannel.broadcast(event = EVENT_MESSAGE_DELETED, message = payload)
+        }.onFailure(::rethrowCancellation)
+    }
+
     private suspend fun removeChannelSafely(
         client: SupabaseClient,
         channel: RealtimeChannel,
@@ -708,6 +813,10 @@ class ChatSupabaseService(
         val unlockAt: String,
         @SerialName("sealed_content")
         val sealedContent: String,
+        @SerialName("recipient_id")
+        val recipientId: String? = null,
+        @SerialName("is_opened")
+        val isOpened: Boolean = false,
     )
 
     @Serializable
@@ -737,6 +846,7 @@ class ChatSupabaseService(
         const val CHANNEL_GLOBAL_SYNC = "diu_global_sync"
         const val CHANNEL_CHAT_PROFILE_UPDATES = "chat_profile_updates"
         const val EVENT_NEW_MESSAGE = "new_message"
+        const val EVENT_MESSAGE_DELETED = "message_deleted"
         const val EVENT_PROFILE_UPDATED = "profile_updated"
         const val EVENT_CONVERSATION_READ = "conversation_read"
         const val EVENT_CONVERSATION_DELETED = "conversation_deleted"

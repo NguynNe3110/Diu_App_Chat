@@ -37,7 +37,9 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -71,6 +73,7 @@ import com.uzuu.diuchat.feature.chat.domain.model.ChatMessage
 import com.uzuu.diuchat.feature.chat.domain.model.MessageMediaType
 import com.uzuu.diuchat.feature.chat.domain.model.MessageStatus
 import com.uzuu.diuchat.feature.chat.domain.model.MoodType
+import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.Date
 
@@ -486,7 +489,19 @@ private fun SealedLetterBubbleContent(
     val colors = AppTheme.colors
     val scheduleText = message.scheduledForLabel ?: "7:00 sáng mai"
     val unlockAt = message.unlockAtEpochMs
-    val isUnlocked = unlockAt == null || System.currentTimeMillis() >= unlockAt
+    var nowEpochMs by remember(message.id, unlockAt) { mutableLongStateOf(System.currentTimeMillis()) }
+
+    LaunchedEffect(message.id, unlockAt) {
+        if (unlockAt != null) {
+            val remainingMs = unlockAt - System.currentTimeMillis()
+            if (remainingMs > 0L) {
+                delay(remainingMs + 150L)
+            }
+            nowEpochMs = System.currentTimeMillis()
+        }
+    }
+
+    val isUnlocked = unlockAt == null || nowEpochMs >= unlockAt
     val canReveal = isUnlocked || message.isFromMe
 
     Box(

@@ -11,6 +11,7 @@ import com.uzuu.diuchat.feature.chat.domain.usecase.LeaveGroupUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.LoadOlderMessagesUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.ManageGroupMemberUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.ObserveTypingStatusUseCase
+import com.uzuu.diuchat.feature.chat.domain.usecase.RevealSealedMessageUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.SendMessageUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.SendPhotoMessageUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.SendSealedMessageUseCase
@@ -34,6 +35,7 @@ val domainModule = module {
     factory { LoadOlderMessagesUseCase(get()) }
     factory { ManageGroupMemberUseCase(get()) }
     factory { ObserveTypingStatusUseCase(get()) }
+    factory { RevealSealedMessageUseCase(get()) }
     factory { SendMessageUseCase(get()) }
     factory { SendPhotoMessageUseCase(get()) }
     factory { SendSealedMessageUseCase(get()) }

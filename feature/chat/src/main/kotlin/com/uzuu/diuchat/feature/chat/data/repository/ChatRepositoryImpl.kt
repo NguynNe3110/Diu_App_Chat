@@ -535,8 +535,19 @@ class ChatRepositoryImpl(
     override fun observeTypingStatus(conversationId: String): Flow<Boolean> = supabaseService.observeTypingStatus(conversationId)
 
     override suspend fun deleteMessage(messageId: String) {
+        val conversationId = messageDao.getMessage(messageId)?.conversationId.orEmpty()
         messageDao.delete(messageId)
-        supabaseService.deleteMessage(messageId)
+        supabaseService.deleteMessage(messageId, conversationId)
+    }
+
+    override suspend fun revealSealedMessage(messageId: String): String? {
+        val existing = messageDao.getMessage(messageId)
+        val remoteContent = supabaseService.fetchSealedLetterContent(messageId).getOrNull()
+        val resolvedContent = remoteContent?.takeIf { it.isNotBlank() }
+        if (resolvedContent != null && existing != null && existing.content != resolvedContent) {
+            messageDao.insert(existing.copy(content = resolvedContent))
+        }
+        return resolvedContent ?: existing?.content?.takeUnless { it.startsWith(SEALED_PLACEHOLDER_PREFIX) }
     }
 
     override suspend fun starMessage(messageId: String): Boolean = supabaseService.toggleStarMessage(messageId).getOrDefault(true)
@@ -603,15 +614,25 @@ class ChatRepositoryImpl(
             conversationDao.upsert(chatMapper.conversationDtoToEntity(convoDto))
         }
         val activeUserId = currentUserId()
+        response.deletedMessageIds.forEach { deletedId ->
+            messageDao.delete(deletedId)
+        }
         response.messages.forEach { dto ->
-            messageDao.insert(chatMapper.messageDtoToEntity(dto, activeUserId))
+            val incoming = chatMapper.messageDtoToEntity(dto, activeUserId)
+            val entityToSave = preserveLocalSealedContentIfNeeded(incoming)
+            messageDao.insert(entityToSave)
         }
         supabaseService.markConversationRead(conversationId)
     }
 
     private suspend fun upsertIncomingMessage(dto: MessageDto) {
+        if (dto.deletedAt != null) {
+            messageDao.delete(dto.id)
+            return
+        }
         val activeUserId = currentUserId()
-        val entity = chatMapper.messageDtoToEntity(dto, activeUserId)
+        val incoming = chatMapper.messageDtoToEntity(dto, activeUserId)
+        val entity = preserveLocalSealedContentIfNeeded(incoming)
         messageDao.insert(entity)
         updateConversationSummary(
             conversationId = entity.conversationId,
@@ -622,6 +643,19 @@ class ChatRepositoryImpl(
         if (!entity.isFromMe) {
             supabaseService.markConversationRead(entity.conversationId)
         }
+    }
+
+    private suspend fun preserveLocalSealedContentIfNeeded(incoming: MessageEntity): MessageEntity {
+        if (
+            incoming.mediaType == MessageMediaType.SEALED_LETTER.name &&
+            incoming.content.startsWith(SEALED_PLACEHOLDER_PREFIX)
+        ) {
+            val localExisting = messageDao.getMessage(incoming.id)
+            if (localExisting != null && !localExisting.content.startsWith(SEALED_PLACEHOLDER_PREFIX) && localExisting.content.isNotBlank()) {
+                return incoming.copy(content = localExisting.content)
+            }
+        }
+        return incoming
     }
 
     private suspend fun syncMessageWithOutboxAck(
@@ -710,6 +744,7 @@ class ChatRepositoryImpl(
         const val ME_DISPLAY_NAME = "Tôi"
         const val PHOTO_PLACEHOLDER = "📷 [Hình ảnh]"
         const val VOICE_PLACEHOLDER = "🎤 [Tin nhắn thoại]"
+        const val SEALED_PLACEHOLDER_PREFIX = "✉️ Thư hẹn"
         const val PIN_SNIPPET_LENGTH = 60
     }
 }

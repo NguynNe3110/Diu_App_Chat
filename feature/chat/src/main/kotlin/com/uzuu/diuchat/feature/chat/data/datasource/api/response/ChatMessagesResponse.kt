@@ -15,4 +15,6 @@ data class ChatMessagesResponse(
     val conversation: ConversationDto? = null,
     @SerialName("has_more")
     val hasMore: Boolean = false,
+    @SerialName("deleted_message_ids")
+    val deletedMessageIds: List<String> = emptyList(),
 )

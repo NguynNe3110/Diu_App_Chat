@@ -212,6 +212,10 @@ class ChatActionTest {
 
         val cancelled = ChatAction.CancelSealedMessage("sealed_1").reduce(revealed)
         cancelled.messages.isEmpty() shouldBeEqualTo true
+
+        // SetMessages preserves isSealedRevealed across Room re-emissions
+        val reemitted = ChatAction.SetMessages(listOf(sealedMsg.copy(isSealedRevealed = false))).reduce(revealed)
+        reemitted.messages.first().isSealedRevealed shouldBeEqualTo true
     }
 
     @Test

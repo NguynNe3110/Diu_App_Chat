@@ -21,6 +21,7 @@ import com.uzuu.diuchat.feature.chat.domain.usecase.LeaveGroupUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.LoadOlderMessagesUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.ManageGroupMemberUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.ObserveTypingStatusUseCase
+import com.uzuu.diuchat.feature.chat.domain.usecase.RevealSealedMessageUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.SendMessageUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.SendPhotoMessageUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.SendSealedMessageUseCase
@@ -51,6 +52,7 @@ class ChatViewModel(
     private val loadOlderMessagesUseCase: LoadOlderMessagesUseCase,
     private val manageGroupMemberUseCase: ManageGroupMemberUseCase,
     private val observeTypingStatusUseCase: ObserveTypingStatusUseCase,
+    private val revealSealedMessageUseCase: RevealSealedMessageUseCase,
     private val sendMessageUseCase: SendMessageUseCase,
     private val sendPhotoMessageUseCase: SendPhotoMessageUseCase,
     private val sendSealedMessageUseCase: SendSealedMessageUseCase,
@@ -527,10 +529,35 @@ class ChatViewModel(
 
     fun onToggleRevealSealedMessage(messageId: String) {
         val target = uiStateFlow.value.messages.find { it.id == messageId } ?: return
+        if (target.isSealedRevealed) {
+            sendAction(ChatAction.ToggleRevealSealedMessage(messageId))
+            return
+        }
         val unlockAt = target.unlockAtEpochMs
         val isTimeReached = unlockAt == null || System.currentTimeMillis() >= unlockAt
         if (!target.isFromMe && !isTimeReached) return
-        sendAction(ChatAction.ToggleRevealSealedMessage(messageId))
+
+        val needsRemoteContent = target.content.isBlank() || target.content.startsWith("✉️ Thư hẹn")
+        if (needsRemoteContent) {
+            viewModelScope.launch {
+                val realContent = runCatching { revealSealedMessageUseCase(messageId) }.getOrNull()
+                if (!realContent.isNullOrBlank()) {
+                    val updatedList = uiStateFlow.value.messages.map { msg ->
+                        if (msg.id == messageId) msg.copy(content = realContent, isSealedRevealed = true) else msg
+                    }
+                    sendAction(ChatAction.SetMessages(updatedList))
+                } else if (target.isFromMe || isTimeReached) {
+                    sendAction(ChatAction.ToggleRevealSealedMessage(messageId))
+                }
+            }
+        } else {
+            sendAction(ChatAction.ToggleRevealSealedMessage(messageId))
+            if (!target.isFromMe) {
+                viewModelScope.launch {
+                    runCatching { revealSealedMessageUseCase(messageId) }
+                }
+            }
+        }
     }
 
     fun onCancelSealedMessage(messageId: String) {
