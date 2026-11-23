@@ -6,29 +6,25 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
-import io.livekit.android.renderer.SurfaceViewRenderer
+import io.livekit.android.renderer.TextureViewRenderer
 import io.livekit.android.room.track.VideoTrack
 
 @Composable
 fun LiveKitVideoView(
     videoTrack: VideoTrack,
-    onInitRenderer: (SurfaceViewRenderer) -> Unit,
+    onInitRenderer: (TextureViewRenderer) -> Unit,
     modifier: Modifier = Modifier,
-    isOverlay: Boolean = false,
     isMirror: Boolean = false,
 ) {
     val context = LocalContext.current
     val renderer = remember {
-        SurfaceViewRenderer(context).also { view ->
+        TextureViewRenderer(context).also { view ->
             onInitRenderer(view)
-            view.setZOrderMediaOverlay(isOverlay)
-            view.setEnableHardwareScaler(true)
             view.setMirror(isMirror)
         }
     }
 
-    DisposableEffect(renderer, isOverlay, isMirror) {
-        renderer.setZOrderMediaOverlay(isOverlay)
+    DisposableEffect(renderer, isMirror) {
         renderer.setMirror(isMirror)
         onDispose {}
     }

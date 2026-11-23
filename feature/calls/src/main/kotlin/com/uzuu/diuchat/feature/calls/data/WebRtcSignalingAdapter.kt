@@ -90,7 +90,7 @@ class WebRtcSignalingAdapterImpl(
                             }
                     }
                     if (channel.status.value != RealtimeChannel.Status.SUBSCRIBED) {
-                        channel.subscribe()
+                        channel.subscribe(blockUntilSubscribed = true)
                     }
                 }.onFailure { error ->
                     Timber.w(error, "Failed to connect Supabase Realtime channel for session %s", sessionId)

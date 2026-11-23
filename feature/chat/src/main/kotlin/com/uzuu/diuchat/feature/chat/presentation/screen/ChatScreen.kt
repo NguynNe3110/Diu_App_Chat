@@ -490,6 +490,18 @@ fun ChatContent(
         }
     }
 
+    LaunchedEffect(state.isPartnerTyping, state.messages.size) {
+        if (state.isPartnerTyping && state.messages.isNotEmpty()) {
+            val headerOffset = if (state.isLoadingOlderMessages) 1 else 0
+            val totalItems = state.messages.size + headerOffset + 1
+            val lastVisibleIdx = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+            val isNearBottom = lastVisibleIdx >= (totalItems - 4).coerceAtLeast(0)
+            if (isNearBottom) {
+                listState.animateScrollToItem((totalItems - 1).coerceAtLeast(0))
+            }
+        }
+    }
+
     LaunchedEffect(
         listState,
         state.conversationId,

@@ -53,7 +53,7 @@ import com.uzuu.diuchat.feature.calls.presentation.composable.CallControls
 import com.uzuu.diuchat.feature.calls.presentation.composable.IncomingCallFullScreen
 import com.uzuu.diuchat.feature.calls.presentation.composable.LiveKitVideoView
 import com.uzuu.diuchat.feature.calls.presentation.composable.VideoOverlay
-import io.livekit.android.renderer.SurfaceViewRenderer
+import io.livekit.android.renderer.TextureViewRenderer
 import io.livekit.android.room.track.VideoTrack
 import org.koin.compose.koinInject
 
@@ -154,7 +154,16 @@ fun CallScreen(
         },
         onToggleMic = { viewModel.toggleMicrophone() },
         onToggleSpeaker = { viewModel.toggleSpeakerphone() },
-        onToggleVideo = { viewModel.toggleCameraVideo() },
+        onToggleVideo = {
+            val wantsToEnable = !uiState.isVideoEnabled
+            val hasCameraPermission =
+                ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) ==
+                    PackageManager.PERMISSION_GRANTED
+            viewModel.toggleCameraVideo()
+            if (wantsToEnable && !hasCameraPermission) {
+                permissionLauncher.launch(arrayOf(Manifest.permission.CAMERA))
+            }
+        },
         onFlipCamera = { viewModel.flipCamera() },
         onToggleMinimize = { viewModel.toggleOverlayMinimized() },
         onHangUp = {
@@ -183,7 +192,7 @@ fun CallContent(
     onRemindMe: () -> Unit = {},
     localVideoTrack: VideoTrack? = null,
     remoteVideoTrack: VideoTrack? = null,
-    onInitRenderer: (SurfaceViewRenderer) -> Unit = {},
+    onInitRenderer: (TextureViewRenderer) -> Unit = {},
 ) {
     val session = uiState.callSession
     val colors = AppTheme.colors

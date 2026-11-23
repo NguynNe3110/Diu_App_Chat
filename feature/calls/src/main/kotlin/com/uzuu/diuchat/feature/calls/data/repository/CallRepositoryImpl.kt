@@ -99,7 +99,7 @@ class CallRepositoryImpl(
                         startedAtEpochMs = System.currentTimeMillis(),
                     )
                     startDurationTicker()
-                    connectMediaEngine(current.callId, current.type == CallType.VIDEO)
+                    connectMediaEngine(current.callId, current.isVideoEnabled || current.type == CallType.VIDEO)
                     Timber.d("Incoming ANSWER transitioned call %s to ACTIVE", current.callId)
                 }
             }
@@ -250,7 +250,7 @@ class CallRepositoryImpl(
 
         callSupabaseService?.markCallAccepted(callId)
         startDurationTicker()
-        connectMediaEngine(callId, current.type == CallType.VIDEO)
+        connectMediaEngine(callId, current.isVideoEnabled || current.type == CallType.VIDEO)
         Timber.d("Accepted call: %s, transition to ACTIVE", callId)
         activeSession
     }
@@ -318,6 +318,9 @@ class CallRepositoryImpl(
         _currentCallSession.value = current.copy(isVideoEnabled = newVideo)
         callServiceCoordinator.setCameraEnabled(newVideo)
         callMediaEngine?.setCameraEnabled(newVideo)
+        if (newVideo && current.status == CallStatus.INVITING) {
+            connectMediaEngine(callId, enableVideo = true)
+        }
         newVideo
     }
 
@@ -342,7 +345,7 @@ class CallRepositoryImpl(
         if (micGranted) {
             callMediaEngine?.setMicrophoneMuted(current.isAudioMuted)
         }
-        if (cameraGranted && current.type == CallType.VIDEO && current.isVideoEnabled) {
+        if (cameraGranted && current.isVideoEnabled) {
             callMediaEngine?.setCameraEnabled(true)
         }
     }

@@ -27,7 +27,7 @@ import androidx.compose.ui.unit.sp
 import com.uzuu.diuchat.feature.base.common.res.AppIcons
 import com.uzuu.diuchat.feature.base.common.res.AppTheme
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuOrbAvatar
-import io.livekit.android.renderer.SurfaceViewRenderer
+import io.livekit.android.renderer.TextureViewRenderer
 import io.livekit.android.room.track.VideoTrack
 
 @Composable
@@ -38,7 +38,7 @@ fun VideoOverlay(
     onFlipCamera: () -> Unit,
     modifier: Modifier = Modifier,
     localVideoTrack: VideoTrack? = null,
-    onInitRenderer: ((SurfaceViewRenderer) -> Unit)? = null,
+    onInitRenderer: ((TextureViewRenderer) -> Unit)? = null,
 ) {
     val colors = AppTheme.colors
     val pipShape = RoundedCornerShape(22.dp)
@@ -81,7 +81,6 @@ fun VideoOverlay(
                 LiveKitVideoView(
                     videoTrack = localVideoTrack,
                     onInitRenderer = onInitRenderer,
-                    isOverlay = true,
                     isMirror = isFrontCamera,
                     modifier = Modifier.fillMaxSize(),
                 )

@@ -4,7 +4,7 @@ import android.content.Context
 import io.livekit.android.LiveKit
 import io.livekit.android.events.RoomEvent
 import io.livekit.android.events.collect
-import io.livekit.android.renderer.SurfaceViewRenderer
+import io.livekit.android.renderer.TextureViewRenderer
 import io.livekit.android.room.Room
 import io.livekit.android.room.track.CameraPosition
 import io.livekit.android.room.track.LocalVideoTrack
@@ -14,6 +14,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -36,7 +37,7 @@ interface CallMediaEngine {
 
     suspend fun switchCamera(): Boolean
 
-    fun initVideoRenderer(renderer: SurfaceViewRenderer)
+    fun initVideoRenderer(renderer: TextureViewRenderer)
 
     suspend fun disconnect()
 }
@@ -49,6 +50,7 @@ class LiveKitCallMediaEngine(
     private var activeRoomName: String? = null
     private var eventsJob: Job? = null
     private var isFrontCamera = true
+    private var desiredCameraEnabled = false
 
     private val _localVideoTrack = MutableStateFlow<VideoTrack?>(null)
     override val localVideoTrack: StateFlow<VideoTrack?> = _localVideoTrack.asStateFlow()
@@ -63,15 +65,19 @@ class LiveKitCallMediaEngine(
         enableVideo: Boolean,
     ) {
         val appContext = context?.applicationContext ?: return
+        val shouldEnableVideo = enableVideo || desiredCameraEnabled
+        desiredCameraEnabled = shouldEnableVideo
+
         val existingRoom = room
         val isAlreadyConnected = existingRoom != null &&
             activeRoomName == existingRoom.name &&
             existingRoom.state == Room.State.CONNECTED
         if (isAlreadyConnected) {
-            reuseConnectedRoom(existingRoom, enableVideo)
+            reuseConnectedRoom(existingRoom, shouldEnableVideo)
             return
         }
         disconnect()
+        desiredCameraEnabled = shouldEnableVideo
 
         val lkRoom = LiveKit.create(appContext)
         room = lkRoom
@@ -82,8 +88,8 @@ class LiveKitCallMediaEngine(
             lkRoom.connect(url = url, token = token)
             activeRoomName = lkRoom.name
             refreshRemoteVideoTrack(lkRoom)
-            enableInitialLocalMedia(lkRoom, enableVideo)
-            Timber.d("LiveKit connected to room %s (video=%s)", lkRoom.name, enableVideo)
+            enableInitialLocalMedia(lkRoom, shouldEnableVideo)
+            Timber.d("LiveKit connected to room %s (video=%s)", lkRoom.name, shouldEnableVideo)
         } catch (error: Throwable) {
             Timber.w(error, "LiveKit room connect failed")
             disconnect()
@@ -97,10 +103,7 @@ class LiveKitCallMediaEngine(
     ) {
         runCatching { existingRoom.localParticipant.setMicrophoneEnabled(true) }
         if (enableVideo) {
-            runCatching {
-                existingRoom.localParticipant.setCameraEnabled(true)
-                refreshLocalVideoTrack(existingRoom)
-            }
+            enableCameraWithRefresh(existingRoom)
         }
     }
 
@@ -116,6 +119,12 @@ class LiveKitCallMediaEngine(
     ) {
         when (event) {
             is RoomEvent.TrackPublished -> {
+                if (isLocalCameraPublication(lkRoom, event.participant, event.publication.source)) {
+                    refreshLocalVideoTrack(lkRoom)
+                }
+            }
+
+            is RoomEvent.TrackUnmuted -> {
                 if (isLocalCameraPublication(lkRoom, event.participant, event.publication.source)) {
                     refreshLocalVideoTrack(lkRoom)
                 }
@@ -166,12 +175,20 @@ class LiveKitCallMediaEngine(
             Timber.w(error, "Unable to enable microphone immediately on connect (awaiting permission)")
         }
         if (enableVideo) {
-            runCatching {
-                lkRoom.localParticipant.setCameraEnabled(true)
-                refreshLocalVideoTrack(lkRoom)
-            }.onFailure { error ->
-                Timber.w(error, "Unable to enable camera immediately on connect (awaiting permission)")
+            enableCameraWithRefresh(lkRoom)
+        }
+    }
+
+    private suspend fun enableCameraWithRefresh(activeRoom: Room) {
+        runCatching {
+            activeRoom.localParticipant.setCameraEnabled(true)
+            refreshLocalVideoTrack(activeRoom)
+            if (_localVideoTrack.value == null) {
+                delay(CAMERA_TRACK_RETRY_DELAY_MS)
+                refreshLocalVideoTrack(activeRoom)
             }
+        }.onFailure { error ->
+            Timber.w(error, "Unable to enable camera (awaiting permission or camera unavailable)")
         }
     }
 
@@ -182,12 +199,13 @@ class LiveKitCallMediaEngine(
     }
 
     override suspend fun setCameraEnabled(enabled: Boolean) {
+        desiredCameraEnabled = enabled
         val activeRoom = room ?: return
-        runCatching {
-            activeRoom.localParticipant.setCameraEnabled(enabled)
-            if (enabled) {
-                refreshLocalVideoTrack(activeRoom)
-            } else {
+        if (enabled) {
+            enableCameraWithRefresh(activeRoom)
+        } else {
+            runCatching {
+                activeRoom.localParticipant.setCameraEnabled(false)
                 _localVideoTrack.value = null
             }
         }
@@ -204,7 +222,7 @@ class LiveKitCallMediaEngine(
         return isFrontCamera
     }
 
-    override fun initVideoRenderer(renderer: SurfaceViewRenderer) {
+    override fun initVideoRenderer(renderer: TextureViewRenderer) {
         runCatching {
             room?.initVideoRenderer(renderer)
         }
@@ -213,6 +231,7 @@ class LiveKitCallMediaEngine(
     override suspend fun disconnect() {
         eventsJob?.cancel()
         eventsJob = null
+        desiredCameraEnabled = false
         _localVideoTrack.value = null
         _remoteVideoTrack.value = null
         runCatching {
@@ -239,5 +258,9 @@ class LiveKitCallMediaEngine(
         if (existingRemoteTrack != null) {
             _remoteVideoTrack.value = existingRemoteTrack
         }
+    }
+
+    private companion object {
+        const val CAMERA_TRACK_RETRY_DELAY_MS = 300L
     }
 }
