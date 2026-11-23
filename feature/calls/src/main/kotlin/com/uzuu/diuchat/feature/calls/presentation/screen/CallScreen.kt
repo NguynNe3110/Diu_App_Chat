@@ -77,6 +77,13 @@ fun CallScreen(
     val context = LocalContext.current
     val currentOnNavigateBack by rememberUpdatedState(onNavigateBack)
     var hasObservedLiveSession by remember(callId, peerId, isIncoming) { mutableStateOf(false) }
+    var hasNavigatedBack by remember(callId, peerId, isIncoming) { mutableStateOf(false) }
+    val navigateBackOnce: () -> Unit = {
+        if (!hasNavigatedBack) {
+            hasNavigatedBack = true
+            currentOnNavigateBack()
+        }
+    }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions(),
@@ -123,7 +130,7 @@ fun CallScreen(
 
             CallStatus.ENDED -> {
                 if (hasObservedLiveSession) {
-                    currentOnNavigateBack()
+                    navigateBackOnce()
                 }
             }
 
@@ -137,20 +144,20 @@ fun CallScreen(
         localVideoTrack = localVideoTrack,
         remoteVideoTrack = remoteVideoTrack,
         onInitRenderer = callMediaEngine::initVideoRenderer,
-        onNavigateBack = onNavigateBack,
+        onNavigateBack = navigateBackOnce,
         onAcceptCall = { viewModel.acceptIncomingCall() },
         onRejectCall = {
             viewModel.rejectIncomingCall()
-            onNavigateBack()
+            navigateBackOnce()
         },
         onToggleQuickReply = { viewModel.toggleQuickReplyOptions() },
         onSelectQuickReply = { message ->
             viewModel.sendQuickReplyAndDecline(message)
-            onNavigateBack()
+            navigateBackOnce()
         },
         onRemindMe = {
             viewModel.scheduleCallReminder()
-            onNavigateBack()
+            navigateBackOnce()
         },
         onToggleMic = { viewModel.toggleMicrophone() },
         onToggleSpeaker = { viewModel.toggleSpeakerphone() },
@@ -168,7 +175,7 @@ fun CallScreen(
         onToggleMinimize = { viewModel.toggleOverlayMinimized() },
         onHangUp = {
             viewModel.hangUpCall()
-            onNavigateBack()
+            navigateBackOnce()
         },
         modifier = modifier,
     )
