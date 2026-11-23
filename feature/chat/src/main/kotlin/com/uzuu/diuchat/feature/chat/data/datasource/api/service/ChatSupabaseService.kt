@@ -71,34 +71,53 @@ class ChatSupabaseService(
         }.onFailure(::rethrowCancellation)
     }
 
-    suspend fun fetchMessages(conversationId: String): Result<ChatMessagesResponse> {
+    suspend fun fetchMessages(
+        conversationId: String,
+        limit: Int = DEFAULT_MESSAGE_PAGE_SIZE,
+        beforeCreatedAt: String? = null,
+    ): Result<ChatMessagesResponse> {
         val client = supabaseClient ?: return Result.success(ChatMessagesResponse(conversationId = conversationId))
+        val safeLimit = limit.coerceAtLeast(1)
         return runCatching {
-            val rawMessages =
+            val fetchedDesc =
                 client.postgrest
                     .from(TABLE_MESSAGES)
                     .select {
                         filter {
                             eq(COL_CONVERSATION_ID, conversationId)
+                            if (!beforeCreatedAt.isNullOrBlank()) {
+                                lt("created_at", beforeCreatedAt)
+                            }
                         }
-                        order("created_at", Order.ASCENDING)
+                        order("created_at", Order.DESCENDING)
+                        limit((safeLimit + 1).toLong())
                     }.decodeList<MessageDto>()
+            val hasMore = fetchedDesc.size > safeLimit
+            val rawMessages =
+                fetchedDesc
+                    .take(safeLimit)
                     .filter { it.deletedAt == null }
-            val rawConversation =
-                client.postgrest
-                    .from(TABLE_CONVERSATIONS)
-                    .select {
-                        filter {
-                            eq("id", conversationId)
-                        }
-                    }.decodeSingleOrNull<ConversationDto>()
+                    .asReversed()
 
-            val myId = currentUserId()
-            val resolvedConversation = if (rawConversation != null && myId != null) {
-                resolveDirectConversationTitles(client, myId, listOf(rawConversation)).firstOrNull()
-            } else {
-                rawConversation
-            }
+            val resolvedConversation =
+                if (beforeCreatedAt == null) {
+                    val rawConversation =
+                        client.postgrest
+                            .from(TABLE_CONVERSATIONS)
+                            .select {
+                                filter {
+                                    eq("id", conversationId)
+                                }
+                            }.decodeSingleOrNull<ConversationDto>()
+                    val myId = currentUserId()
+                    if (rawConversation != null && myId != null) {
+                        resolveDirectConversationTitles(client, myId, listOf(rawConversation)).firstOrNull()
+                    } else {
+                        rawConversation
+                    }
+                } else {
+                    null
+                }
             val enrichedMessages = enrichSenderNames(client, rawMessages)
             val sealedEnriched = enrichSealedLetters(client, enrichedMessages)
             val resolvedMessages = signPrivateMediaUrls(client, sealedEnriched)
@@ -107,6 +126,7 @@ class ChatSupabaseService(
                 conversationId = conversationId,
                 messages = resolvedMessages,
                 conversation = resolvedConversation,
+                hasMore = hasMore,
             )
         }.onFailure(::rethrowCancellation)
     }
@@ -721,6 +741,7 @@ class ChatSupabaseService(
         const val EVENT_CONVERSATION_DELETED = "conversation_deleted"
         const val EVENT_TYPING = "typing"
         const val SIGNED_URL_EXPIRY_DAYS = 30
+        const val DEFAULT_MESSAGE_PAGE_SIZE = 30
 
         fun channelName(conversationId: String): String = "chat_messages_$conversationId"
 

@@ -15,6 +15,8 @@ data class ChatUiState(
     val isPartnerInQuietHours: Boolean = false,
     val isPartnerTyping: Boolean = false,
     val isLoadingMessages: Boolean = false,
+    val isLoadingOlderMessages: Boolean = false,
+    val hasMoreMessages: Boolean = true,
     val messages: List<ChatMessage> = emptyList(),
     val inputContent: String = "",
     val selectedMood: MoodType = MoodType.THUONG,

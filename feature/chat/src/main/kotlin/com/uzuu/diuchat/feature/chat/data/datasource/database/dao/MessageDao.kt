@@ -15,6 +15,27 @@ interface MessageDao {
     @Query("SELECT * FROM messages WHERE conversationId = :conversationId ORDER BY createdAtEpochMs ASC")
     fun observeMessages(conversationId: String): Flow<List<MessageEntity>>
 
+    @Query(
+        """
+        SELECT * FROM (
+            SELECT * FROM messages
+            WHERE conversationId = :conversationId
+            ORDER BY createdAtEpochMs DESC, id DESC
+            LIMIT :limit
+        ) ORDER BY createdAtEpochMs ASC, id ASC
+        """,
+    )
+    fun observeLatestMessages(
+        conversationId: String,
+        limit: Int,
+    ): Flow<List<MessageEntity>>
+
+    @Query("SELECT COUNT(*) FROM messages WHERE conversationId = :conversationId AND createdAtEpochMs < :beforeEpochMs")
+    suspend fun countOlderMessages(
+        conversationId: String,
+        beforeEpochMs: Long,
+    ): Int
+
     @Query("SELECT * FROM messages WHERE id = :id LIMIT 1")
     suspend fun getMessage(id: String): MessageEntity?
 

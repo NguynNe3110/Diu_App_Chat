@@ -25,6 +25,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -47,6 +48,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -81,12 +83,14 @@ import com.uzuu.diuchat.feature.chat.domain.model.ChatMessage
 import com.uzuu.diuchat.feature.chat.domain.model.Conversation
 import com.uzuu.diuchat.feature.chat.domain.model.MessageStatus
 import com.uzuu.diuchat.feature.chat.domain.model.MoodType
+import com.uzuu.diuchat.feature.chat.domain.repository.ChatRepository
 import com.uzuu.diuchat.feature.chat.presentation.composable.ChatComposer
 import com.uzuu.diuchat.feature.chat.presentation.composable.ForwardDialog
 import com.uzuu.diuchat.feature.chat.presentation.composable.MessageBubble
 import com.uzuu.diuchat.feature.chat.presentation.composable.PinnedMessageBar
 import com.uzuu.diuchat.feature.chat.presentation.composable.ReactDetailDialog
 import com.uzuu.diuchat.feature.chat.presentation.composable.ReplyQuoteBar
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 import java.text.SimpleDateFormat
@@ -276,6 +280,7 @@ fun ChatScreen(
         onToggleSealedReveal = viewModel::onToggleRevealSealedMessage,
         onCancelScheduledLetter = viewModel::onCancelSealedMessage,
         onPhotoClick = handlePhotoOpen,
+        onLoadOlderMessages = viewModel::onLoadOlderMessages,
         modifier = modifier,
     )
 
@@ -378,6 +383,7 @@ fun ChatContent(
     onToggleSealedReveal: (String) -> Unit = {},
     onCancelScheduledLetter: (String) -> Unit = {},
     onPhotoClick: (ChatMessage) -> Unit = {},
+    onLoadOlderMessages: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val listState = rememberLazyListState()
@@ -385,11 +391,80 @@ fun ChatContent(
     val colors = AppTheme.colors
     val partnerMoodColor = Color(state.partnerMood.colorHex)
     val isGroup = state.currentConversation?.isGroup == true
+    val currentOnLoadOlder by rememberUpdatedState(onLoadOlderMessages)
 
-    LaunchedEffect(state.messages.size) {
-        if (state.messages.isNotEmpty()) {
-            listState.animateScrollToItem(state.messages.size - 1)
+    var previousFirstMessageId by remember(state.conversationId) { mutableStateOf<String?>(null) }
+    var previousLastMessageId by remember(state.conversationId) { mutableStateOf<String?>(null) }
+    var previousMessageCount by remember(state.conversationId) { mutableStateOf(0) }
+
+    LaunchedEffect(state.conversationId, state.messages.size, state.messages.firstOrNull()?.id, state.messages.lastOrNull()?.id) {
+        val messages = state.messages
+        if (messages.isEmpty()) {
+            previousFirstMessageId = null
+            previousLastMessageId = null
+            previousMessageCount = 0
+            return@LaunchedEffect
         }
+        val firstId = messages.first().id
+        val lastId = messages.last().id
+        val headerOffset = if (state.isLoadingOlderMessages) 1 else 0
+
+        when {
+            previousMessageCount == 0 -> {
+                listState.scrollToItem(messages.lastIndex + headerOffset)
+            }
+
+            firstId != previousFirstMessageId && messages.size > previousMessageCount -> {
+                val anchorIdx = previousFirstMessageId?.let { oldId ->
+                    messages.indexOfFirst { it.id == oldId }
+                } ?: -1
+                if (anchorIdx > 0) {
+                    val savedOffset = listState.firstVisibleItemScrollOffset
+                    val currentVisibleInList = (listState.firstVisibleItemIndex - headerOffset).coerceAtLeast(0)
+                    listState.scrollToItem(
+                        index = (anchorIdx + currentVisibleInList + headerOffset).coerceAtMost(messages.lastIndex + headerOffset),
+                        scrollOffset = savedOffset,
+                    )
+                }
+            }
+
+            lastId != previousLastMessageId -> {
+                val lastVisibleIdx = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+                val isNearBottom = lastVisibleIdx >= (previousMessageCount - 3).coerceAtLeast(0)
+                if (isNearBottom || messages.last().isFromMe) {
+                    listState.animateScrollToItem(messages.lastIndex + headerOffset)
+                }
+            }
+        }
+
+        previousFirstMessageId = firstId
+        previousLastMessageId = lastId
+        previousMessageCount = messages.size
+    }
+
+    LaunchedEffect(
+        listState,
+        state.conversationId,
+        state.hasMoreMessages,
+        state.isLoadingOlderMessages,
+        state.isLoadingMessages,
+        state.messages.size,
+    ) {
+        if (
+            !state.hasMoreMessages ||
+            state.isLoadingOlderMessages ||
+            state.isLoadingMessages ||
+            state.messages.size < ChatRepository.DEFAULT_PAGE_SIZE
+        ) {
+            return@LaunchedEffect
+        }
+        snapshotFlow { listState.firstVisibleItemIndex }
+            .distinctUntilChanged()
+            .collect { firstVisibleIndex ->
+                if (firstVisibleIndex <= 2) {
+                    currentOnLoadOlder()
+                }
+            }
     }
 
     Scaffold(
@@ -636,6 +711,29 @@ fun ChatContent(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(vertical = 10.dp),
                 ) {
+                    if (state.isLoadingOlderMessages) {
+                        item(key = "load_older_header") {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 10.dp),
+                                horizontalArrangement = Arrangement.Center,
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(16.dp),
+                                    strokeWidth = 2.dp,
+                                    color = partnerMoodColor,
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "Đang tải tin nhắn cũ hơn…",
+                                    style = AppTheme.typography.bodySmall,
+                                    color = colors.inkSecondary,
+                                )
+                            }
+                        }
+                    }
                     items(
                         items = state.messages,
                         key = { it.id },
