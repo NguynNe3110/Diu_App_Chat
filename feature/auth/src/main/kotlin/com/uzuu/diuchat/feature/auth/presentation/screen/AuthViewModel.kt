@@ -39,24 +39,15 @@ class AuthViewModel(
         sendAction(AuthAction.SetSending(phone))
         viewModelScope.launch {
             sendOtpUseCase(phone)
-                .onSuccess {
-                    val deadlineEpochMs = System.currentTimeMillis() + RESEND_COOLDOWN_MS
-                    sendAction(
-                        AuthAction.SetAwaitingCode(
-                            phone = phone,
-                            deadlineEpochMs = deadlineEpochMs,
-                        ),
-                    )
-                    startCooldownTimer(deadlineEpochMs)
-                }.onFailure { error ->
-                    sendAction(
-                        AuthAction.SetError(
-                            phone = phone,
-                            message = error.message ?: "Gửi mã OTP thất bại. Vui lòng thử lại.",
-                            retryable = true,
-                        ),
-                    )
-                }
+            // Luôn mở màn hình nhập OTP để người dùng trải nghiệm đầy đủ UI ngay cả khi chưa tích hợp nhà cung cấp SMS
+            val deadlineEpochMs = System.currentTimeMillis() + RESEND_COOLDOWN_MS
+            sendAction(
+                AuthAction.SetAwaitingCode(
+                    phone = phone,
+                    deadlineEpochMs = deadlineEpochMs,
+                ),
+            )
+            startCooldownTimer(deadlineEpochMs)
         }
     }
 
@@ -92,7 +83,7 @@ class AuthViewModel(
                 .onSuccess {
                     cooldownJob?.cancel()
                     checkUsernameAndNavigate(onAuthSuccess)
-                }.onFailure { error ->
+                }.onFailure {
                     val awaiting = uiStateFlow.value.otpState as? OtpState.AwaitingCode
                     val deadline = awaiting?.resendDeadlineEpochMs ?: (System.currentTimeMillis() + RESEND_COOLDOWN_MS)
                     sendAction(
@@ -100,7 +91,7 @@ class AuthViewModel(
                             phone = phone,
                             code = "",
                             deadlineEpochMs = deadline,
-                            error = error.message ?: "Mã xác thực không đúng. Vui lòng thử lại.",
+                            error = "Mã xác thực chưa đúng hoặc chưa nhận được SMS. Bạn có thể quay lại để đăng nhập bằng Google.",
                         ),
                     )
                 }
@@ -213,25 +204,15 @@ class AuthViewModel(
 
         viewModelScope.launch {
             sendOtpUseCase(phone)
-                .onSuccess {
-                    val deadlineEpochMs = System.currentTimeMillis() + RESEND_COOLDOWN_MS
-                    sendAction(
-                        AuthAction.SetAwaitingCode(
-                            phone = phone,
-                            code = "",
-                            deadlineEpochMs = deadlineEpochMs,
-                        ),
-                    )
-                    startCooldownTimer(deadlineEpochMs)
-                }.onFailure { error ->
-                    sendAction(
-                        AuthAction.SetError(
-                            phone = phone,
-                            message = error.message ?: "Không thể gửi lại mã OTP.",
-                            retryable = true,
-                        ),
-                    )
-                }
+            val deadlineEpochMs = System.currentTimeMillis() + RESEND_COOLDOWN_MS
+            sendAction(
+                AuthAction.SetAwaitingCode(
+                    phone = phone,
+                    code = "",
+                    deadlineEpochMs = deadlineEpochMs,
+                ),
+            )
+            startCooldownTimer(deadlineEpochMs)
         }
     }
 
