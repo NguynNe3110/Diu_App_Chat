@@ -227,7 +227,8 @@ class CallSupabaseService(
     ): String {
         val client = supabaseClient ?: return conversationId
         val callerId = currentUserId() ?: return conversationId
-        val resolvedConversationId = resolveConversationId(client, conversationId, calleeId)
+        val resolvedCalleeId = resolveCalleeId(client, calleeId, conversationId, callerId)
+        val resolvedConversationId = resolveConversationId(client, conversationId, callerId, resolvedCalleeId)
         val callerProfile = fetchPeerProfiles(client, listOf(callerId))[callerId]
         val callerName =
             callerProfile?.displayName?.takeIf { it.isNotBlank() }
@@ -235,31 +236,33 @@ class CallSupabaseService(
                 ?: "Người thương"
         val callerMoodHex = moodToHex(callerProfile?.currentMood)
 
-        if (resolvedConversationId.isNotBlank()) {
+        if (resolvedConversationId.isNotBlank() && resolvedCalleeId.isNotBlank()) {
             insertCallLogRow(
                 client = client,
                 params = NewCallLogParams(
                     callId = callId,
                     conversationId = resolvedConversationId,
                     callerId = callerId,
-                    calleeId = calleeId,
+                    calleeId = resolvedCalleeId,
                     isVideo = isVideo,
                 ),
             )
         }
 
-        broadcastIncomingCall(
-            client = client,
-            payload = IncomingCallBroadcast(
-                callId = callId,
-                conversationId = resolvedConversationId,
-                callerId = callerId,
-                callerName = callerName,
-                callerMoodHex = callerMoodHex,
-                calleeId = calleeId,
-                isVideo = isVideo,
-            ),
-        )
+        if (resolvedCalleeId.isNotBlank()) {
+            broadcastIncomingCall(
+                client = client,
+                payload = IncomingCallBroadcast(
+                    callId = callId,
+                    conversationId = resolvedConversationId,
+                    callerId = callerId,
+                    callerName = callerName,
+                    callerMoodHex = callerMoodHex,
+                    calleeId = resolvedCalleeId,
+                    isVideo = isVideo,
+                ),
+            )
+        }
         return resolvedConversationId
     }
 
@@ -396,7 +399,7 @@ class CallSupabaseService(
                 client.realtime.subscriptions["realtime:$CHANNEL_GLOBAL_SYNC"]
                     ?: client.channel(CHANNEL_GLOBAL_SYNC)
             if (globalChannel.status.value != RealtimeChannel.Status.SUBSCRIBED) {
-                runCatching { globalChannel.subscribe() }.onFailure(::rethrowCancellation)
+                runCatching { globalChannel.subscribe(blockUntilSubscribed = true) }.onFailure(::rethrowCancellation)
             }
             globalChannel.broadcast(
                 event = EVENT_INCOMING_CALL,
@@ -408,22 +411,45 @@ class CallSupabaseService(
         }
     }
 
+    private suspend fun resolveCalleeId(
+        client: SupabaseClient,
+        calleeId: String,
+        conversationId: String,
+        callerId: String,
+    ): String {
+        if (calleeId.isNotBlank()) return calleeId
+        if (conversationId.isBlank()) return ""
+        return runCatching {
+            val members = client.postgrest
+                .from(TABLE_CONVERSATION_MEMBERS)
+                .select {
+                    filter {
+                        eq("conversation_id", conversationId)
+                    }
+                }.decodeList<ConversationMemberRow>()
+            members.firstOrNull { it.userId != callerId }?.userId.orEmpty()
+        }.onFailure(::rethrowCancellation).getOrDefault("")
+    }
+
     private suspend fun resolveConversationId(
         client: SupabaseClient,
         conversationId: String,
+        callerId: String,
         calleeId: String,
     ): String {
         if (conversationId.isNotBlank()) return conversationId
         if (calleeId.isBlank()) return ""
         return runCatching {
-            client.postgrest
+            val result = client.postgrest
                 .rpc(
                     function = RPC_GET_OR_CREATE_DIRECT,
                     parameters = buildJsonObject {
-                        put("p_other_user_id", calleeId)
+                        put("p_user_a", callerId)
+                        put("p_user_b", calleeId)
                     },
-                ).decodeAs<String>()
-        }.getOrDefault("")
+                )
+            result.data.trim('"')
+        }.onFailure(::rethrowCancellation).getOrDefault("")
     }
 
     private suspend fun queryCallLogRows(
@@ -551,6 +577,12 @@ class CallSupabaseService(
     )
 
     @Serializable
+    private data class ConversationMemberRow(
+        @SerialName("user_id")
+        val userId: String,
+    )
+
+    @Serializable
     private data class ProfileRow(
         @SerialName("id")
         val id: String,
@@ -587,6 +619,7 @@ class CallSupabaseService(
 
     private companion object {
         const val TABLE_CALL_LOGS = "call_logs"
+        const val TABLE_CONVERSATION_MEMBERS = "conversation_members"
         const val TABLE_USER_PROFILES = "user_profiles"
         const val RPC_GET_OR_CREATE_DIRECT = "get_or_create_direct_conversation"
         const val SCHEMA_PUBLIC = "public"
