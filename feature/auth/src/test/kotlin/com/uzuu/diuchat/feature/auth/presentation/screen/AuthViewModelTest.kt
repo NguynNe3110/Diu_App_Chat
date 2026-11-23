@@ -94,6 +94,20 @@ class AuthViewModelTest {
     }
 
     @Test
+    fun `onSendOtpClicked still opens AwaitingCode UI when SMS provider is unavailable`() = runTest {
+        coEvery { mockSendOtpUseCase(any()) } returns Result.failure(IllegalStateException("SMS provider not configured"))
+
+        "912345678".forEach { sut.onKeypadPhonePress(it.toString()) }
+        sut.onSendOtpClicked()
+
+        advanceUntilIdle()
+
+        val state = sut.uiStateFlow.value
+        state.otpState shouldBeInstanceOf OtpState.AwaitingCode::class
+        (state.otpState as OtpState.AwaitingCode).phoneNumber shouldBeEqualTo "912345678"
+    }
+
+    @Test
     fun `onKeypadOtpPress auto verifies when 6 digits are entered and user has username`() = runTest {
         coEvery { mockSendOtpUseCase(any()) } returns Result.success(Unit)
         coEvery { mockVerifyOtpUseCase(any(), any()) } returns Result.success(Unit)
