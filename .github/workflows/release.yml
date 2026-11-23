@@ -1,4 +1,4 @@
-name: Release (debug-signed)
+name: Release
 
 on:
   push:
@@ -27,24 +27,58 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v6
 
-      - name: Build debug-signed release APK
-        run: ./gradlew :app:assembleRelease -PciDebugSigning=true
+      - name: Decode release keystore
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        shell: bash
+        run: |
+          if [ -z "$ANDROID_KEYSTORE_BASE64" ] || [ -z "$ANDROID_KEYSTORE_PASSWORD" ] || [ -z "$ANDROID_KEY_ALIAS" ] || [ -z "$ANDROID_KEY_PASSWORD" ]; then
+            echo "Missing release signing secrets. Configure ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, and ANDROID_KEY_PASSWORD in GitHub repository secrets." >&2
+            exit 1
+          fi
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | tr -d '\r\n' | base64 --decode > "$RUNNER_TEMP/release-keystore.jks"
+          chmod 600 "$RUNNER_TEMP/release-keystore.jks"
+
+      - name: Decode google-services.json (if configured)
+        env:
+          GOOGLE_SERVICES_JSON_BASE64: ${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}
+        shell: bash
+        run: |
+          if [ -n "$GOOGLE_SERVICES_JSON_BASE64" ]; then
+            printf '%s' "$GOOGLE_SERVICES_JSON_BASE64" | tr -d '\r\n' | base64 --decode > app/google-services.json
+          fi
+
+      - name: Build release APK
+        env:
+          ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/release-keystore.jks
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: ./gradlew :app:assembleRelease
 
       - name: Verify APK signature
         shell: bash
         run: |
           apksigner=$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -n 1)
           test -n "$apksigner"
-          "$apksigner" verify --verbose app/build/outputs/apk/release/app-release.apk
+          "$apksigner" verify --verbose --print-certs app/build/outputs/apk/release/app-release.apk
+
+      - name: Clean up temporary keystore
+        if: always()
+        shell: bash
+        run: rm -f "$RUNNER_TEMP/release-keystore.jks"
 
       - name: Upload APK
         uses: actions/upload-artifact@v7
         with:
-          name: app-release-debug-signed-${{ github.ref_name }}
+          name: app-release-${{ github.ref_name }}
           path: app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
 
-      - name: Publish GitHub prerelease
+      - name: Publish GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
@@ -54,9 +88,8 @@ jobs:
           if ! gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
             gh release create "$RELEASE_TAG" \
               --verify-tag \
-              --title "DiuAppChat $RELEASE_TAG (debug-signed)" \
-              --prerelease \
-              --notes "Test build signed with a debug key. Not for production. Signing keys may differ between runs; uninstalling the previous app may be required and will delete its local data."
+              --title "DiuAppChat $RELEASE_TAG" \
+              --notes "Release build signed with the project release keystore."
           fi
           gh release upload "$RELEASE_TAG" \
             app/build/outputs/apk/release/app-release.apk \
