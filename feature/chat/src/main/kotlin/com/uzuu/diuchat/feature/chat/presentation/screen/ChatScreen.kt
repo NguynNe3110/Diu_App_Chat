@@ -5,6 +5,11 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -60,6 +65,7 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
@@ -737,6 +743,13 @@ fun ChatContent(
                             style = AppTheme.typography.bodySmall,
                             color = colors.inkSecondary,
                         )
+                        if (state.isPartnerTyping) {
+                            Spacer(modifier = Modifier.height(12.dp))
+                            TypingIndicatorBubble(
+                                partnerName = state.conversationTitle,
+                                moodColor = partnerMoodColor,
+                            )
+                        }
                         if (state.isPartnerInQuietHours) {
                             Spacer(modifier = Modifier.height(16.dp))
                             QuietNoteInlinePill(
@@ -796,6 +809,15 @@ fun ChatContent(
                         )
                     }
 
+                    if (state.isPartnerTyping) {
+                        item(key = "partner_typing_indicator") {
+                            TypingIndicatorBubble(
+                                partnerName = state.conversationTitle,
+                                moodColor = partnerMoodColor,
+                            )
+                        }
+                    }
+
                     if (state.isPartnerInQuietHours) {
                         item(key = "quiet_hours_inline_note") {
                             Box(
@@ -828,6 +850,63 @@ fun ChatContent(
                     onDismiss = onCloseForwardDialog,
                     onConfirmForward = onConfirmForward,
                 )
+            }
+        }
+    }
+}
+
+@Composable
+private fun TypingIndicatorBubble(
+    partnerName: String,
+    moodColor: Color,
+) {
+    val colors = AppTheme.colors
+    val infiniteTransition = rememberInfiniteTransition(label = "typing_dots")
+    val dotOffsets = listOf(0, 150, 300).map { delayMs ->
+        infiniteTransition.animateFloat(
+            initialValue = 0f,
+            targetValue = -5f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 480, delayMillis = delayMs),
+                repeatMode = RepeatMode.Reverse,
+            ),
+            label = "typing_dot_$delayMs",
+        )
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Surface(
+            shape = RoundedCornerShape(18.dp),
+            color = colors.surfaceElevated,
+            border = BorderStroke(1.dp, moodColor.copy(alpha = 0.45f)),
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 14.dp, vertical = 9.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(5.dp),
+            ) {
+                dotOffsets.forEach { offsetY ->
+                    Box(
+                        modifier = Modifier.graphicsLayer {
+                            translationY = offsetY.value.dp.toPx()
+                        },
+                    ) {
+                        DiuMoodDot(color = moodColor, size = 7.dp)
+                    }
+                }
+                if (partnerName.isNotBlank()) {
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "$partnerName đang nhập…",
+                        style = AppTheme.typography.labelSmall,
+                        color = colors.inkSecondary,
+                    )
+                }
             }
         }
     }

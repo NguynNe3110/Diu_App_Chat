@@ -662,6 +662,12 @@ class ChatSupabaseService(
     ) {
         val client = supabaseClient ?: return
         val myId = currentUserId() ?: return
+        val payload =
+            buildJsonObject {
+                put(COL_CONVERSATION_ID, conversationId)
+                put("user_id", myId)
+                put("is_typing", isTyping)
+            }
         runCatching {
             val topic = typingChannelName(conversationId)
             val ch =
@@ -670,14 +676,16 @@ class ChatSupabaseService(
             if (ch.status.value != RealtimeChannel.Status.SUBSCRIBED) {
                 runCatching { ch.subscribe() }
             }
-            ch.broadcast(
-                event = EVENT_TYPING,
-                message =
-                buildJsonObject {
-                    put("user_id", myId)
-                    put("is_typing", isTyping)
-                },
-            )
+            ch.broadcast(event = EVENT_TYPING, message = payload)
+        }.onFailure(::rethrowCancellation)
+        runCatching {
+            val globalChannel =
+                client.realtime.subscriptions["realtime:$CHANNEL_GLOBAL_SYNC"]
+                    ?: client.channel(CHANNEL_GLOBAL_SYNC)
+            if (globalChannel.status.value != RealtimeChannel.Status.SUBSCRIBED) {
+                runCatching { globalChannel.subscribe() }
+            }
+            globalChannel.broadcast(event = EVENT_TYPING, message = payload)
         }.onFailure(::rethrowCancellation)
     }
 
@@ -689,7 +697,7 @@ class ChatSupabaseService(
             val ch =
                 client.realtime.subscriptions["realtime:$topic"]
                     ?: client.channel(topic)
-            val typingFlow =
+            val directTyping =
                 ch.broadcastFlow<JsonObject>(event = EVENT_TYPING).mapNotNull { payload ->
                     val senderId = payload["user_id"]?.jsonPrimitive?.contentOrNull
                     if (senderId != null && senderId == myId) {
@@ -698,11 +706,28 @@ class ChatSupabaseService(
                         payload["is_typing"]?.jsonPrimitive?.booleanOrNull
                     }
                 }
+            val globalChannel =
+                client.realtime.subscriptions["realtime:$CHANNEL_GLOBAL_SYNC"]
+                    ?: client.channel(CHANNEL_GLOBAL_SYNC)
+            val globalTyping =
+                globalChannel.broadcastFlow<JsonObject>(event = EVENT_TYPING).mapNotNull { payload ->
+                    val targetConvo = payload[COL_CONVERSATION_ID]?.jsonPrimitive?.contentOrNull
+                    if (targetConvo != conversationId) return@mapNotNull null
+                    val senderId = payload["user_id"]?.jsonPrimitive?.contentOrNull
+                    if (senderId != null && senderId == myId) {
+                        null
+                    } else {
+                        payload["is_typing"]?.jsonPrimitive?.booleanOrNull
+                    }
+                }
             launch {
-                typingFlow.collect { send(it) }
+                merge(directTyping, globalTyping).collect { send(it) }
             }
             if (ch.status.value != RealtimeChannel.Status.SUBSCRIBED) {
                 runCatching { ch.subscribe() }.onFailure(::rethrowCancellation)
+            }
+            if (globalChannel.status.value != RealtimeChannel.Status.SUBSCRIBED) {
+                runCatching { globalChannel.subscribe() }.onFailure(::rethrowCancellation)
             }
             awaitClose {
                 CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {

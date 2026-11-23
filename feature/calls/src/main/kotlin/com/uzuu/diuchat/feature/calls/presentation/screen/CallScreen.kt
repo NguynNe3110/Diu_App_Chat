@@ -335,7 +335,7 @@ fun CallContent(
                         CallControls(
                             isMuted = uiState.isMuted,
                             isSpeakerOn = uiState.isSpeakerOn,
-                            isVideoEnabled = true,
+                            isVideoEnabled = uiState.isVideoEnabled,
                             onToggleMic = onToggleMic,
                             onToggleSpeaker = onToggleSpeaker,
                             onToggleVideo = onToggleVideo,

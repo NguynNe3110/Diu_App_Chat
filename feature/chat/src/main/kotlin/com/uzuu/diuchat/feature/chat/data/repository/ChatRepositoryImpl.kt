@@ -4,6 +4,8 @@ import android.content.Context
 import android.net.Uri
 import androidx.room.withTransaction
 import com.uzuu.diuchat.feature.base.data.media.ImageDownscaler
+import com.uzuu.diuchat.feature.base.domain.media.AppSoundPlayer
+import com.uzuu.diuchat.feature.base.domain.media.DiuSoundEffect
 import com.uzuu.diuchat.feature.chat.data.datasource.api.model.MessageDto
 import com.uzuu.diuchat.feature.chat.data.datasource.api.service.ChatSupabaseService
 import com.uzuu.diuchat.feature.chat.data.datasource.database.DiuChatDatabase
@@ -45,6 +47,7 @@ class ChatRepositoryImpl(
     private val supabaseService: ChatSupabaseService = ChatSupabaseService(null),
     private val context: Context? = null,
     private val imageDownscaler: ImageDownscaler? = null,
+    private val appSoundPlayer: AppSoundPlayer? = null,
 ) : ChatRepository {
     private val messageWindowLimits = ConcurrentHashMap<String, MutableStateFlow<Int>>()
 
@@ -167,6 +170,7 @@ class ChatRepositoryImpl(
 
         val outboxEntity = createOutboxEntity(operationId, conversationId, messageId, now)
         persistMessageWithOutbox(messageEntity, outboxEntity, mood)
+        appSoundPlayer?.playOneShot(DiuSoundEffect.MESSAGE_SENT)
         val syncedEntity = syncMessageWithOutboxAck(messageEntity, operationId)
 
         return chatMapper.messageEntityToDomain(syncedEntity)
@@ -205,6 +209,7 @@ class ChatRepositoryImpl(
 
         val outboxEntity = createOutboxEntity(operationId, conversationId, messageId, now)
         persistMessageWithOutbox(messageEntity, outboxEntity, mood)
+        appSoundPlayer?.playOneShot(DiuSoundEffect.MESSAGE_SENT)
 
         val uploadedUrl = uploadLocalPhotoIfNeeded(conversationId, messageId, photoUri)
         val entityForSync =
@@ -277,6 +282,7 @@ class ChatRepositoryImpl(
 
         val outboxEntity = createOutboxEntity(operationId, conversationId, messageId, now)
         persistMessageWithOutbox(messageEntity, outboxEntity, mood)
+        appSoundPlayer?.playOneShot(DiuSoundEffect.MESSAGE_SENT)
 
         val uploadedAudioUrl = uploadLocalAudioIfNeeded(conversationId, messageId, audioUri)
         val entityForSync =
@@ -617,6 +623,7 @@ class ChatRepositoryImpl(
             )
         val outbox = createOutboxEntity(operationId, conversationId, messageId, now)
         persistMessageWithOutbox(entity, outbox, mood)
+        appSoundPlayer?.playOneShot(DiuSoundEffect.MESSAGE_SENT)
         val syncedEntity = syncMessageWithOutboxAck(entity, operationId)
         supabaseService.insertSealedLetterForMessage(
             messageId = messageId,
@@ -673,6 +680,7 @@ class ChatRepositoryImpl(
             now = entity.createdAtEpochMs,
         )
         if (!entity.isFromMe) {
+            appSoundPlayer?.playOneShot(DiuSoundEffect.MESSAGE_RECEIVED)
             supabaseService.markConversationRead(entity.conversationId)
         }
     }

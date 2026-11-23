@@ -1,5 +1,7 @@
 package com.uzuu.diuchat.feature.calls.data.repository
 
+import com.uzuu.diuchat.feature.base.domain.media.AppSoundPlayer
+import com.uzuu.diuchat.feature.base.domain.media.DiuSoundEffect
 import com.uzuu.diuchat.feature.calls.data.CallMediaEngine
 import com.uzuu.diuchat.feature.calls.data.CallServiceCoordinator
 import com.uzuu.diuchat.feature.calls.data.CallSupabaseService
@@ -43,6 +45,7 @@ class CallRepositoryImplTest {
         every { signalingEvents } returns signalingFlow
     }
     private val callMediaEngine: CallMediaEngine = mockk(relaxed = true)
+    private val appSoundPlayer: AppSoundPlayer = mockk(relaxed = true)
     private val callTokenService: CallTokenService = mockk(relaxed = true) {
         coEvery { fetchToken(any()) } returns Result.success(
             LiveKitTokenPayload(token = "lk_token", url = "wss://livekit.example.com"),
@@ -67,6 +70,7 @@ class CallRepositoryImplTest {
             callMediaEngine = callMediaEngine,
             callSupabaseService = callSupabaseService,
             ringingTimeoutMs = 45_000L,
+            appSoundPlayer = appSoundPlayer,
         )
     }
 
@@ -226,11 +230,13 @@ class CallRepositoryImplTest {
         )
 
         sut.onIncomingCallReceived(incoming)
+        verify { appSoundPlayer.startLooping(DiuSoundEffect.CALL_INCOMING_RINGTONE) }
         coVerify { webRtcSignalingAdapter.connect("real_call_uuid") }
 
         sut.acceptCall("real_call_uuid")
         testDispatcher.scheduler.runCurrent()
 
+        verify { appSoundPlayer.stopLooping() }
         sut.currentCallSession.value?.status shouldBeEqualTo CallStatus.ACTIVE
         coVerify {
             callTokenService.fetchToken("real_call_uuid")

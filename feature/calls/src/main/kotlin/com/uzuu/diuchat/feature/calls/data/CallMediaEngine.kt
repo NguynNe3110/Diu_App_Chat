@@ -46,6 +46,7 @@ class LiveKitCallMediaEngine(
 ) : CallMediaEngine {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private var room: Room? = null
+    private var activeRoomName: String? = null
     private var eventsJob: Job? = null
     private var isFrontCamera = true
 
@@ -62,6 +63,17 @@ class LiveKitCallMediaEngine(
         enableVideo: Boolean,
     ) {
         val appContext = context?.applicationContext ?: return
+        val existingRoom = room
+        if (existingRoom != null && activeRoomName == existingRoom.name && existingRoom.state == Room.State.CONNECTED) {
+            runCatching { existingRoom.localParticipant.setMicrophoneEnabled(true) }
+            if (enableVideo) {
+                runCatching {
+                    existingRoom.localParticipant.setCameraEnabled(true)
+                    refreshLocalVideoTrack(existingRoom)
+                }
+            }
+            return
+        }
         disconnect()
 
         val lkRoom = LiveKit.create(appContext)
@@ -71,6 +83,18 @@ class LiveKitCallMediaEngine(
         eventsJob = scope.launch {
             lkRoom.events.collect { event ->
                 when (event) {
+                    is RoomEvent.TrackPublished -> {
+                        if (event.participant == lkRoom.localParticipant && event.publication.source == Track.Source.CAMERA) {
+                            refreshLocalVideoTrack(lkRoom)
+                        }
+                    }
+
+                    is RoomEvent.TrackUnpublished -> {
+                        if (event.participant == lkRoom.localParticipant && event.publication.source == Track.Source.CAMERA) {
+                            _localVideoTrack.value = null
+                        }
+                    }
+
                     is RoomEvent.TrackSubscribed -> {
                         if (event.track is VideoTrack) {
                             _remoteVideoTrack.value = event.track as VideoTrack
@@ -96,6 +120,8 @@ class LiveKitCallMediaEngine(
 
         try {
             lkRoom.connect(url = url, token = token)
+            activeRoomName = lkRoom.name
+            refreshRemoteVideoTrack(lkRoom)
             runCatching {
                 lkRoom.localParticipant.setMicrophoneEnabled(true)
             }.onFailure { error ->
@@ -162,6 +188,7 @@ class LiveKitCallMediaEngine(
             room?.release()
         }
         room = null
+        activeRoomName = null
     }
 
     private fun refreshLocalVideoTrack(activeRoom: Room) {
@@ -169,5 +196,16 @@ class LiveKitCallMediaEngine(
             .getTrackPublication(Track.Source.CAMERA)
             ?.track as? VideoTrack
         _localVideoTrack.value = track
+    }
+
+    private fun refreshRemoteVideoTrack(activeRoom: Room) {
+        val existingRemoteTrack = activeRoom.remoteParticipants.values
+            .asSequence()
+            .mapNotNull { participant ->
+                participant.getTrackPublication(Track.Source.CAMERA)?.track as? VideoTrack
+            }.firstOrNull()
+        if (existingRemoteTrack != null) {
+            _remoteVideoTrack.value = existingRemoteTrack
+        }
     }
 }

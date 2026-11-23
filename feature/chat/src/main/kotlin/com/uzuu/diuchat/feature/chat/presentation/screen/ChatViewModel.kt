@@ -38,6 +38,7 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
 
 private const val TYPING_IDLE_TIMEOUT_MS = 2_500L
+private const val TYPING_BROADCAST_THROTTLE_MS = 1_200L
 private const val TYPING_REMOTE_CLEAR_MS = 3_500L
 private const val DEFAULT_SLOW_SEND_DELAY_MS = 12 * 3600 * 1000L
 
@@ -71,6 +72,7 @@ class ChatViewModel(
     private var typingObserveJob: Job? = null
     private var typingClearJob: Job? = null
     private var localTypingStopJob: Job? = null
+    private var lastTypingBroadcastMs: Long = 0L
     private var voiceRecordingTickerJob: Job? = null
 
     init {
@@ -164,14 +166,20 @@ class ChatViewModel(
         if (convoId.isBlank()) return
         localTypingStopJob?.cancel()
         if (content.isNotBlank()) {
-            viewModelScope.launch {
-                runCatching { sendTypingStatusUseCase(convoId, true) }
+            val now = System.currentTimeMillis()
+            if (now - lastTypingBroadcastMs >= TYPING_BROADCAST_THROTTLE_MS) {
+                lastTypingBroadcastMs = now
+                viewModelScope.launch {
+                    runCatching { sendTypingStatusUseCase(convoId, true) }
+                }
             }
             localTypingStopJob = viewModelScope.launch {
                 delay(TYPING_IDLE_TIMEOUT_MS)
+                lastTypingBroadcastMs = 0L
                 runCatching { sendTypingStatusUseCase(convoId, false) }
             }
         } else {
+            lastTypingBroadcastMs = 0L
             viewModelScope.launch {
                 runCatching { sendTypingStatusUseCase(convoId, false) }
             }
@@ -393,8 +401,11 @@ class ChatViewModel(
 
         if (text.isEmpty() && photoUri == null) return
 
+        localTypingStopJob?.cancel()
+        lastTypingBroadcastMs = 0L
         sendAction(ChatAction.SetSending(true))
         viewModelScope.launch {
+            runCatching { sendTypingStatusUseCase(currentState.conversationId, false) }
             try {
                 if (photoUri != null) {
                     sendPhotoMessageUseCase(
