@@ -96,10 +96,18 @@ class LiveKitCallMediaEngine(
 
         try {
             lkRoom.connect(url = url, token = token)
-            lkRoom.localParticipant.setMicrophoneEnabled(true)
-            lkRoom.localParticipant.setCameraEnabled(enableVideo)
+            runCatching {
+                lkRoom.localParticipant.setMicrophoneEnabled(true)
+            }.onFailure { error ->
+                Timber.w(error, "Unable to enable microphone immediately on connect (awaiting permission)")
+            }
             if (enableVideo) {
-                refreshLocalVideoTrack(lkRoom)
+                runCatching {
+                    lkRoom.localParticipant.setCameraEnabled(true)
+                    refreshLocalVideoTrack(lkRoom)
+                }.onFailure { error ->
+                    Timber.w(error, "Unable to enable camera immediately on connect (awaiting permission)")
+                }
             }
             Timber.d("LiveKit connected to room %s (video=%s)", lkRoom.name, enableVideo)
         } catch (error: Throwable) {

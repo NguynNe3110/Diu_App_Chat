@@ -16,4 +16,7 @@ data class Conversation(
     val customNickname: String? = null,
     val isMuted: Boolean = false,
     val members: List<GroupMember> = emptyList(),
-)
+) {
+    val directPeerId: String?
+        get() = if (isGroup) null else members.firstOrNull { !it.isFromMe }?.userId
+}

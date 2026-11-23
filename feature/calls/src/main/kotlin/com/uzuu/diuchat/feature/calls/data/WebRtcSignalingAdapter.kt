@@ -41,10 +41,14 @@ class WebRtcSignalingAdapterImpl(
 
     override suspend fun sendSignaling(message: RtcSignalingMessage): Result<Unit> = runCatching {
         Timber.d("WebRtcSignaling sending type: %s for session: %s", message.type, message.sessionId)
-        _signalingEvents.emit(message)
-        if (supabaseClient != null) {
+        val client = supabaseClient
+        if (client == null) {
+            _signalingEvents.emit(message)
+        } else {
             runCatching {
-                activeChannel?.broadcast(event = SIGNALING_EVENT, message = message)
+                val channel = activeChannel
+                    ?: client.realtime.subscriptions["realtime:calls:${message.sessionId}"]
+                channel?.broadcast(event = SIGNALING_EVENT, message = message)
             }.onFailure { error ->
                 Timber.w(error, "Failed to broadcast signaling message %s", message.type)
             }
@@ -52,6 +56,9 @@ class WebRtcSignalingAdapterImpl(
     }
 
     override suspend fun connect(sessionId: String): Result<Unit> = runCatching {
+        if (activeSessionId == sessionId && activeChannel != null) {
+            return@runCatching
+        }
         activeSessionId = sessionId
         Timber.d("WebRtcSignaling connected for session: %s", sessionId)
 
@@ -67,13 +74,16 @@ class WebRtcSignalingAdapterImpl(
                 t=0 0
             """.trimIndent(),
         )
-        _signalingEvents.emit(initialOffer)
 
         val client = supabaseClient
-        if (client != null) {
+        if (client == null) {
+            _signalingEvents.emit(initialOffer)
+        } else {
             collectionJob?.cancel()
             runCatching {
-                val channel = client.realtime.channel("calls:$sessionId")
+                val channel =
+                    client.realtime.subscriptions["realtime:calls:$sessionId"]
+                        ?: client.realtime.channel("calls:$sessionId")
                 activeChannel = channel
                 collectionJob = adapterScope.launch {
                     channel.broadcastFlow<RtcSignalingMessage>(event = SIGNALING_EVENT)
@@ -81,8 +91,9 @@ class WebRtcSignalingAdapterImpl(
                             _signalingEvents.emit(incoming)
                         }
                 }
-                channel.subscribe()
-                channel.broadcast(event = SIGNALING_EVENT, message = initialOffer)
+                if (channel.status.value != RealtimeChannel.Status.SUBSCRIBED) {
+                    channel.subscribe()
+                }
             }.onFailure { error ->
                 Timber.w(error, "Failed to connect Supabase Realtime channel for session %s", sessionId)
             }
@@ -99,21 +110,23 @@ class WebRtcSignalingAdapterImpl(
                 targetId = "remote_peer",
                 type = SignalingType.BYE,
             )
-            _signalingEvents.emit(byeMessage)
 
+            val client = supabaseClient
             val channel = activeChannel
-            if (supabaseClient != null && channel != null) {
-                runCatching {
-                    channel.broadcast(event = SIGNALING_EVENT, message = byeMessage)
-                }.onFailure { error ->
-                    Timber.w(error, "Failed to broadcast BYE for session %s", sessionId)
-                }
+            if (client == null) {
+                _signalingEvents.emit(byeMessage)
+                collectionJob?.cancel()
+                collectionJob = null
+            } else if (channel != null) {
                 collectionJob?.cancel()
                 collectionJob = null
                 runCatching {
                     channel.unsubscribe()
                 }.onFailure { error ->
                     Timber.w(error, "Failed to unsubscribe Realtime channel for session %s", sessionId)
+                }
+                runCatching {
+                    client.realtime.removeChannel(channel)
                 }
             } else {
                 collectionJob?.cancel()

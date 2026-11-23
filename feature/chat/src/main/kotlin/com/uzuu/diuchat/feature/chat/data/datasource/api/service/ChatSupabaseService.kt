@@ -335,6 +335,7 @@ class ChatSupabaseService(
                 title = resolvedTitle,
                 moodId = profile?.currentMood ?: convo.moodId,
                 avatarUrl = safeAvatar,
+                peerUserId = peer?.userId,
             )
         }
     }

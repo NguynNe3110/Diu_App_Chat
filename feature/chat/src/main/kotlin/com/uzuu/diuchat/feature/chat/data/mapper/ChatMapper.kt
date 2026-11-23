@@ -235,6 +235,20 @@ class ChatMapper {
         val updatedAtMs = dto.updatedAt?.let {
             runCatching { Instant.parse(it).toEpochMilli() }.getOrNull()
         }
+        val directMembersCsv =
+            dto.peerUserId?.takeIf { it.isNotBlank() && !dto.type.equals("group", ignoreCase = true) }?.let { peerId ->
+                serializeMembers(
+                    listOf(
+                        GroupMember(
+                            userId = peerId,
+                            displayName = dto.title ?: "",
+                            role = GroupRole.MEMBER,
+                            mood = MoodType.fromId(dto.moodId),
+                            isFromMe = false,
+                        ),
+                    ),
+                )
+            }
         return ConversationEntity(
             id = dto.id,
             title = dto.title ?: "Cuộc trò chuyện",
@@ -244,6 +258,7 @@ class ChatMapper {
             unreadCount = 0,
             isGroup = dto.type.equals("group", ignoreCase = true),
             avatarUrl = dto.avatarUrl,
+            membersCsv = directMembersCsv,
         )
     }
 

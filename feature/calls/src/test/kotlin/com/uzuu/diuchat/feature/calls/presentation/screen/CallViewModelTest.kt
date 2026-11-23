@@ -165,7 +165,7 @@ class CallViewModelTest {
 
         sut.uiStateFlow.value.lastQuickReplyMessage shouldBeEqualTo "Thương, tí gọi lại"
         sut.uiStateFlow.value.isQuickReplyExpanded shouldBeEqualTo false
-        coVerify { endCallUseCase("call_inc_qr", CallEndReason.REJECTED) }
+        coVerify { endCallUseCase("call_inc_qr", CallEndReason.REJECTED, "Thương, tí gọi lại") }
     }
 
     @Test
@@ -216,5 +216,37 @@ class CallViewModelTest {
 
         sut.toggleOverlayMinimized()
         sut.uiStateFlow.value.isOverlayMinimized shouldBeEqualTo false
+    }
+
+    @Test
+    fun `ensureCallSession for incoming call keeps real callId from repository and onPermissionsResult syncs media`() = runTest {
+        val realIncoming = CallSession(
+            callId = "real_uuid_123",
+            callerId = "caller_uuid",
+            callerName = "Linh",
+            calleeId = "user_me",
+            calleeName = "Tôi",
+            status = CallStatus.RINGING,
+            type = CallType.VIDEO,
+            isIncoming = true,
+        )
+        callSessionFlow.value = realIncoming
+        advanceUntilIdle()
+
+        sut.initializeCallFromRoute(
+            callId = "real_uuid_123",
+            peerId = "caller_uuid",
+            peerName = "Linh",
+            isVideo = true,
+            isIncoming = true,
+        )
+        advanceUntilIdle()
+
+        sut.uiStateFlow.value.callSession?.callId shouldBeEqualTo "real_uuid_123"
+
+        sut.onPermissionsResult(micGranted = true, cameraGranted = true)
+        advanceUntilIdle()
+
+        coVerify(exactly = 1) { callRepository.syncMediaPermissions(true, true) }
     }
 }
