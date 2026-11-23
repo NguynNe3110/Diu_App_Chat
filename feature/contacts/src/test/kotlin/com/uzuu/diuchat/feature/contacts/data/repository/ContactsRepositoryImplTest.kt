@@ -167,14 +167,14 @@ class ContactsRepositoryImplTest {
 
     @Test
     fun `getMyInviteLink returns remote url when available and falls back otherwise`() = runTest {
-        sut.getMyInviteLink().first() shouldBeEqualTo "diu.vn/linh/7K2M9P"
+        sut.getMyInviteLink().first() shouldBeEqualTo "https://diu-chat.vercel.app/invite/7K2M9P"
 
         coEvery { contactsSupabaseService.fetchMyInviteLink() } returns InviteLinkDto(
             code = "ABC123",
-            url = "diu.vn/minh/ABC123",
+            url = "https://diu-chat.vercel.app/invite/ABC123",
         )
         sut.refreshFromRemote()
-        sut.getMyInviteLink().first() shouldBeEqualTo "diu.vn/minh/ABC123"
+        sut.getMyInviteLink().first() shouldBeEqualTo "https://diu-chat.vercel.app/invite/ABC123"
     }
 
     @Test

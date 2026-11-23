@@ -195,4 +195,38 @@ class ContactsViewModelTest {
         filtered.filteredContacts.size shouldBeEqualTo 1
         filtered.filteredContacts.first().name shouldBeEqualTo "Mẹ"
     }
+
+    @Test
+    fun `invite confirm dialog prefills code and connects on confirm`() = runTest {
+        advanceUntilIdle()
+
+        sut.onOpenInviteConfirmDialog("  8X3K2P  ")
+        sut.uiStateFlow.value.inviteConfirmCode shouldBeEqualTo "8X3K2P"
+        sut.uiStateFlow.value.inviteConfirmError shouldBeEqualTo null
+
+        coEvery { mockContactsRepository.connectByInviteCode("8X3K2P") } returns Result.success(testContacts.first())
+        sut.onConfirmInviteCode()
+        advanceUntilIdle()
+
+        sut.uiStateFlow.value.inviteConfirmCode shouldBeEqualTo null
+        sut.uiStateFlow.value.isSubmittingInviteConfirm shouldBeEqualTo false
+        sut.uiStateFlow.value.scanResultMessage shouldBeEqualTo "Đã kết nối với Minh An"
+    }
+
+    @Test
+    fun `invite confirm dialog surfaces error when connection fails`() = runTest {
+        advanceUntilIdle()
+
+        sut.onOpenInviteConfirmDialog("BAD999")
+        coEvery {
+            mockContactsRepository.connectByInviteCode("BAD999")
+        } returns Result.failure(IllegalStateException("Không tìm thấy mã mời"))
+
+        sut.onConfirmInviteCode()
+        advanceUntilIdle()
+
+        sut.uiStateFlow.value.inviteConfirmCode shouldBeEqualTo "BAD999"
+        sut.uiStateFlow.value.isSubmittingInviteConfirm shouldBeEqualTo false
+        sut.uiStateFlow.value.inviteConfirmError shouldBeEqualTo "Không tìm thấy mã mời"
+    }
 }

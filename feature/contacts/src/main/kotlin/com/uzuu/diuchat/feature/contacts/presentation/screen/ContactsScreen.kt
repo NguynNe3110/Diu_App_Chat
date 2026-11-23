@@ -1,6 +1,7 @@
 package com.uzuu.diuchat.feature.contacts.presentation.screen
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -29,6 +30,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.QrCode
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
@@ -36,10 +38,12 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -86,11 +90,21 @@ import org.koin.androidx.compose.koinViewModel
 @Composable
 fun ContactsScreen(
     modifier: Modifier = Modifier,
+    pendingInviteCode: String? = null,
+    onConsumePendingInviteCode: () -> Unit = {},
     onNavigateToChat: (String) -> Unit = {},
     onStartCall: (peerId: String, peerName: String, peerMoodHex: String) -> Unit = { _, _, _ -> },
     viewModel: ContactsViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.uiStateFlow.collectAsState()
+    val currentOnConsumePendingInviteCode by rememberUpdatedState(onConsumePendingInviteCode)
+
+    LaunchedEffect(pendingInviteCode) {
+        if (!pendingInviteCode.isNullOrBlank()) {
+            viewModel.onOpenInviteConfirmDialog(pendingInviteCode)
+            currentOnConsumePendingInviteCode()
+        }
+    }
 
     ContactsScreenContent(
         uiState = uiState,
@@ -122,6 +136,18 @@ fun ContactsScreen(
         onCopyInviteLink = viewModel::onCopyInviteLink,
         modifier = modifier,
     )
+
+    val inviteConfirmCode = uiState.inviteConfirmCode
+    if (inviteConfirmCode != null) {
+        InviteConfirmDialog(
+            code = inviteConfirmCode,
+            isSubmitting = uiState.isSubmittingInviteConfirm,
+            errorMessage = uiState.inviteConfirmError,
+            onCodeChange = viewModel::onInviteConfirmCodeChange,
+            onConfirm = viewModel::onConfirmInviteCode,
+            onDismiss = viewModel::onDismissInviteConfirmDialog,
+        )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -452,6 +478,29 @@ fun ContactsScreenContent(
                         },
                         modifier = Modifier.fillMaxWidth(),
                     )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    DiuButton(
+                        onClick = {
+                            val link =
+                                if (uiState.myInviteLink.startsWith("http")) {
+                                    uiState.myInviteLink
+                                } else {
+                                    "https://${uiState.myInviteLink}"
+                                }
+                            val shareText = "Mình mời bạn kết nối trên Dịu nhé!\n$link"
+                            val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                type = "text/plain"
+                                putExtra(Intent.EXTRA_TEXT, shareText)
+                            }
+                            context.startActivity(Intent.createChooser(shareIntent, "Chia sẻ link mời Dịu"))
+                        },
+                        enabled = uiState.myInviteLink.isNotBlank(),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text("Chia sẻ link mời")
+                    }
                 } else {
                     Text(
                         text = "Quét mã kết nối",
@@ -537,7 +586,7 @@ fun ContactsScreenContent(
                         value = uiState.inviteCodeInput,
                         onValueChange = onInviteCodeInputChange,
                         label = "Nhập mã hoặc đường dẫn mời",
-                        placeholder = "Ví dụ: diu.vn/minh/8X3K2P",
+                        placeholder = "Ví dụ: https://diu-chat.vercel.app/invite/8X3K2P",
                         modifier = Modifier.fillMaxWidth(),
                     )
 
@@ -572,6 +621,77 @@ fun ContactsScreenContent(
             }
         }
     }
+}
+
+@Composable
+private fun InviteConfirmDialog(
+    code: String,
+    isSubmitting: Boolean,
+    errorMessage: String?,
+    onCodeChange: (String) -> Unit,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val colors = AppTheme.colors
+    AlertDialog(
+        onDismissRequest = {
+            if (!isSubmitting) {
+                onDismiss()
+            }
+        },
+        containerColor = colors.background,
+        title = {
+            Text(
+                text = "Xác nhận kết nối",
+                style = AppTheme.typography.titleLarge.copy(
+                    fontFamily = FontFamily.Serif,
+                    fontWeight = FontWeight.Bold,
+                ),
+                color = colors.ink,
+            )
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(
+                    text = "Bạn vừa mở lời mời kết bạn trên Dịu. Kiểm tra mã mời bên dưới và bấm xác nhận để kết nối.",
+                    style = AppTheme.typography.bodyMedium,
+                    color = colors.inkSecondary,
+                )
+                DiuTextField(
+                    value = code,
+                    onValueChange = onCodeChange,
+                    label = "Mã mời",
+                    placeholder = "Ví dụ: 8X3K2P",
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                if (!errorMessage.isNullOrBlank()) {
+                    Text(
+                        text = errorMessage,
+                        style = AppTheme.typography.bodySmall,
+                        color = colors.danger,
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            DiuButton(
+                onClick = onConfirm,
+                enabled = !isSubmitting && code.isNotBlank(),
+            ) {
+                Text(if (isSubmitting) "Đang kết nối…" else "Xác nhận")
+            }
+        },
+        dismissButton = {
+            DiuTextButton(
+                text = "Hủy",
+                onClick = {
+                    if (!isSubmitting) {
+                        onDismiss()
+                    }
+                },
+            )
+        },
+    )
 }
 
 @Composable
