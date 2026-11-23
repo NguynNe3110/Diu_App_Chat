@@ -42,7 +42,7 @@ private const val TYPING_BROADCAST_THROTTLE_MS = 1_200L
 private const val TYPING_REMOTE_CLEAR_MS = 3_500L
 private const val DEFAULT_SLOW_SEND_DELAY_MS = 12 * 3600 * 1000L
 
-@Suppress("TooManyFunctions", "LongParameterList")
+@Suppress("TooManyFunctions", "LongParameterList", "LargeClass")
 class ChatViewModel(
     private val createGroupUseCase: CreateGroupUseCase,
     private val deleteConversationUseCase: DeleteConversationUseCase,
@@ -137,12 +137,12 @@ class ChatViewModel(
 
     fun onLoadOlderMessages() {
         val currentState = uiStateFlow.value
-        if (
+        val cannotLoadOlder =
             currentState.conversationId.isBlank() ||
-            currentState.isLoadingMessages ||
-            currentState.isLoadingOlderMessages ||
-            !currentState.hasMoreMessages
-        ) {
+                currentState.isLoadingMessages ||
+                currentState.isLoadingOlderMessages ||
+                !currentState.hasMoreMessages
+        if (cannotLoadOlder) {
             return
         }
         val oldestEpochMs = currentState.messages.firstOrNull()?.createdAtEpochMs ?: return
@@ -240,12 +240,11 @@ class ChatViewModel(
         voiceAudioPlayer.stop()
         sendAction(ChatAction.SetAudioPlayback(null, 0f))
         val started = voiceAudioRecorder.startRecording()
-        val initialAmplitudes = listOf(0.25f, 0.45f, 0.65f, 0.35f, 0.75f, 0.5f, 0.6f, 0.4f, 0.7f, 0.45f, 0.3f, 0.55f)
         sendAction(
             ChatAction.SetVoiceRecordingState(
                 VoiceRecordingState.Recording(
                     elapsedMs = 0L,
-                    amplitudes = initialAmplitudes,
+                    amplitudes = INITIAL_VOICE_AMPLITUDES,
                 ),
             ),
         )
@@ -253,13 +252,13 @@ class ChatViewModel(
         val startedAt = System.currentTimeMillis()
         voiceRecordingTickerJob?.cancel()
         voiceRecordingTickerJob = viewModelScope.launch {
-            val rollingBars = ArrayDeque<Float>(22).apply {
-                repeat(22) { addLast(0.22f) }
+            val rollingBars = ArrayDeque<Float>(VOICE_WAVEFORM_BAR_COUNT).apply {
+                repeat(VOICE_WAVEFORM_BAR_COUNT) { addLast(VOICE_WAVEFORM_DEFAULT_BAR) }
             }
             while (true) {
-                delay(120L)
+                delay(VOICE_WAVEFORM_TICK_MS)
                 val amp = voiceAudioRecorder.readNormalizedAmplitude()
-                if (rollingBars.size >= 22) rollingBars.removeFirst()
+                if (rollingBars.size >= VOICE_WAVEFORM_BAR_COUNT) rollingBars.removeFirst()
                 rollingBars.addLast(amp)
                 sendAction(
                     ChatAction.SetVoiceRecordingState(
@@ -319,11 +318,13 @@ class ChatViewModel(
         voiceRecordingTickerJob = null
 
         val (audioUri, durationMs, waveform) = when (recordingState) {
-            is VoiceRecordingState.Preview -> Triple(
-                recordingState.audioUri,
-                recordingState.durationMs,
-                recordingState.waveform,
-            )
+            is VoiceRecordingState.Preview -> {
+                Triple(
+                    recordingState.audioUri,
+                    recordingState.durationMs,
+                    recordingState.waveform,
+                )
+            }
 
             is VoiceRecordingState.Recording -> {
                 val clip = voiceAudioRecorder.stopRecording()
@@ -338,7 +339,9 @@ class ChatViewModel(
                 }
             }
 
-            else -> return
+            else -> {
+                return
+            }
         }
 
         sendAction(ChatAction.SetSending(true))
@@ -368,7 +371,7 @@ class ChatViewModel(
             sendAction(ChatAction.SetAudioPlayback(null, 0f))
         } else {
             val uri = message.mediaUri.orEmpty()
-            sendAction(ChatAction.SetAudioPlayback(message.id, 0.05f))
+            sendAction(ChatAction.SetAudioPlayback(message.id, INITIAL_PLAYBACK_PROGRESS))
             if (uri.isNotBlank()) {
                 voiceAudioPlayer.play(
                     messageId = message.id,
@@ -620,23 +623,30 @@ class ChatViewModel(
 
         val needsRemoteContent = target.content.isBlank() || target.content.startsWith("✉️ Thư hẹn")
         if (needsRemoteContent) {
-            viewModelScope.launch {
-                val realContent = runCatching { revealSealedMessageUseCase(messageId) }.getOrNull()
-                if (!realContent.isNullOrBlank()) {
-                    val updatedList = uiStateFlow.value.messages.map { msg ->
-                        if (msg.id == messageId) msg.copy(content = realContent, isSealedRevealed = true) else msg
-                    }
-                    sendAction(ChatAction.SetMessages(updatedList))
-                } else if (target.isFromMe || isTimeReached) {
-                    sendAction(ChatAction.ToggleRevealSealedMessage(messageId))
-                }
-            }
+            revealSealedMessageWithRemoteFetch(messageId = messageId, canFallbackReveal = target.isFromMe || isTimeReached)
         } else {
             sendAction(ChatAction.ToggleRevealSealedMessage(messageId))
             if (!target.isFromMe) {
                 viewModelScope.launch {
                     runCatching { revealSealedMessageUseCase(messageId) }
                 }
+            }
+        }
+    }
+
+    private fun revealSealedMessageWithRemoteFetch(
+        messageId: String,
+        canFallbackReveal: Boolean,
+    ) {
+        viewModelScope.launch {
+            val realContent = runCatching { revealSealedMessageUseCase(messageId) }.getOrNull()
+            if (!realContent.isNullOrBlank()) {
+                val updatedList = uiStateFlow.value.messages.map { msg ->
+                    if (msg.id == messageId) msg.copy(content = realContent, isSealedRevealed = true) else msg
+                }
+                sendAction(ChatAction.SetMessages(updatedList))
+            } else if (canFallbackReveal) {
+                sendAction(ChatAction.ToggleRevealSealedMessage(messageId))
             }
         }
     }
@@ -696,5 +706,13 @@ class ChatViewModel(
 
     fun onUpdateNewGroupDraft(title: String, mood: MoodType) {
         sendAction(ChatAction.UpdateNewGroupDraft(title = title, mood = mood))
+    }
+
+    private companion object {
+        const val VOICE_WAVEFORM_BAR_COUNT = 22
+        const val VOICE_WAVEFORM_DEFAULT_BAR = 0.22f
+        const val VOICE_WAVEFORM_TICK_MS = 120L
+        const val INITIAL_PLAYBACK_PROGRESS = 0.05f
+        val INITIAL_VOICE_AMPLITUDES = listOf(0.25f, 0.45f, 0.65f, 0.35f, 0.75f, 0.5f, 0.6f, 0.4f, 0.7f, 0.45f, 0.3f, 0.55f)
     }
 }

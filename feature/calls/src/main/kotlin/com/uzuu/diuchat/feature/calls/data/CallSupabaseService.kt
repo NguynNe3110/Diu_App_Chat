@@ -112,29 +112,7 @@ class CallSupabaseService(
                     .postgresChangeFlow<PostgresAction.Insert>(schema = SCHEMA_PUBLIC) {
                         table = TABLE_CALL_LOGS
                     }.mapNotNull { action ->
-                        val myId = currentUserId() ?: return@mapNotNull null
-                        val row = runCatching { (action as HasRecord).decodeRecordOrNull<CallLogRow>() }.getOrNull()
-                            ?: return@mapNotNull null
-                        if (row.calleeId != myId || row.callerId == myId || row.endedAt != null) {
-                            return@mapNotNull null
-                        }
-                        if (!seenCallIds.add(row.id)) return@mapNotNull null
-                        val callerProfile = fetchPeerProfiles(client, listOf(row.callerId))[row.callerId]
-                        CallSession(
-                            callId = row.id,
-                            callerId = row.callerId,
-                            callerName = callerProfile?.displayName?.takeIf { it.isNotBlank() } ?: "Người thương",
-                            calleeId = myId,
-                            calleeName = currentUserDisplayName() ?: "Tôi",
-                            status = CallStatus.RINGING,
-                            type = if (row.isVideo) CallType.VIDEO else CallType.AUDIO,
-                            isIncoming = true,
-                            isSpeakerOn = row.isVideo,
-                            isVideoEnabled = row.isVideo,
-                            startedAtEpochMs = parseIsoMillis(row.startedAt),
-                            conversationId = row.conversationId.orEmpty(),
-                            peerMoodHex = moodToHex(callerProfile?.currentMood),
-                        )
+                        mapDbInsertToSession(client, action, seenCallIds)
                     }
 
             val globalChannel =
@@ -144,34 +122,7 @@ class CallSupabaseService(
                 globalChannel
                     .broadcastFlow<IncomingCallBroadcast>(event = EVENT_INCOMING_CALL)
                     .mapNotNull { payload ->
-                        val myId = currentUserId() ?: return@mapNotNull null
-                        if (payload.calleeId != myId || payload.callerId == myId) return@mapNotNull null
-                        if (!seenCallIds.add(payload.callId)) return@mapNotNull null
-                        val callerProfile =
-                            if (payload.callerName.isBlank()) {
-                                fetchPeerProfiles(client, listOf(payload.callerId))[payload.callerId]
-                            } else {
-                                null
-                            }
-                        val resolvedCallerName =
-                            payload.callerName.takeIf { it.isNotBlank() }
-                                ?: callerProfile?.displayName?.takeIf { it.isNotBlank() }
-                                ?: "Người thương"
-                        CallSession(
-                            callId = payload.callId,
-                            callerId = payload.callerId,
-                            callerName = resolvedCallerName,
-                            calleeId = myId,
-                            calleeName = currentUserDisplayName() ?: "Tôi",
-                            status = CallStatus.RINGING,
-                            type = if (payload.isVideo) CallType.VIDEO else CallType.AUDIO,
-                            isIncoming = true,
-                            isSpeakerOn = payload.isVideo,
-                            isVideoEnabled = payload.isVideo,
-                            startedAtEpochMs = System.currentTimeMillis(),
-                            conversationId = payload.conversationId,
-                            peerMoodHex = payload.callerMoodHex.ifBlank { moodToHex(callerProfile?.currentMood) },
-                        )
+                        mapBroadcastToSession(client, payload, seenCallIds)
                     }
 
             launch {
@@ -191,6 +142,76 @@ class CallSupabaseService(
                 }
             }
         }
+    }
+
+    private suspend fun mapDbInsertToSession(
+        client: SupabaseClient,
+        action: PostgresAction.Insert,
+        seenCallIds: MutableSet<String>,
+    ): CallSession? {
+        val myId = currentUserId() ?: return null
+        val row = runCatching { (action as HasRecord).decodeRecordOrNull<CallLogRow>() }.getOrNull()
+        val isValidIncoming = row != null &&
+            row.calleeId == myId &&
+            row.callerId != myId &&
+            row.endedAt == null &&
+            seenCallIds.add(row.id)
+        if (!isValidIncoming || row == null) return null
+
+        val callerProfile = fetchPeerProfiles(client, listOf(row.callerId))[row.callerId]
+        return CallSession(
+            callId = row.id,
+            callerId = row.callerId,
+            callerName = callerProfile?.displayName?.takeIf { it.isNotBlank() } ?: "Người thương",
+            calleeId = myId,
+            calleeName = currentUserDisplayName() ?: "Tôi",
+            status = CallStatus.RINGING,
+            type = if (row.isVideo) CallType.VIDEO else CallType.AUDIO,
+            isIncoming = true,
+            isSpeakerOn = row.isVideo,
+            isVideoEnabled = row.isVideo,
+            startedAtEpochMs = parseIsoMillis(row.startedAt),
+            conversationId = row.conversationId.orEmpty(),
+            peerMoodHex = moodToHex(callerProfile?.currentMood),
+        )
+    }
+
+    private suspend fun mapBroadcastToSession(
+        client: SupabaseClient,
+        payload: IncomingCallBroadcast,
+        seenCallIds: MutableSet<String>,
+    ): CallSession? {
+        val myId = currentUserId() ?: return null
+        val isValidIncoming = payload.calleeId == myId &&
+            payload.callerId != myId &&
+            seenCallIds.add(payload.callId)
+        if (!isValidIncoming) return null
+
+        val callerProfile =
+            if (payload.callerName.isBlank()) {
+                fetchPeerProfiles(client, listOf(payload.callerId))[payload.callerId]
+            } else {
+                null
+            }
+        val resolvedCallerName =
+            payload.callerName.takeIf { it.isNotBlank() }
+                ?: callerProfile?.displayName?.takeIf { it.isNotBlank() }
+                ?: "Người thương"
+        return CallSession(
+            callId = payload.callId,
+            callerId = payload.callerId,
+            callerName = resolvedCallerName,
+            calleeId = myId,
+            calleeName = currentUserDisplayName() ?: "Tôi",
+            status = CallStatus.RINGING,
+            type = if (payload.isVideo) CallType.VIDEO else CallType.AUDIO,
+            isIncoming = true,
+            isSpeakerOn = payload.isVideo,
+            isVideoEnabled = payload.isVideo,
+            startedAtEpochMs = System.currentTimeMillis(),
+            conversationId = payload.conversationId,
+            peerMoodHex = payload.callerMoodHex.ifBlank { moodToHex(callerProfile?.currentMood) },
+        )
     }
 
     /**
@@ -217,11 +238,13 @@ class CallSupabaseService(
         if (resolvedConversationId.isNotBlank()) {
             insertCallLogRow(
                 client = client,
-                callId = callId,
-                conversationId = resolvedConversationId,
-                callerId = callerId,
-                calleeId = calleeId,
-                isVideo = isVideo,
+                params = NewCallLogParams(
+                    callId = callId,
+                    conversationId = resolvedConversationId,
+                    callerId = callerId,
+                    calleeId = calleeId,
+                    isVideo = isVideo,
+                ),
             )
         }
 
@@ -315,22 +338,26 @@ class CallSupabaseService(
         }
     }
 
+    private data class NewCallLogParams(
+        val callId: String,
+        val conversationId: String,
+        val callerId: String,
+        val calleeId: String,
+        val isVideo: Boolean,
+    )
+
     private suspend fun insertCallLogRow(
         client: SupabaseClient,
-        callId: String,
-        conversationId: String,
-        callerId: String,
-        calleeId: String,
-        isVideo: Boolean,
+        params: NewCallLogParams,
     ) {
         val primaryInsert = runCatching {
             client.postgrest.from(TABLE_CALL_LOGS).insert(
                 buildJsonObject {
-                    put("id", callId)
-                    put("conversation_id", conversationId)
-                    put("caller_id", callerId)
-                    put("callee_id", calleeId)
-                    put("is_video", isVideo)
+                    put("id", params.callId)
+                    put("conversation_id", params.conversationId)
+                    put("caller_id", params.callerId)
+                    put("callee_id", params.calleeId)
+                    put("is_video", params.isVideo)
                     put("status", "ringing")
                     put("duration_seconds", 0)
                     put("started_at", Instant.now().toString())
@@ -343,11 +370,11 @@ class CallSupabaseService(
             runCatching {
                 client.postgrest.from(TABLE_CALL_LOGS).insert(
                     buildJsonObject {
-                        put("id", callId)
-                        put("conversation_id", conversationId)
-                        put("caller_id", callerId)
-                        put("callee_id", calleeId)
-                        put("is_video", isVideo)
+                        put("id", params.callId)
+                        put("conversation_id", params.conversationId)
+                        put("caller_id", params.callerId)
+                        put("callee_id", params.calleeId)
+                        put("is_video", params.isVideo)
                         put("status", "missed")
                         put("duration_seconds", 0)
                         put("started_at", Instant.now().toString())
@@ -355,7 +382,7 @@ class CallSupabaseService(
                 )
             }.onFailure { fallbackError ->
                 rethrowCancellation(fallbackError)
-                Timber.w(fallbackError, "Failed to insert call_logs row for %s", callId)
+                Timber.w(fallbackError, "Failed to insert call_logs row for %s", params.callId)
             }
         }
     }

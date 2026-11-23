@@ -46,7 +46,7 @@ import timber.log.Timber
 import java.time.Instant
 import kotlin.time.Duration.Companion.days
 
-@Suppress("TooManyFunctions")
+@Suppress("TooManyFunctions", "LargeClass")
 class ChatSupabaseService(
     private val supabaseClient: SupabaseClient?,
 ) {
@@ -156,34 +156,12 @@ class ChatSupabaseService(
             val broadcastMessages = channel.broadcastFlow<MessageDto>(event = EVENT_NEW_MESSAGE)
             val channelDeletes =
                 channel.broadcastFlow<JsonObject>(event = EVENT_MESSAGE_DELETED).mapNotNull { payload ->
-                    val deletedId = payload[COL_MESSAGE_ID]?.jsonPrimitive?.contentOrNull
-                        ?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
-                    MessageDto(
-                        id = deletedId,
-                        conversationId = conversationId,
-                        senderId = "",
-                        content = "",
-                        deletedAt = "deleted",
-                    )
+                    parseDeletedMessageTombstone(payload = payload, conversationId = conversationId, requireConvoMatch = false)
                 }
-            val globalChannel =
-                client.realtime.subscriptions["realtime:$CHANNEL_GLOBAL_SYNC"]
-                    ?: client.channel(CHANNEL_GLOBAL_SYNC)
+            val globalChannel = getOrCreateGlobalChannel(client)
             val globalDeletes =
                 globalChannel.broadcastFlow<JsonObject>(event = EVENT_MESSAGE_DELETED).mapNotNull { payload ->
-                    val deletedId = payload[COL_MESSAGE_ID]?.jsonPrimitive?.contentOrNull
-                        ?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
-                    val targetConvo = payload[COL_CONVERSATION_ID]?.jsonPrimitive?.contentOrNull
-                    if (!targetConvo.isNullOrBlank() && targetConvo != conversationId) {
-                        return@mapNotNull null
-                    }
-                    MessageDto(
-                        id = deletedId,
-                        conversationId = conversationId,
-                        senderId = "",
-                        content = "",
-                        deletedAt = "deleted",
-                    )
+                    parseDeletedMessageTombstone(payload = payload, conversationId = conversationId, requireConvoMatch = true)
                 }
 
             launch {
@@ -428,9 +406,7 @@ class ChatSupabaseService(
                     .postgresChangeFlow<PostgresAction>(schema = SCHEMA_PUBLIC) {
                         table = TABLE_USER_PROFILES
                     }.map { }
-            val globalChannel =
-                client.realtime.subscriptions["realtime:$CHANNEL_GLOBAL_SYNC"]
-                    ?: client.channel(CHANNEL_GLOBAL_SYNC)
+            val globalChannel = getOrCreateGlobalChannel(client)
             val profileBroadcasts =
                 globalChannel.broadcastFlow<JsonObject>(event = EVENT_PROFILE_UPDATED).map { }
 
@@ -461,7 +437,8 @@ class ChatSupabaseService(
                     .select {
                         filter { eq(COL_MESSAGE_ID, messageId) }
                     }.decodeSingleOrNull<SealedLetterContentRow>()
-            if (row != null && myId != null && row.recipientId == myId && !row.isOpened) {
+            val shouldMarkOpened = row != null && myId != null && row.recipientId == myId && !row.isOpened
+            if (shouldMarkOpened) {
                 runCatching {
                     client.postgrest
                         .from(TABLE_SEALED_LETTERS)
@@ -639,9 +616,7 @@ class ChatSupabaseService(
                 }
         }.onFailure(::rethrowCancellation)
         runCatching {
-            val globalChannel =
-                client.realtime.subscriptions["realtime:$CHANNEL_GLOBAL_SYNC"]
-                    ?: client.channel(CHANNEL_GLOBAL_SYNC)
+            val globalChannel = getOrCreateGlobalChannel(client)
             if (globalChannel.status.value != RealtimeChannel.Status.SUBSCRIBED) {
                 runCatching { globalChannel.subscribe() }
             }
@@ -679,9 +654,7 @@ class ChatSupabaseService(
             ch.broadcast(event = EVENT_TYPING, message = payload)
         }.onFailure(::rethrowCancellation)
         runCatching {
-            val globalChannel =
-                client.realtime.subscriptions["realtime:$CHANNEL_GLOBAL_SYNC"]
-                    ?: client.channel(CHANNEL_GLOBAL_SYNC)
+            val globalChannel = getOrCreateGlobalChannel(client)
             if (globalChannel.status.value != RealtimeChannel.Status.SUBSCRIBED) {
                 runCatching { globalChannel.subscribe() }
             }
@@ -694,46 +667,75 @@ class ChatSupabaseService(
         val myId = currentUserId()
         return channelFlow {
             val topic = typingChannelName(conversationId)
-            val ch =
-                client.realtime.subscriptions["realtime:$topic"]
-                    ?: client.channel(topic)
+            val ch = client.realtime.subscriptions["$REALTIME_PREFIX$topic"] ?: client.channel(topic)
             val directTyping =
                 ch.broadcastFlow<JsonObject>(event = EVENT_TYPING).mapNotNull { payload ->
-                    val senderId = payload["user_id"]?.jsonPrimitive?.contentOrNull
-                    if (senderId != null && senderId == myId) {
-                        null
-                    } else {
-                        payload["is_typing"]?.jsonPrimitive?.booleanOrNull
-                    }
+                    parseTypingPayload(payload = payload, myId = myId)
                 }
-            val globalChannel =
-                client.realtime.subscriptions["realtime:$CHANNEL_GLOBAL_SYNC"]
-                    ?: client.channel(CHANNEL_GLOBAL_SYNC)
+            val globalChannel = getOrCreateGlobalChannel(client)
             val globalTyping =
                 globalChannel.broadcastFlow<JsonObject>(event = EVENT_TYPING).mapNotNull { payload ->
                     val targetConvo = payload[COL_CONVERSATION_ID]?.jsonPrimitive?.contentOrNull
-                    if (targetConvo != conversationId) return@mapNotNull null
-                    val senderId = payload["user_id"]?.jsonPrimitive?.contentOrNull
-                    if (senderId != null && senderId == myId) {
-                        null
+                    if (targetConvo == conversationId) {
+                        parseTypingPayload(payload = payload, myId = myId)
                     } else {
-                        payload["is_typing"]?.jsonPrimitive?.booleanOrNull
+                        null
                     }
                 }
             launch {
                 merge(directTyping, globalTyping).collect { send(it) }
             }
-            if (ch.status.value != RealtimeChannel.Status.SUBSCRIBED) {
-                runCatching { ch.subscribe() }.onFailure(::rethrowCancellation)
-            }
-            if (globalChannel.status.value != RealtimeChannel.Status.SUBSCRIBED) {
-                runCatching { globalChannel.subscribe() }.onFailure(::rethrowCancellation)
-            }
+            subscribeIfNeeded(ch)
+            subscribeIfNeeded(globalChannel)
             awaitClose {
                 CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
                     removeChannelSafely(client, ch)
                 }
             }
+        }
+    }
+
+    private fun getOrCreateGlobalChannel(client: SupabaseClient): RealtimeChannel {
+        val topic = "$REALTIME_PREFIX$CHANNEL_GLOBAL_SYNC"
+        return client.realtime.subscriptions[topic] ?: client.channel(CHANNEL_GLOBAL_SYNC)
+    }
+
+    private suspend fun subscribeIfNeeded(channel: RealtimeChannel) {
+        if (channel.status.value != RealtimeChannel.Status.SUBSCRIBED) {
+            runCatching { channel.subscribe() }.onFailure(::rethrowCancellation)
+        }
+    }
+
+    private fun parseDeletedMessageTombstone(
+        payload: JsonObject,
+        conversationId: String,
+        requireConvoMatch: Boolean,
+    ): MessageDto? {
+        val deletedId = payload[COL_MESSAGE_ID]?.jsonPrimitive?.contentOrNull?.takeIf { it.isNotBlank() }
+        val targetConvo = payload[COL_CONVERSATION_ID]?.jsonPrimitive?.contentOrNull
+        val isWrongConversation = requireConvoMatch && !targetConvo.isNullOrBlank() && targetConvo != conversationId
+        return if (deletedId == null || isWrongConversation) {
+            null
+        } else {
+            MessageDto(
+                id = deletedId,
+                conversationId = conversationId,
+                senderId = "",
+                content = "",
+                deletedAt = TOMBSTONE_DELETED,
+            )
+        }
+    }
+
+    private fun parseTypingPayload(
+        payload: JsonObject,
+        myId: String?,
+    ): Boolean? {
+        val senderId = payload[COL_USER_ID]?.jsonPrimitive?.contentOrNull
+        return if (senderId != null && senderId == myId) {
+            null
+        } else {
+            payload["is_typing"]?.jsonPrimitive?.booleanOrNull
         }
     }
 
@@ -748,9 +750,7 @@ class ChatSupabaseService(
             ch.broadcast(event = EVENT_NEW_MESSAGE, message = message)
         }.onFailure(::rethrowCancellation)
         runCatching {
-            val globalChannel =
-                client.realtime.subscriptions["realtime:$CHANNEL_GLOBAL_SYNC"]
-                    ?: client.channel(CHANNEL_GLOBAL_SYNC)
+            val globalChannel = getOrCreateGlobalChannel(client)
             globalChannel.broadcast(
                 event = EVENT_NEW_MESSAGE,
                 message =
@@ -786,9 +786,7 @@ class ChatSupabaseService(
             }.onFailure(::rethrowCancellation)
         }
         runCatching {
-            val globalChannel =
-                client.realtime.subscriptions["realtime:$CHANNEL_GLOBAL_SYNC"]
-                    ?: client.channel(CHANNEL_GLOBAL_SYNC)
+            val globalChannel = getOrCreateGlobalChannel(client)
             if (globalChannel.status.value != RealtimeChannel.Status.SUBSCRIBED) {
                 runCatching { globalChannel.subscribe() }
             }
@@ -876,6 +874,8 @@ class ChatSupabaseService(
         const val EVENT_CONVERSATION_READ = "conversation_read"
         const val EVENT_CONVERSATION_DELETED = "conversation_deleted"
         const val EVENT_TYPING = "typing"
+        const val REALTIME_PREFIX = "realtime:"
+        const val TOMBSTONE_DELETED = "deleted"
         const val SIGNED_URL_EXPIRY_DAYS = 30
         const val DEFAULT_MESSAGE_PAGE_SIZE = 30
 

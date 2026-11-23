@@ -52,6 +52,7 @@ import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -442,7 +443,7 @@ fun ChatContent(
 
     var previousFirstMessageId by remember(state.conversationId) { mutableStateOf<String?>(null) }
     var previousLastMessageId by remember(state.conversationId) { mutableStateOf<String?>(null) }
-    var previousMessageCount by remember(state.conversationId) { mutableStateOf(0) }
+    var previousMessageCount by remember(state.conversationId) { mutableIntStateOf(0) }
 
     LaunchedEffect(state.conversationId, state.messages.size, state.messages.firstOrNull()?.id, state.messages.lastOrNull()?.id) {
         val messages = state.messages
@@ -450,43 +451,43 @@ fun ChatContent(
             previousFirstMessageId = null
             previousLastMessageId = null
             previousMessageCount = 0
-            return@LaunchedEffect
-        }
-        val firstId = messages.first().id
-        val lastId = messages.last().id
-        val headerOffset = if (state.isLoadingOlderMessages) 1 else 0
+        } else {
+            val firstId = messages.first().id
+            val lastId = messages.last().id
+            val headerOffset = if (state.isLoadingOlderMessages) 1 else 0
 
-        when {
-            previousMessageCount == 0 -> {
-                listState.scrollToItem(messages.lastIndex + headerOffset)
-            }
+            when {
+                previousMessageCount == 0 -> {
+                    listState.scrollToItem(messages.lastIndex + headerOffset)
+                }
 
-            firstId != previousFirstMessageId && messages.size > previousMessageCount -> {
-                val anchorIdx = previousFirstMessageId?.let { oldId ->
-                    messages.indexOfFirst { it.id == oldId }
-                } ?: -1
-                if (anchorIdx > 0) {
-                    val savedOffset = listState.firstVisibleItemScrollOffset
-                    val currentVisibleInList = (listState.firstVisibleItemIndex - headerOffset).coerceAtLeast(0)
-                    listState.scrollToItem(
-                        index = (anchorIdx + currentVisibleInList + headerOffset).coerceAtMost(messages.lastIndex + headerOffset),
-                        scrollOffset = savedOffset,
-                    )
+                firstId != previousFirstMessageId && messages.size > previousMessageCount -> {
+                    val anchorIdx = previousFirstMessageId?.let { oldId ->
+                        messages.indexOfFirst { it.id == oldId }
+                    } ?: -1
+                    if (anchorIdx > 0) {
+                        val savedOffset = listState.firstVisibleItemScrollOffset
+                        val currentVisibleInList = (listState.firstVisibleItemIndex - headerOffset).coerceAtLeast(0)
+                        listState.scrollToItem(
+                            index = (anchorIdx + currentVisibleInList + headerOffset).coerceAtMost(messages.lastIndex + headerOffset),
+                            scrollOffset = savedOffset,
+                        )
+                    }
+                }
+
+                lastId != previousLastMessageId -> {
+                    val lastVisibleIdx = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+                    val isNearBottom = lastVisibleIdx >= (previousMessageCount - 3).coerceAtLeast(0)
+                    if (isNearBottom || messages.last().isFromMe) {
+                        listState.animateScrollToItem(messages.lastIndex + headerOffset)
+                    }
                 }
             }
 
-            lastId != previousLastMessageId -> {
-                val lastVisibleIdx = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
-                val isNearBottom = lastVisibleIdx >= (previousMessageCount - 3).coerceAtLeast(0)
-                if (isNearBottom || messages.last().isFromMe) {
-                    listState.animateScrollToItem(messages.lastIndex + headerOffset)
-                }
-            }
+            previousFirstMessageId = firstId
+            previousLastMessageId = lastId
+            previousMessageCount = messages.size
         }
-
-        previousFirstMessageId = firstId
-        previousLastMessageId = lastId
-        previousMessageCount = messages.size
     }
 
     LaunchedEffect(
@@ -497,21 +498,20 @@ fun ChatContent(
         state.isLoadingMessages,
         state.messages.size,
     ) {
-        if (
-            !state.hasMoreMessages ||
-            state.isLoadingOlderMessages ||
-            state.isLoadingMessages ||
-            state.messages.size < ChatRepository.DEFAULT_PAGE_SIZE
-        ) {
-            return@LaunchedEffect
-        }
-        snapshotFlow { listState.firstVisibleItemIndex }
-            .distinctUntilChanged()
-            .collect { firstVisibleIndex ->
-                if (firstVisibleIndex <= 2) {
-                    currentOnLoadOlder()
+        val canPaginateOlder =
+            state.hasMoreMessages &&
+                !state.isLoadingOlderMessages &&
+                !state.isLoadingMessages &&
+                state.messages.size >= ChatRepository.DEFAULT_PAGE_SIZE
+        if (canPaginateOlder) {
+            snapshotFlow { listState.firstVisibleItemIndex }
+                .distinctUntilChanged()
+                .collect { firstVisibleIndex ->
+                    if (firstVisibleIndex <= 2) {
+                        currentOnLoadOlder()
+                    }
                 }
-            }
+        }
     }
 
     Scaffold(

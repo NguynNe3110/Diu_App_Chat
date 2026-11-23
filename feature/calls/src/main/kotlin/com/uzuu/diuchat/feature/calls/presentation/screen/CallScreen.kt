@@ -127,7 +127,8 @@ fun CallScreen(
                 }
             }
 
-            else -> Unit
+            else -> {
+            }
         }
     }
 

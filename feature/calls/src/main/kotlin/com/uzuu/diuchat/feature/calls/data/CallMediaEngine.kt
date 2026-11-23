@@ -64,14 +64,11 @@ class LiveKitCallMediaEngine(
     ) {
         val appContext = context?.applicationContext ?: return
         val existingRoom = room
-        if (existingRoom != null && activeRoomName == existingRoom.name && existingRoom.state == Room.State.CONNECTED) {
-            runCatching { existingRoom.localParticipant.setMicrophoneEnabled(true) }
-            if (enableVideo) {
-                runCatching {
-                    existingRoom.localParticipant.setCameraEnabled(true)
-                    refreshLocalVideoTrack(existingRoom)
-                }
-            }
+        val isAlreadyConnected = existingRoom != null &&
+            activeRoomName == existingRoom.name &&
+            existingRoom.state == Room.State.CONNECTED
+        if (isAlreadyConnected) {
+            reuseConnectedRoom(existingRoom, enableVideo)
             return
         }
         disconnect()
@@ -79,67 +76,102 @@ class LiveKitCallMediaEngine(
         val lkRoom = LiveKit.create(appContext)
         room = lkRoom
         isFrontCamera = true
-
-        eventsJob = scope.launch {
-            lkRoom.events.collect { event ->
-                when (event) {
-                    is RoomEvent.TrackPublished -> {
-                        if (event.participant == lkRoom.localParticipant && event.publication.source == Track.Source.CAMERA) {
-                            refreshLocalVideoTrack(lkRoom)
-                        }
-                    }
-
-                    is RoomEvent.TrackUnpublished -> {
-                        if (event.participant == lkRoom.localParticipant && event.publication.source == Track.Source.CAMERA) {
-                            _localVideoTrack.value = null
-                        }
-                    }
-
-                    is RoomEvent.TrackSubscribed -> {
-                        if (event.track is VideoTrack) {
-                            _remoteVideoTrack.value = event.track as VideoTrack
-                        }
-                    }
-
-                    is RoomEvent.TrackUnsubscribed -> {
-                        if (event.track is VideoTrack && _remoteVideoTrack.value == event.track) {
-                            _remoteVideoTrack.value = null
-                        }
-                    }
-
-                    is RoomEvent.Disconnected -> {
-                        _localVideoTrack.value = null
-                        _remoteVideoTrack.value = null
-                    }
-
-                    else -> {
-                    }
-                }
-            }
-        }
+        eventsJob = observeRoomEvents(lkRoom)
 
         try {
             lkRoom.connect(url = url, token = token)
             activeRoomName = lkRoom.name
             refreshRemoteVideoTrack(lkRoom)
-            runCatching {
-                lkRoom.localParticipant.setMicrophoneEnabled(true)
-            }.onFailure { error ->
-                Timber.w(error, "Unable to enable microphone immediately on connect (awaiting permission)")
-            }
-            if (enableVideo) {
-                runCatching {
-                    lkRoom.localParticipant.setCameraEnabled(true)
-                    refreshLocalVideoTrack(lkRoom)
-                }.onFailure { error ->
-                    Timber.w(error, "Unable to enable camera immediately on connect (awaiting permission)")
-                }
-            }
+            enableInitialLocalMedia(lkRoom, enableVideo)
             Timber.d("LiveKit connected to room %s (video=%s)", lkRoom.name, enableVideo)
         } catch (error: Throwable) {
             Timber.w(error, "LiveKit room connect failed")
             disconnect()
             throw error
+        }
+    }
+
+    private suspend fun reuseConnectedRoom(
+        existingRoom: Room,
+        enableVideo: Boolean,
+    ) {
+        runCatching { existingRoom.localParticipant.setMicrophoneEnabled(true) }
+        if (enableVideo) {
+            runCatching {
+                existingRoom.localParticipant.setCameraEnabled(true)
+                refreshLocalVideoTrack(existingRoom)
+            }
+        }
+    }
+
+    private fun observeRoomEvents(lkRoom: Room): Job = scope.launch {
+        lkRoom.events.collect { event ->
+            handleRoomEvent(lkRoom, event)
+        }
+    }
+
+    private fun handleRoomEvent(
+        lkRoom: Room,
+        event: RoomEvent,
+    ) {
+        when (event) {
+            is RoomEvent.TrackPublished -> {
+                if (isLocalCameraPublication(lkRoom, event.participant, event.publication.source)) {
+                    refreshLocalVideoTrack(lkRoom)
+                }
+            }
+
+            is RoomEvent.TrackUnpublished -> {
+                if (isLocalCameraPublication(lkRoom, event.participant, event.publication.source)) {
+                    _localVideoTrack.value = null
+                }
+            }
+
+            is RoomEvent.TrackSubscribed -> {
+                val track = event.track as? VideoTrack
+                if (track != null) {
+                    _remoteVideoTrack.value = track
+                }
+            }
+
+            is RoomEvent.TrackUnsubscribed -> {
+                if (event.track is VideoTrack && _remoteVideoTrack.value == event.track) {
+                    _remoteVideoTrack.value = null
+                }
+            }
+
+            is RoomEvent.Disconnected -> {
+                _localVideoTrack.value = null
+                _remoteVideoTrack.value = null
+            }
+
+            else -> {
+            }
+        }
+    }
+
+    private fun isLocalCameraPublication(
+        lkRoom: Room,
+        participant: Any?,
+        source: Track.Source,
+    ): Boolean = participant == lkRoom.localParticipant && source == Track.Source.CAMERA
+
+    private suspend fun enableInitialLocalMedia(
+        lkRoom: Room,
+        enableVideo: Boolean,
+    ) {
+        runCatching {
+            lkRoom.localParticipant.setMicrophoneEnabled(true)
+        }.onFailure { error ->
+            Timber.w(error, "Unable to enable microphone immediately on connect (awaiting permission)")
+        }
+        if (enableVideo) {
+            runCatching {
+                lkRoom.localParticipant.setCameraEnabled(true)
+                refreshLocalVideoTrack(lkRoom)
+            }.onFailure { error ->
+                Timber.w(error, "Unable to enable camera immediately on connect (awaiting permission)")
+            }
         }
     }
 

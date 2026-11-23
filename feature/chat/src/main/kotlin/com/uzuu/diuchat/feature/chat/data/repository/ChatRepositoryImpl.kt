@@ -37,7 +37,7 @@ import java.time.Instant
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
-@Suppress("TooManyFunctions")
+@Suppress("TooManyFunctions", "LargeClass")
 class ChatRepositoryImpl(
     private val conversationDao: ConversationDao,
     private val messageDao: MessageDao,
@@ -691,7 +691,11 @@ class ChatRepositoryImpl(
             incoming.content.startsWith(SEALED_PLACEHOLDER_PREFIX)
         ) {
             val localExisting = messageDao.getMessage(incoming.id)
-            if (localExisting != null && !localExisting.content.startsWith(SEALED_PLACEHOLDER_PREFIX) && localExisting.content.isNotBlank()) {
+            val hasRevealedLocalContent =
+                localExisting != null &&
+                    !localExisting.content.startsWith(SEALED_PLACEHOLDER_PREFIX) &&
+                    localExisting.content.isNotBlank()
+            if (hasRevealedLocalContent && localExisting != null) {
                 return incoming.copy(content = localExisting.content)
             }
         }

@@ -362,10 +362,11 @@ class CallRepositoryImpl(
         cancelRingingTimeout()
         ringingTimeoutJob = repositoryScope.launch {
             delay(ringingTimeoutMs)
-            val current = _currentCallSession.value ?: return@launch
-            val isStillRinging = current.callId == callId &&
+            val current = _currentCallSession.value
+            val isStillRinging = current != null &&
+                current.callId == callId &&
                 (current.status == CallStatus.INVITING || current.status == CallStatus.RINGING)
-            if (isStillRinging) {
+            if (isStillRinging && current != null) {
                 Timber.d("Call %s timed out after %d ms", callId, ringingTimeoutMs)
                 finalizeCall(
                     current = current,

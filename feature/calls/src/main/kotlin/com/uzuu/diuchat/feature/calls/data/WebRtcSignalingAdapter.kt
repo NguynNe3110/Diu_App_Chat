@@ -56,46 +56,45 @@ class WebRtcSignalingAdapterImpl(
     }
 
     override suspend fun connect(sessionId: String): Result<Unit> = runCatching {
-        if (activeSessionId == sessionId && activeChannel != null) {
-            return@runCatching
-        }
-        activeSessionId = sessionId
-        Timber.d("WebRtcSignaling connected for session: %s", sessionId)
+        if (activeSessionId != sessionId || activeChannel == null) {
+            activeSessionId = sessionId
+            Timber.d("WebRtcSignaling connected for session: %s", sessionId)
 
-        val initialOffer = RtcSignalingMessage(
-            sessionId = sessionId,
-            senderId = "local_peer",
-            targetId = "remote_peer",
-            type = SignalingType.OFFER,
-            payload = """
-                v=0
-                o=- 12345 2 IN IP4 127.0.0.1
-                s=DiuCall
-                t=0 0
-            """.trimIndent(),
-        )
+            val initialOffer = RtcSignalingMessage(
+                sessionId = sessionId,
+                senderId = "local_peer",
+                targetId = "remote_peer",
+                type = SignalingType.OFFER,
+                payload = """
+                    v=0
+                    o=- 12345 2 IN IP4 127.0.0.1
+                    s=DiuCall
+                    t=0 0
+                """.trimIndent(),
+            )
 
-        val client = supabaseClient
-        if (client == null) {
-            _signalingEvents.emit(initialOffer)
-        } else {
-            collectionJob?.cancel()
-            runCatching {
-                val channel =
-                    client.realtime.subscriptions["realtime:calls:$sessionId"]
-                        ?: client.realtime.channel("calls:$sessionId")
-                activeChannel = channel
-                collectionJob = adapterScope.launch {
-                    channel.broadcastFlow<RtcSignalingMessage>(event = SIGNALING_EVENT)
-                        .collect { incoming ->
-                            _signalingEvents.emit(incoming)
-                        }
+            val client = supabaseClient
+            if (client == null) {
+                _signalingEvents.emit(initialOffer)
+            } else {
+                collectionJob?.cancel()
+                runCatching {
+                    val channel =
+                        client.realtime.subscriptions["realtime:calls:$sessionId"]
+                            ?: client.realtime.channel("calls:$sessionId")
+                    activeChannel = channel
+                    collectionJob = adapterScope.launch {
+                        channel.broadcastFlow<RtcSignalingMessage>(event = SIGNALING_EVENT)
+                            .collect { incoming ->
+                                _signalingEvents.emit(incoming)
+                            }
+                    }
+                    if (channel.status.value != RealtimeChannel.Status.SUBSCRIBED) {
+                        channel.subscribe()
+                    }
+                }.onFailure { error ->
+                    Timber.w(error, "Failed to connect Supabase Realtime channel for session %s", sessionId)
                 }
-                if (channel.status.value != RealtimeChannel.Status.SUBSCRIBED) {
-                    channel.subscribe()
-                }
-            }.onFailure { error ->
-                Timber.w(error, "Failed to connect Supabase Realtime channel for session %s", sessionId)
             }
         }
     }
