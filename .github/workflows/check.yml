@@ -40,8 +40,16 @@ jobs:
         shell: bash
         run: |
           if [ -n "$GOOGLE_SERVICES_JSON_BASE64" ]; then
-            printf '%s' "$GOOGLE_SERVICES_JSON_BASE64" | tr -d '\r\n' | base64 --decode > app/google-services.json
-          elif [ ! -f app/google-services.json ]; then
+            trimmed=$(printf '%s' "$GOOGLE_SERVICES_JSON_BASE64" | sed -e 's/^[[:space:]]*//')
+            if [[ "$trimmed" == \{* ]]; then
+              printf '%s\n' "$GOOGLE_SERVICES_JSON_BASE64" > app/google-services.json
+            elif printf '%s' "$GOOGLE_SERVICES_JSON_BASE64" | tr -d ' \t\r\n' | base64 --decode > app/google-services.json 2>/dev/null; then
+              true
+            else
+              rm -f app/google-services.json
+            fi
+          fi
+          if [ ! -s app/google-services.json ]; then
             cat << 'EOF' > app/google-services.json
           {
             "project_info": {
@@ -104,8 +112,16 @@ jobs:
         shell: bash
         run: |
           if [ -n "$GOOGLE_SERVICES_JSON_BASE64" ]; then
-            printf '%s' "$GOOGLE_SERVICES_JSON_BASE64" | tr -d '\r\n' | base64 --decode > app/google-services.json
-          elif [ ! -f app/google-services.json ]; then
+            trimmed=$(printf '%s' "$GOOGLE_SERVICES_JSON_BASE64" | sed -e 's/^[[:space:]]*//')
+            if [[ "$trimmed" == \{* ]]; then
+              printf '%s\n' "$GOOGLE_SERVICES_JSON_BASE64" > app/google-services.json
+            elif printf '%s' "$GOOGLE_SERVICES_JSON_BASE64" | tr -d ' \t\r\n' | base64 --decode > app/google-services.json 2>/dev/null; then
+              true
+            else
+              rm -f app/google-services.json
+            fi
+          fi
+          if [ ! -s app/google-services.json ]; then
             cat << 'EOF' > app/google-services.json
           {
             "project_info": {
@@ -284,8 +300,16 @@ jobs:
         shell: bash
         run: |
           if [ -n "$GOOGLE_SERVICES_JSON_BASE64" ]; then
-            printf '%s' "$GOOGLE_SERVICES_JSON_BASE64" | tr -d '\r\n' | base64 --decode > app/google-services.json
-          elif [ ! -f app/google-services.json ]; then
+            trimmed=$(printf '%s' "$GOOGLE_SERVICES_JSON_BASE64" | sed -e 's/^[[:space:]]*//')
+            if [[ "$trimmed" == \{* ]]; then
+              printf '%s\n' "$GOOGLE_SERVICES_JSON_BASE64" > app/google-services.json
+            elif printf '%s' "$GOOGLE_SERVICES_JSON_BASE64" | tr -d ' \t\r\n' | base64 --decode > app/google-services.json 2>/dev/null; then
+              true
+            else
+              rm -f app/google-services.json
+            fi
+          fi
+          if [ ! -s app/google-services.json ]; then
             cat << 'EOF' > app/google-services.json
           {
             "project_info": {
