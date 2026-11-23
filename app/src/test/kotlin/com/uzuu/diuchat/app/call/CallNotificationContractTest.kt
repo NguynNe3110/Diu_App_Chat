@@ -33,7 +33,7 @@ class CallNotificationContractTest {
         payload.callerName shouldBeEqualTo "Minh"
         payload.callerMoodHex shouldBeEqualTo "#C5B3EA"
         payload.isVideo shouldBeEqualTo true
-        payload.sentAtEpochMs shouldBeEqualTo 1700000000000L
+        payload.sentAtEpochMs shouldBeEqualTo 1_700_000_000_000L
 
         val session = payload.toCallSession()
         session.status shouldBeEqualTo CallStatus.RINGING

@@ -78,7 +78,10 @@ class CallViewModel(
             current.status == CallStatus.ENDED
 
         if (isIncoming) {
-            if (!isInactiveSession && current.isIncoming && (callId.isBlank() || current.callId == callId)) {
+            val matchesActiveIncoming = !isInactiveSession &&
+                current.isIncoming &&
+                (callId.isBlank() || current.callId == callId)
+            if (matchesActiveIncoming) {
                 sendAction(CallAction.UpdateSession(current))
             } else if (callId.isNotBlank()) {
                 val incomingSession = CallSession(

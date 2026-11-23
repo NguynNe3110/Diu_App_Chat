@@ -51,6 +51,7 @@ val dataModule = module {
             supabaseService = get(),
             context = androidContext(),
             imageDownscaler = get(),
+            appSoundPlayer = getOrNull(),
         )
     }
 }

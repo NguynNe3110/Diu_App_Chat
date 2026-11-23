@@ -5,6 +5,11 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -47,6 +52,7 @@ import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -60,6 +66,7 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
@@ -436,7 +443,7 @@ fun ChatContent(
 
     var previousFirstMessageId by remember(state.conversationId) { mutableStateOf<String?>(null) }
     var previousLastMessageId by remember(state.conversationId) { mutableStateOf<String?>(null) }
-    var previousMessageCount by remember(state.conversationId) { mutableStateOf(0) }
+    var previousMessageCount by remember(state.conversationId) { mutableIntStateOf(0) }
 
     LaunchedEffect(state.conversationId, state.messages.size, state.messages.firstOrNull()?.id, state.messages.lastOrNull()?.id) {
         val messages = state.messages
@@ -444,43 +451,43 @@ fun ChatContent(
             previousFirstMessageId = null
             previousLastMessageId = null
             previousMessageCount = 0
-            return@LaunchedEffect
-        }
-        val firstId = messages.first().id
-        val lastId = messages.last().id
-        val headerOffset = if (state.isLoadingOlderMessages) 1 else 0
+        } else {
+            val firstId = messages.first().id
+            val lastId = messages.last().id
+            val headerOffset = if (state.isLoadingOlderMessages) 1 else 0
 
-        when {
-            previousMessageCount == 0 -> {
-                listState.scrollToItem(messages.lastIndex + headerOffset)
-            }
+            when {
+                previousMessageCount == 0 -> {
+                    listState.scrollToItem(messages.lastIndex + headerOffset)
+                }
 
-            firstId != previousFirstMessageId && messages.size > previousMessageCount -> {
-                val anchorIdx = previousFirstMessageId?.let { oldId ->
-                    messages.indexOfFirst { it.id == oldId }
-                } ?: -1
-                if (anchorIdx > 0) {
-                    val savedOffset = listState.firstVisibleItemScrollOffset
-                    val currentVisibleInList = (listState.firstVisibleItemIndex - headerOffset).coerceAtLeast(0)
-                    listState.scrollToItem(
-                        index = (anchorIdx + currentVisibleInList + headerOffset).coerceAtMost(messages.lastIndex + headerOffset),
-                        scrollOffset = savedOffset,
-                    )
+                firstId != previousFirstMessageId && messages.size > previousMessageCount -> {
+                    val anchorIdx = previousFirstMessageId?.let { oldId ->
+                        messages.indexOfFirst { it.id == oldId }
+                    } ?: -1
+                    if (anchorIdx > 0) {
+                        val savedOffset = listState.firstVisibleItemScrollOffset
+                        val currentVisibleInList = (listState.firstVisibleItemIndex - headerOffset).coerceAtLeast(0)
+                        listState.scrollToItem(
+                            index = (anchorIdx + currentVisibleInList + headerOffset).coerceAtMost(messages.lastIndex + headerOffset),
+                            scrollOffset = savedOffset,
+                        )
+                    }
+                }
+
+                lastId != previousLastMessageId -> {
+                    val lastVisibleIdx = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+                    val isNearBottom = lastVisibleIdx >= (previousMessageCount - 3).coerceAtLeast(0)
+                    if (isNearBottom || messages.last().isFromMe) {
+                        listState.animateScrollToItem(messages.lastIndex + headerOffset)
+                    }
                 }
             }
 
-            lastId != previousLastMessageId -> {
-                val lastVisibleIdx = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
-                val isNearBottom = lastVisibleIdx >= (previousMessageCount - 3).coerceAtLeast(0)
-                if (isNearBottom || messages.last().isFromMe) {
-                    listState.animateScrollToItem(messages.lastIndex + headerOffset)
-                }
-            }
+            previousFirstMessageId = firstId
+            previousLastMessageId = lastId
+            previousMessageCount = messages.size
         }
-
-        previousFirstMessageId = firstId
-        previousLastMessageId = lastId
-        previousMessageCount = messages.size
     }
 
     LaunchedEffect(
@@ -491,21 +498,20 @@ fun ChatContent(
         state.isLoadingMessages,
         state.messages.size,
     ) {
-        if (
-            !state.hasMoreMessages ||
-            state.isLoadingOlderMessages ||
-            state.isLoadingMessages ||
-            state.messages.size < ChatRepository.DEFAULT_PAGE_SIZE
-        ) {
-            return@LaunchedEffect
-        }
-        snapshotFlow { listState.firstVisibleItemIndex }
-            .distinctUntilChanged()
-            .collect { firstVisibleIndex ->
-                if (firstVisibleIndex <= 2) {
-                    currentOnLoadOlder()
+        val canPaginateOlder =
+            state.hasMoreMessages &&
+                !state.isLoadingOlderMessages &&
+                !state.isLoadingMessages &&
+                state.messages.size >= ChatRepository.DEFAULT_PAGE_SIZE
+        if (canPaginateOlder) {
+            snapshotFlow { listState.firstVisibleItemIndex }
+                .distinctUntilChanged()
+                .collect { firstVisibleIndex ->
+                    if (firstVisibleIndex <= 2) {
+                        currentOnLoadOlder()
+                    }
                 }
-            }
+        }
     }
 
     Scaffold(
@@ -737,6 +743,13 @@ fun ChatContent(
                             style = AppTheme.typography.bodySmall,
                             color = colors.inkSecondary,
                         )
+                        if (state.isPartnerTyping) {
+                            Spacer(modifier = Modifier.height(12.dp))
+                            TypingIndicatorBubble(
+                                partnerName = state.conversationTitle,
+                                moodColor = partnerMoodColor,
+                            )
+                        }
                         if (state.isPartnerInQuietHours) {
                             Spacer(modifier = Modifier.height(16.dp))
                             QuietNoteInlinePill(
@@ -796,6 +809,15 @@ fun ChatContent(
                         )
                     }
 
+                    if (state.isPartnerTyping) {
+                        item(key = "partner_typing_indicator") {
+                            TypingIndicatorBubble(
+                                partnerName = state.conversationTitle,
+                                moodColor = partnerMoodColor,
+                            )
+                        }
+                    }
+
                     if (state.isPartnerInQuietHours) {
                         item(key = "quiet_hours_inline_note") {
                             Box(
@@ -828,6 +850,63 @@ fun ChatContent(
                     onDismiss = onCloseForwardDialog,
                     onConfirmForward = onConfirmForward,
                 )
+            }
+        }
+    }
+}
+
+@Composable
+private fun TypingIndicatorBubble(
+    partnerName: String,
+    moodColor: Color,
+) {
+    val colors = AppTheme.colors
+    val infiniteTransition = rememberInfiniteTransition(label = "typing_dots")
+    val dotOffsets = listOf(0, 150, 300).map { delayMs ->
+        infiniteTransition.animateFloat(
+            initialValue = 0f,
+            targetValue = -5f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 480, delayMillis = delayMs),
+                repeatMode = RepeatMode.Reverse,
+            ),
+            label = "typing_dot_$delayMs",
+        )
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Surface(
+            shape = RoundedCornerShape(18.dp),
+            color = colors.surfaceElevated,
+            border = BorderStroke(1.dp, moodColor.copy(alpha = 0.45f)),
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 14.dp, vertical = 9.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(5.dp),
+            ) {
+                dotOffsets.forEach { offsetY ->
+                    Box(
+                        modifier = Modifier.graphicsLayer {
+                            translationY = offsetY.value.dp.toPx()
+                        },
+                    ) {
+                        DiuMoodDot(color = moodColor, size = 7.dp)
+                    }
+                }
+                if (partnerName.isNotBlank()) {
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "$partnerName đang nhập…",
+                        style = AppTheme.typography.labelSmall,
+                        color = colors.inkSecondary,
+                    )
+                }
             }
         }
     }

@@ -14,10 +14,23 @@ fun LiveKitVideoView(
     videoTrack: VideoTrack,
     onInitRenderer: (SurfaceViewRenderer) -> Unit,
     modifier: Modifier = Modifier,
+    isOverlay: Boolean = false,
+    isMirror: Boolean = false,
 ) {
     val context = LocalContext.current
     val renderer = remember {
-        SurfaceViewRenderer(context).also { onInitRenderer(it) }
+        SurfaceViewRenderer(context).also { view ->
+            onInitRenderer(view)
+            view.setZOrderMediaOverlay(isOverlay)
+            view.setEnableHardwareScaler(true)
+            view.setMirror(isMirror)
+        }
+    }
+
+    DisposableEffect(renderer, isOverlay, isMirror) {
+        renderer.setZOrderMediaOverlay(isOverlay)
+        renderer.setMirror(isMirror)
+        onDispose {}
     }
 
     DisposableEffect(videoTrack, renderer) {

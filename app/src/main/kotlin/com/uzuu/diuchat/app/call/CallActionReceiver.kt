@@ -36,23 +36,27 @@ class CallActionReceiver : BroadcastReceiver() {
                 val pendingResult = goAsync()
                 CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
                     try {
-                        val callRepository = GlobalContext.getOrNull()?.getOrNull<CallRepository>() ?: return@launch
-                        if (callRepository.currentCallSession.value?.callId != callId && callerId.isNotBlank()) {
-                            callRepository.onIncomingCallReceived(
-                                IncomingCallPayload(
-                                    callId = callId,
-                                    conversationId = conversationId,
-                                    callerId = callerId,
-                                    callerName = callerName,
-                                    callerMoodHex = moodHex,
-                                    isVideo = isVideo,
-                                    sentAtEpochMs = sentAtMs,
-                                ).toCallSession(),
-                            )
+                        val callRepository = GlobalContext.getOrNull()?.getOrNull<CallRepository>()
+                        if (callRepository != null) {
+                            runCatching {
+                                if (callRepository.currentCallSession.value?.callId != callId && callerId.isNotBlank()) {
+                                    callRepository.onIncomingCallReceived(
+                                        IncomingCallPayload(
+                                            callId = callId,
+                                            conversationId = conversationId,
+                                            callerId = callerId,
+                                            callerName = callerName,
+                                            callerMoodHex = moodHex,
+                                            isVideo = isVideo,
+                                            sentAtEpochMs = sentAtMs,
+                                        ).toCallSession(),
+                                    )
+                                }
+                                callRepository.rejectCall(callId = callId, reason = CallEndReason.REJECTED)
+                            }.onFailure { error ->
+                                Timber.w(error, "Failed to reject call %s from notification action", callId)
+                            }
                         }
-                        callRepository.rejectCall(callId = callId, reason = CallEndReason.REJECTED)
-                    } catch (error: Throwable) {
-                        Timber.w(error, "Failed to reject call %s from notification action", callId)
                     } finally {
                         pendingResult.finish()
                     }
@@ -64,10 +68,14 @@ class CallActionReceiver : BroadcastReceiver() {
                 val pendingResult = goAsync()
                 CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
                     try {
-                        val callRepository = GlobalContext.getOrNull()?.getOrNull<CallRepository>() ?: return@launch
-                        callRepository.endCall(callId = callId, reason = CallEndReason.COMPLETED)
-                    } catch (error: Throwable) {
-                        Timber.w(error, "Failed to end ongoing call %s from notification action", callId)
+                        val callRepository = GlobalContext.getOrNull()?.getOrNull<CallRepository>()
+                        if (callRepository != null) {
+                            runCatching {
+                                callRepository.endCall(callId = callId, reason = CallEndReason.COMPLETED)
+                            }.onFailure { error ->
+                                Timber.w(error, "Failed to end ongoing call %s from notification action", callId)
+                            }
+                        }
                     } finally {
                         pendingResult.finish()
                     }

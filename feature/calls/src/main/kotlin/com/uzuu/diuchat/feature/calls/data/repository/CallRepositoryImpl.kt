@@ -1,5 +1,7 @@
 package com.uzuu.diuchat.feature.calls.data.repository
 
+import com.uzuu.diuchat.feature.base.domain.media.AppSoundPlayer
+import com.uzuu.diuchat.feature.base.domain.media.DiuSoundEffect
 import com.uzuu.diuchat.feature.calls.data.CallMediaEngine
 import com.uzuu.diuchat.feature.calls.data.CallServiceCoordinator
 import com.uzuu.diuchat.feature.calls.data.CallSupabaseService
@@ -42,6 +44,7 @@ class CallRepositoryImpl(
     private val callMediaEngine: CallMediaEngine? = null,
     private val callSupabaseService: CallSupabaseService? = null,
     private val ringingTimeoutMs: Long = DEFAULT_RINGING_TIMEOUT_MS,
+    private val appSoundPlayer: AppSoundPlayer? = null,
 ) : CallRepository {
 
     private val repositoryScope = CoroutineScope(coroutineDispatcher)
@@ -90,6 +93,7 @@ class CallRepositoryImpl(
             SignalingType.ANSWER -> {
                 if (current.status == CallStatus.INVITING || current.status == CallStatus.CONNECTING) {
                     cancelRingingTimeout()
+                    appSoundPlayer?.stopLooping()
                     _currentCallSession.value = current.copy(
                         status = CallStatus.ACTIVE,
                         startedAtEpochMs = System.currentTimeMillis(),
@@ -143,6 +147,7 @@ class CallRepositoryImpl(
             isVideoEnabled = session.type == CallType.VIDEO,
         )
         _currentCallSession.value = incoming
+        appSoundPlayer?.startLooping(DiuSoundEffect.CALL_INCOMING_RINGTONE)
         webRtcSignalingAdapter.connect(incoming.callId)
         startRingingTimeout(incoming.callId)
         Timber.d("Loaded incoming call %s from %s", incoming.callId, incoming.callerName)
@@ -200,6 +205,10 @@ class CallRepositoryImpl(
         if (resolvedConvoId != conversationId) {
             _currentCallSession.update { it?.copy(conversationId = resolvedConvoId) }
         }
+        appSoundPlayer?.startLooping(DiuSoundEffect.CALL_OUTGOING_RINGBACK)
+        if (callType == CallType.VIDEO) {
+            connectMediaEngine(callId, enableVideo = true)
+        }
         startRingingTimeout(callId)
 
         Timber.d("Started call: %s to %s (%s)", callId, calleeName, callType)
@@ -216,6 +225,7 @@ class CallRepositoryImpl(
         }
 
         cancelRingingTimeout()
+        appSoundPlayer?.stopLooping()
         val activeSession = current.copy(
             status = CallStatus.ACTIVE,
             startedAtEpochMs = System.currentTimeMillis(),
@@ -352,10 +362,11 @@ class CallRepositoryImpl(
         cancelRingingTimeout()
         ringingTimeoutJob = repositoryScope.launch {
             delay(ringingTimeoutMs)
-            val current = _currentCallSession.value ?: return@launch
-            val isStillRinging = current.callId == callId &&
+            val current = _currentCallSession.value
+            val isStillRinging = current != null &&
+                current.callId == callId &&
                 (current.status == CallStatus.INVITING || current.status == CallStatus.RINGING)
-            if (isStillRinging) {
+            if (isStillRinging && current != null) {
                 Timber.d("Call %s timed out after %d ms", callId, ringingTimeoutMs)
                 finalizeCall(
                     current = current,
@@ -394,6 +405,7 @@ class CallRepositoryImpl(
         notifyRemote: Boolean = true,
     ) {
         cancelRingingTimeout()
+        appSoundPlayer?.stopLooping()
         durationTickerJob?.cancel()
         durationTickerJob = null
 

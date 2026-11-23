@@ -36,6 +36,10 @@ interface ImageDownscaler {
 }
 
 object ImageDownscaleMath {
+    private const val ROTATION_90 = 90f
+    private const val ROTATION_180 = 180f
+    private const val ROTATION_270 = 270f
+
     /**
      * Tính `BitmapFactory.Options.inSampleSize` là lũy thừa của 2 để giảm bộ nhớ RAM
      * ngay trong bước decode native mà vẫn giữ kích thước >= [maxDimensionPx] cho bước scale mịn.
@@ -77,9 +81,9 @@ object ImageDownscaleMath {
     }
 
     fun computeExifRotationDegrees(orientation: Int): Float = when (orientation) {
-        ExifInterface.ORIENTATION_ROTATE_90 -> 90f
-        ExifInterface.ORIENTATION_ROTATE_180 -> 180f
-        ExifInterface.ORIENTATION_ROTATE_270 -> 270f
+        ExifInterface.ORIENTATION_ROTATE_90 -> ROTATION_90
+        ExifInterface.ORIENTATION_ROTATE_180 -> ROTATION_180
+        ExifInterface.ORIENTATION_ROTATE_270 -> ROTATION_270
         else -> 0f
     }
 }
@@ -92,39 +96,45 @@ class AndroidImageDownscaler(
         config: ImageDownscaleConfig,
     ): ByteArray? = withContext(Dispatchers.IO) {
         runCatching {
-            val uri = Uri.parse(uriString)
-            val bounds = decodeBounds(uri) ?: return@runCatching null
-            val sampleSize =
-                ImageDownscaleMath.calculateInSampleSize(
-                    srcWidth = bounds.first,
-                    srcHeight = bounds.second,
-                    maxDimensionPx = config.maxDimensionPx,
-                )
-            val sampledBitmap = decodeSampledBitmap(uri, sampleSize) ?: return@runCatching null
-            val rotationDegrees = readExifRotationDegrees(uri)
-
-            val processedBitmap = scaleAndRotate(sampledBitmap, config.maxDimensionPx, rotationDegrees)
-            try {
-                compressToJpeg(processedBitmap, config).also { bytes ->
-                    Timber.d(
-                        "ImageDownscaler: %dx%d (sample=%d) -> %dx%d, %d bytes",
-                        bounds.first,
-                        bounds.second,
-                        sampleSize,
-                        processedBitmap.width,
-                        processedBitmap.height,
-                        bytes.size,
-                    )
-                }
-            } finally {
-                if (processedBitmap !== sampledBitmap && !processedBitmap.isRecycled) {
-                    processedBitmap.recycle()
-                }
-                if (!sampledBitmap.isRecycled) {
-                    sampledBitmap.recycle()
-                }
-            }
+            downscaleUri(Uri.parse(uriString), config)
         }.getOrNull()
+    }
+
+    private fun downscaleUri(
+        uri: Uri,
+        config: ImageDownscaleConfig,
+    ): ByteArray? {
+        val bounds = decodeBounds(uri) ?: return null
+        val sampleSize =
+            ImageDownscaleMath.calculateInSampleSize(
+                srcWidth = bounds.first,
+                srcHeight = bounds.second,
+                maxDimensionPx = config.maxDimensionPx,
+            )
+        val sampledBitmap = decodeSampledBitmap(uri, sampleSize) ?: return null
+        val rotationDegrees = readExifRotationDegrees(uri)
+
+        val processedBitmap = scaleAndRotate(sampledBitmap, config.maxDimensionPx, rotationDegrees)
+        return try {
+            compressToJpeg(processedBitmap, config).also { bytes ->
+                Timber.d(
+                    "ImageDownscaler: %dx%d (sample=%d) -> %dx%d, %d bytes",
+                    bounds.first,
+                    bounds.second,
+                    sampleSize,
+                    processedBitmap.width,
+                    processedBitmap.height,
+                    bytes.size,
+                )
+            }
+        } finally {
+            if (processedBitmap !== sampledBitmap && !processedBitmap.isRecycled) {
+                processedBitmap.recycle()
+            }
+            if (!sampledBitmap.isRecycled) {
+                sampledBitmap.recycle()
+            }
+        }
     }
 
     private fun decodeBounds(uri: Uri): Pair<Int, Int>? {
