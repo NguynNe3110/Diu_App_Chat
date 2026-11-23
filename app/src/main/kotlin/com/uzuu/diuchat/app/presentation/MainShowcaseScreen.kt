@@ -595,7 +595,14 @@ fun MainShowcaseScreen(
                                 isVideo = args.isVideo,
                                 isIncoming = args.isIncoming,
                                 onNavigateBack = {
-                                    navController.popBackStack()
+                                    if (navController.currentDestination?.hasRoute<NavigationRoute.Call>() == true) {
+                                        val popped = navController.popBackStack()
+                                        if (!popped) {
+                                            navController.navigate(NavigationRoute.Home) {
+                                                launchSingleTop = true
+                                            }
+                                        }
+                                    }
                                 },
                             )
                         }
