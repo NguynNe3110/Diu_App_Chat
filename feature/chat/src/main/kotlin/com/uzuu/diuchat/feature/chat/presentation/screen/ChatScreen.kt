@@ -1,6 +1,10 @@
 package com.uzuu.diuchat.feature.chat.presentation.screen
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -56,6 +60,7 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -67,6 +72,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.uzuu.diuchat.feature.base.common.res.AppIcons
 import com.uzuu.diuchat.feature.base.common.res.AppPalette
@@ -155,6 +161,25 @@ fun ChatScreen(
         }
     }
     var showMediaSourceSheet by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    val recordAudioPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission(),
+    ) { granted ->
+        if (granted) {
+            viewModel.onStartVoiceRecording()
+        }
+    }
+    val handleStartVoiceRecording = {
+        val granted = ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.RECORD_AUDIO,
+        ) == PackageManager.PERMISSION_GRANTED
+        if (granted) {
+            viewModel.onStartVoiceRecording()
+        } else {
+            recordAudioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+        }
+    }
 
     val mediaPickerController = rememberMediaPickerController(
         onSelectImage = { uri: Uri ->
@@ -282,7 +307,7 @@ fun ChatScreen(
             viewModel.onOpenAttachmentSheet(!state.isAttachmentSheetOpen)
         },
         onClearPhoto = viewModel::onClearPhoto,
-        onStartVoiceRecording = viewModel::onStartVoiceRecording,
+        onStartVoiceRecording = handleStartVoiceRecording,
         onSendMessage = viewModel::onSendMessage,
         onReplyToMessage = viewModel::onReplyToMessage,
         onToggleAudioPlayback = viewModel::onToggleAudioPlayback,
@@ -320,7 +345,7 @@ fun ChatScreen(
             },
             onStartVoiceClick = {
                 viewModel.onOpenAttachmentSheet(false)
-                viewModel.onStartVoiceRecording()
+                handleStartVoiceRecording()
             },
             onOpenSlowSendClick = {
                 viewModel.onOpenAttachmentSheet(false)

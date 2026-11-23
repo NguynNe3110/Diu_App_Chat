@@ -6,7 +6,11 @@ import com.uzuu.diuchat.feature.base.data.media.ImageDownscaler
 import com.uzuu.diuchat.feature.chat.data.datasource.api.service.ChatSupabaseService
 import com.uzuu.diuchat.feature.chat.data.datasource.database.DiuChatDatabase
 import com.uzuu.diuchat.feature.chat.data.mapper.ChatMapper
+import com.uzuu.diuchat.feature.chat.data.media.AndroidVoiceAudioPlayer
+import com.uzuu.diuchat.feature.chat.data.media.AndroidVoiceAudioRecorder
 import com.uzuu.diuchat.feature.chat.data.repository.ChatRepositoryImpl
+import com.uzuu.diuchat.feature.chat.domain.media.VoiceAudioPlayer
+import com.uzuu.diuchat.feature.chat.domain.media.VoiceAudioRecorder
 import com.uzuu.diuchat.feature.chat.domain.repository.ChatRepository
 import io.github.jan.supabase.SupabaseClient
 import org.koin.android.ext.koin.androidContext
@@ -35,6 +39,8 @@ val dataModule = module {
     }
     singleOf(::ChatMapper)
     single<ImageDownscaler> { AndroidImageDownscaler(androidContext()) }
+    single<VoiceAudioRecorder> { AndroidVoiceAudioRecorder(androidContext()) }
+    single<VoiceAudioPlayer> { AndroidVoiceAudioPlayer(androidContext()) }
     single<ChatRepository> {
         ChatRepositoryImpl(
             conversationDao = get(),

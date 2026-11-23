@@ -1,6 +1,7 @@
 package com.uzuu.diuchat.feature.chat.presentation.composable
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
@@ -93,6 +94,10 @@ fun ChatComposer(
 ) {
     val colors = AppTheme.colors
     val selectedColor = Color(selectedMood.colorHex)
+    val animatedBorderColor by animateColorAsState(
+        targetValue = selectedColor,
+        label = "composer_mood_border",
+    )
     val plusRotation by animateFloatAsState(
         targetValue = if (isAttachmentOpen) 45f else 0f,
         label = "plus_rotation",
@@ -167,90 +172,84 @@ fun ChatComposer(
             }
         }
 
-        // Expandable 5-orb Mood Tray (.tray)
+        // Expandable 5-orb Mood Tray (.tray) — không bọc nền background
         AnimatedVisibility(
             visible = isMoodTrayOpen,
             enter = fadeIn() + expandVertically(),
             exit = fadeOut() + shrinkVertically(),
         ) {
-            Surface(
-                shape = RoundedCornerShape(24.dp),
-                color = colors.surfaceElevated,
-                border = BorderStroke(1.dp, colors.line),
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 8.dp),
+                    .padding(horizontal = 8.dp, vertical = 6.dp)
+                    .padding(bottom = 4.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Column(
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
+                Text(
+                    text = "Lời nhắn này mang màu",
+                    style = AppTheme.typography.labelMedium,
+                    color = colors.inkSecondary,
+                    modifier = Modifier.padding(bottom = 8.dp),
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text(
-                        text = "Lời nhắn này mang màu",
-                        style = AppTheme.typography.labelMedium,
-                        color = colors.inkSecondary,
-                        modifier = Modifier.padding(bottom = 10.dp),
-                    )
+                    CORE_TRAY_MOODS.forEach { mood ->
+                        val moodColor = Color(mood.colorHex)
+                        val isSelected = mood == selectedMood
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceEvenly,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        CORE_TRAY_MOODS.forEach { mood ->
-                            val moodColor = Color(mood.colorHex)
-                            val isSelected = mood == selectedMood
-
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(14.dp))
-                                    .clickable(onClickLabel = "Chọn cảm xúc ${mood.displayName}") {
-                                        onSelectMood(mood)
-                                    }
-                                    .padding(horizontal = 6.dp, vertical = 4.dp),
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(38.dp)
-                                        .then(
-                                            if (isSelected) {
-                                                Modifier.border(2.dp, colors.ink, CircleShape)
-                                            } else {
-                                                Modifier
-                                            },
-                                        ),
-                                    contentAlignment = Alignment.Center,
-                                ) {
-                                    DiuOrbAvatar(
-                                        initials = "",
-                                        moodColor = moodColor,
-                                        size = 34.dp,
-                                    )
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(14.dp))
+                                .clickable(onClickLabel = "Chọn cảm xúc ${mood.displayName}") {
+                                    onSelectMood(mood)
                                 }
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    text = mood.displayName,
-                                    style = AppTheme.typography.labelSmall.copy(
-                                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                                .padding(horizontal = 6.dp, vertical = 4.dp),
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(38.dp)
+                                    .then(
+                                        if (isSelected) {
+                                            Modifier.border(2.dp, colors.ink, CircleShape)
+                                        } else {
+                                            Modifier
+                                        },
                                     ),
-                                    color = if (isSelected) colors.ink else colors.inkSecondary,
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                DiuOrbAvatar(
+                                    initials = "",
+                                    moodColor = moodColor,
+                                    size = 34.dp,
                                 )
                             }
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = mood.displayName,
+                                style = AppTheme.typography.labelSmall.copy(
+                                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                                ),
+                                color = if (isSelected) colors.ink else colors.inkSecondary,
+                            )
                         }
                     }
                 }
             }
         }
 
-        // 58.dp Floating Pill Composer (.composer / .composer.rec)
+        // 58.dp Floating Pill Composer (.composer / .composer.rec) — viền đổi theo màu cảm xúc
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(58.dp),
             shape = RoundedCornerShape(29.dp),
             color = colors.surfaceElevated,
-            border = BorderStroke(1.dp, colors.line),
+            border = BorderStroke(1.5.dp, animatedBorderColor),
         ) {
             if (voiceRecordingState !is VoiceRecordingState.Idle) {
                 InlineVoiceRecordingPill(
@@ -450,6 +449,11 @@ private fun InlineVoiceRecordingPill(
         }
 
         // 22-bar live waveform
+        val waveBars = when (recordingState) {
+            is VoiceRecordingState.Recording -> recordingState.amplitudes.ifEmpty { DEFAULT_22_WAVE_BARS }
+            is VoiceRecordingState.Preview -> recordingState.waveform.ifEmpty { DEFAULT_22_WAVE_BARS }
+            else -> DEFAULT_22_WAVE_BARS
+        }
         Row(
             modifier = Modifier
                 .weight(1f)
@@ -458,7 +462,7 @@ private fun InlineVoiceRecordingPill(
             horizontalArrangement = Arrangement.spacedBy(2.5.dp, Alignment.CenterHorizontally),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            DEFAULT_22_WAVE_BARS.forEach { amp ->
+            waveBars.takeLast(22).forEach { amp ->
                 val barHeight = (amp.coerceIn(0.2f, 1.0f) * 22).dp
                 Box(
                     modifier = Modifier

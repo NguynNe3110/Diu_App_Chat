@@ -277,9 +277,41 @@ class ChatRepositoryImpl(
 
         val outboxEntity = createOutboxEntity(operationId, conversationId, messageId, now)
         persistMessageWithOutbox(messageEntity, outboxEntity, mood)
-        val syncedEntity = syncMessageWithOutboxAck(messageEntity, operationId)
+
+        val uploadedAudioUrl = uploadLocalAudioIfNeeded(conversationId, messageId, audioUri)
+        val entityForSync =
+            if (!uploadedAudioUrl.isNullOrBlank()) {
+                val updated = messageEntity.copy(mediaUri = uploadedAudioUrl)
+                messageDao.insert(updated)
+                updated
+            } else {
+                messageEntity
+            }
+        val syncedEntity = syncMessageWithOutboxAck(entityForSync, operationId)
 
         return chatMapper.messageEntityToDomain(syncedEntity)
+    }
+
+    private suspend fun uploadLocalAudioIfNeeded(
+        conversationId: String,
+        messageId: String,
+        audioUri: String,
+    ): String? {
+        val isLocalUri = audioUri.startsWith("content://") || audioUri.startsWith("file://")
+        if (!isLocalUri) return null
+        val bytes =
+            runCatching {
+                val uri = Uri.parse(audioUri)
+                if (audioUri.startsWith("file://")) {
+                    uri.path?.let { java.io.File(it).takeIf { f -> f.exists() }?.readBytes() }
+                } else {
+                    context?.contentResolver?.openInputStream(uri)?.use { it.readBytes() }
+                }
+            }.getOrNull() ?: return null
+        return supabaseService
+            .uploadMedia(bucketPath = "$conversationId/$messageId.m4a", bytes = bytes)
+            .getOrNull()
+            ?.takeIf { it.isNotBlank() }
     }
 
     override suspend fun createGroup(

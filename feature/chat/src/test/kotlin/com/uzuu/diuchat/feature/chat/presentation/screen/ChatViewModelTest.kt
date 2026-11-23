@@ -1,5 +1,7 @@
 package com.uzuu.diuchat.feature.chat.presentation.screen
 
+import com.uzuu.diuchat.feature.chat.domain.media.VoiceAudioPlayer
+import com.uzuu.diuchat.feature.chat.domain.media.VoiceAudioRecorder
 import com.uzuu.diuchat.feature.chat.domain.model.ChatMessage
 import com.uzuu.diuchat.feature.chat.domain.model.Conversation
 import com.uzuu.diuchat.feature.chat.domain.model.GroupError
@@ -70,6 +72,11 @@ class ChatViewModelTest {
     private val mockTogglePinMessageUseCase: TogglePinMessageUseCase = mockk()
     private val mockToggleReactionUseCase: ToggleReactionUseCase = mockk()
     private val mockUpdateGroupInfoUseCase: UpdateGroupInfoUseCase = mockk()
+    private val mockVoiceAudioPlayer: VoiceAudioPlayer = mockk(relaxed = true)
+    private val mockVoiceAudioRecorder: VoiceAudioRecorder = mockk(relaxed = true) {
+        every { startRecording() } returns false
+        every { stopRecording() } returns null
+    }
 
     private val sampleMessages =
         listOf(
@@ -121,6 +128,8 @@ class ChatViewModelTest {
             togglePinMessageUseCase = mockTogglePinMessageUseCase,
             toggleReactionUseCase = mockToggleReactionUseCase,
             updateGroupInfoUseCase = mockUpdateGroupInfoUseCase,
+            voiceAudioPlayer = mockVoiceAudioPlayer,
+            voiceAudioRecorder = mockVoiceAudioRecorder,
         )
         sut.loadMessages("conv_linh_diu")
     }
@@ -412,7 +421,7 @@ class ChatViewModelTest {
         val message = sampleMessages.first()
         sut.onToggleAudioPlayback(message)
         sut.uiStateFlow.value.playingAudioMessageId shouldBeEqualTo message.id
-        sut.uiStateFlow.value.audioPlaybackProgress shouldBeEqualTo 0.45f
+        sut.uiStateFlow.value.audioPlaybackProgress shouldBeEqualTo 0.05f
 
         // toggle again stops playback
         sut.onToggleAudioPlayback(message)
