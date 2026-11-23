@@ -75,4 +75,36 @@ class CallServiceCoordinatorTest {
         coordinator.stopCallService()
         verify { audioManager.mode = AudioManager.MODE_NORMAL }
     }
+
+    @Test
+    fun `coordinator delegates foreground service lifecycle and incoming notification cleanup`() {
+        val controller = mockk<CallForegroundServiceController>(relaxed = true)
+        val coordinator = CallServiceCoordinatorImpl(foregroundServiceController = controller)
+
+        coordinator.startCallService("call_fgs", "Minh", false)
+        verify { controller.cancelIncomingNotification() }
+        verify { controller.start("call_fgs", "Minh", false) }
+
+        coordinator.setCameraEnabled(true)
+        verify { controller.updateVideo(true) }
+
+        coordinator.refreshForegroundService()
+        verify { controller.refreshPermissions() }
+
+        coordinator.stopCallService()
+        verify { controller.stop() }
+        verify(exactly = 2) { controller.cancelIncomingNotification() }
+    }
+
+    @Test
+    fun `setCameraEnabled and refreshForegroundService do not trigger controller when idle`() {
+        val controller = mockk<CallForegroundServiceController>(relaxed = true)
+        val coordinator = CallServiceCoordinatorImpl(foregroundServiceController = controller)
+
+        coordinator.setCameraEnabled(true)
+        coordinator.refreshForegroundService()
+
+        verify(exactly = 0) { controller.updateVideo(any()) }
+        verify(exactly = 0) { controller.refreshPermissions() }
+    }
 }

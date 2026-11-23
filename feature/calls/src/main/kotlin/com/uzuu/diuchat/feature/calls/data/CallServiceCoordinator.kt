@@ -24,10 +24,15 @@ interface CallServiceCoordinator {
     fun setCameraEnabled(enabled: Boolean)
 
     fun switchCamera(): Boolean
+
+    fun refreshForegroundService() {
+        // Default no-op for test doubles
+    }
 }
 
 class CallServiceCoordinatorImpl(
     private val context: Context? = null,
+    private val foregroundServiceController: CallForegroundServiceController? = null,
 ) : CallServiceCoordinator {
     private val audioManager: AudioManager? by lazy {
         context?.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
@@ -54,6 +59,8 @@ class CallServiceCoordinatorImpl(
             audioManager?.isMicrophoneMute = false
         }
         setSpeakerphoneOn(isVideo)
+        foregroundServiceController?.cancelIncomingNotification()
+        foregroundServiceController?.start(callId = callId, peerName = peerName, isVideo = isVideo)
         Timber.d("CallServiceCoordinator started: callId=%s, peer=%s, isVideo=%s", callId, peerName, isVideo)
     }
 
@@ -68,6 +75,8 @@ class CallServiceCoordinatorImpl(
             audioManager?.mode = AudioManager.MODE_NORMAL
             audioManager?.isMicrophoneMute = false
         }
+        foregroundServiceController?.stop()
+        foregroundServiceController?.cancelIncomingNotification()
     }
 
     override fun setSpeakerphoneOn(on: Boolean) {
@@ -105,6 +114,9 @@ class CallServiceCoordinatorImpl(
 
     override fun setCameraEnabled(enabled: Boolean) {
         internalCameraEnabled = enabled
+        if (activeCallId != null) {
+            foregroundServiceController?.updateVideo(enabled)
+        }
         Timber.d("CallServiceCoordinator camera enabled=%s", enabled)
     }
 
@@ -112,5 +124,11 @@ class CallServiceCoordinatorImpl(
         internalFrontCamera = !internalFrontCamera
         Timber.d("CallServiceCoordinator camera flipped to front=%s", internalFrontCamera)
         return internalFrontCamera
+    }
+
+    override fun refreshForegroundService() {
+        if (activeCallId != null) {
+            foregroundServiceController?.refreshPermissions()
+        }
     }
 }

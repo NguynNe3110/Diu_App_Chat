@@ -1,6 +1,7 @@
 package com.uzuu.diuchat.app.call
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.app.Service
 import android.content.Context
 import android.content.Intent
@@ -58,7 +59,7 @@ class OngoingCallService : Service() {
 
         // Android 14+ requires at least one matching runtime permission for microphone/camera FGS.
         // If neither is granted yet, stop cleanly and wait for refreshPermissions() after user grants.
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE && serviceType == 0) {
+        if ((Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) && (serviceType == 0)) {
             Timber.d("OngoingCallService deferred: waiting for RECORD_AUDIO/CAMERA runtime permission")
             stopForegroundAndSelf()
             return
@@ -101,11 +102,14 @@ class OngoingCallService : Service() {
         const val EXTRA_PEER_NAME = "extra_service_peer_name"
         const val EXTRA_IS_VIDEO = "extra_service_is_video"
 
+        @SuppressLint("InlinedApi")
         fun resolveForegroundServiceType(
             hasMicPermission: Boolean,
             hasCameraPermission: Boolean,
             isVideo: Boolean,
+            sdkInt: Int = Build.VERSION.SDK_INT,
         ): Int {
+            if (sdkInt < Build.VERSION_CODES.R) return 0
             var type = 0
             if (hasMicPermission) {
                 type = type or ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
