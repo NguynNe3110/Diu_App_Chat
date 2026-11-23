@@ -87,7 +87,7 @@ import org.koin.androidx.compose.koinViewModel
 fun ContactsScreen(
     modifier: Modifier = Modifier,
     onNavigateToChat: (String) -> Unit = {},
-    onStartCall: (String) -> Unit = {},
+    onStartCall: (peerId: String, peerName: String, peerMoodHex: String) -> Unit = { _, _, _ -> },
     viewModel: ContactsViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.uiStateFlow.collectAsState()
@@ -129,7 +129,7 @@ fun ContactsScreen(
 fun ContactsScreenContent(
     uiState: ContactsUiState,
     onNavigateToChat: (String) -> Unit = {},
-    onStartCall: (String) -> Unit = {},
+    onStartCall: (peerId: String, peerName: String, peerMoodHex: String) -> Unit = { _, _, _ -> },
     onShowQrSheet: () -> Unit = {},
     onDismissQrSheet: () -> Unit = {},
     onSelectQrTab: (QrSheetTab) -> Unit = {},
@@ -298,7 +298,13 @@ fun ContactsScreenContent(
                         ContactItemRow(
                             contact = contact,
                             onClick = { onNavigateToChat(contact.id) },
-                            onCallClick = { onStartCall(contact.id) },
+                            onCallClick = {
+                                onStartCall(
+                                    contact.id,
+                                    contact.nickname?.takeIf { it.isNotBlank() } ?: contact.name,
+                                    contact.moodColorHex,
+                                )
+                            },
                         )
                     }
 
@@ -332,7 +338,7 @@ fun ContactsScreenContent(
                                 modifier = Modifier.size(18.dp),
                             )
                             Text(
-                                text = "+ Mời thêm người thân thiết",
+                                text = "Mời thêm người thân thiết",
                                 style = AppTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
                                 color = colors.accent,
                             )

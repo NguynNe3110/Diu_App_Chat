@@ -9,8 +9,10 @@ class EndCallUseCase(
     suspend operator fun invoke(
         callId: String,
         reason: CallEndReason = CallEndReason.COMPLETED,
+        declineMessage: String? = null,
     ): Result<Unit> = callRepository.endCall(
         callId = callId,
         reason = reason,
+        declineMessage = declineMessage,
     )
 }

@@ -24,6 +24,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -58,6 +62,8 @@ fun CallScreen(
     viewModel: CallViewModel,
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier,
+    callId: String = "",
+    conversationId: String = "",
     peerId: String = "",
     peerName: String = "",
     peerMoodHex: String = "#F7A3A9",
@@ -69,9 +75,18 @@ fun CallScreen(
     val localVideoTrack by callMediaEngine.localVideoTrack.collectAsState()
     val remoteVideoTrack by callMediaEngine.remoteVideoTrack.collectAsState()
     val context = LocalContext.current
+    val currentOnNavigateBack by rememberUpdatedState(onNavigateBack)
+    var hasObservedLiveSession by remember(callId, peerId, isIncoming) { mutableStateOf(false) }
+
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions(),
-    ) { _ -> }
+    ) { grants ->
+        val micGranted = grants[Manifest.permission.RECORD_AUDIO]
+            ?: (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED)
+        val cameraGranted = grants[Manifest.permission.CAMERA]
+            ?: (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED)
+        viewModel.onPermissionsResult(micGranted = micGranted, cameraGranted = cameraGranted)
+    }
 
     LaunchedEffect(isVideo) {
         val requiredPermissions = buildList {
@@ -88,14 +103,32 @@ fun CallScreen(
         }
     }
 
-    LaunchedEffect(peerId, peerName, peerMoodHex, isVideo, isIncoming) {
+    LaunchedEffect(callId, conversationId, peerId, peerName, peerMoodHex, isVideo, isIncoming) {
         viewModel.initializeCallFromRoute(
             peerId = peerId,
             peerName = peerName,
             peerMoodHex = peerMoodHex,
             isVideo = isVideo,
             isIncoming = isIncoming,
+            callId = callId,
+            conversationId = conversationId,
         )
+    }
+
+    LaunchedEffect(uiState.callSession?.status) {
+        when (uiState.callSession?.status) {
+            CallStatus.INVITING, CallStatus.RINGING, CallStatus.CONNECTING, CallStatus.ACTIVE -> {
+                hasObservedLiveSession = true
+            }
+
+            CallStatus.ENDED -> {
+                if (hasObservedLiveSession) {
+                    currentOnNavigateBack()
+                }
+            }
+
+            else -> Unit
+        }
     }
 
     CallContent(

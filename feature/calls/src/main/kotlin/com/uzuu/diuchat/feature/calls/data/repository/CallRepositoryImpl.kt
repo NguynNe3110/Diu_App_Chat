@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -30,6 +31,7 @@ import java.util.UUID
 
 private const val ERROR_NO_CALL = "Không có cuộc gọi"
 private const val ERROR_CALL_ID_MISMATCH = "Mã cuộc gọi không khớp"
+private const val DEFAULT_RINGING_TIMEOUT_MS = 45_000L
 
 @Suppress("TooManyFunctions")
 class CallRepositoryImpl(
@@ -39,6 +41,7 @@ class CallRepositoryImpl(
     private val callTokenService: CallTokenService? = null,
     private val callMediaEngine: CallMediaEngine? = null,
     private val callSupabaseService: CallSupabaseService? = null,
+    private val ringingTimeoutMs: Long = DEFAULT_RINGING_TIMEOUT_MS,
 ) : CallRepository {
 
     private val repositoryScope = CoroutineScope(coroutineDispatcher)
@@ -51,6 +54,7 @@ class CallRepositoryImpl(
     )
 
     private var durationTickerJob: Job? = null
+    private var ringingTimeoutJob: Job? = null
 
     init {
         repositoryScope.launch {
@@ -74,16 +78,21 @@ class CallRepositoryImpl(
         }
     }
 
+    private fun currentActorId(): String = callSupabaseService?.currentUserId() ?: "user_me"
+
     private suspend fun handleIncomingSignaling(message: RtcSignalingMessage) {
         val current = _currentCallSession.value ?: return
         if (message.sessionId != current.callId) return
+        val myId = currentActorId()
+        if (message.senderId == myId || message.senderId == "local_peer") return
 
         when (message.type) {
             SignalingType.ANSWER -> {
                 if (current.status == CallStatus.INVITING || current.status == CallStatus.CONNECTING) {
+                    cancelRingingTimeout()
                     _currentCallSession.value = current.copy(
                         status = CallStatus.ACTIVE,
-                        startedAtEpochMs = current.startedAtEpochMs ?: System.currentTimeMillis(),
+                        startedAtEpochMs = System.currentTimeMillis(),
                     )
                     startDurationTicker()
                     connectMediaEngine(current.callId, current.type == CallType.VIDEO)
@@ -94,30 +103,56 @@ class CallRepositoryImpl(
             SignalingType.BYE,
             SignalingType.DECLINE,
             -> {
-                val isFromRemotePeer = message.senderId != "local_peer" && message.senderId != current.callerId
-                if (isFromRemotePeer && current.status != CallStatus.ENDED) {
+                if (current.status != CallStatus.ENDED) {
                     val reason = if (message.type == SignalingType.DECLINE) {
                         CallEndReason.REJECTED
                     } else {
                         CallEndReason.COMPLETED
                     }
                     Timber.d("Incoming %s from %s ended call %s", message.type, message.senderId, current.callId)
-                    finalizeCall(current, reason)
+                    finalizeCall(
+                        current = current,
+                        reason = reason,
+                        notifyRemote = false,
+                    )
                 }
             }
 
             SignalingType.OFFER,
             SignalingType.ICE_CANDIDATE,
             -> {
-                // Handled by WebRTC peer connection layer when media engine is attached
+                // LiveKit handles ICE/SDP negotiation once both peers join room callId
             }
         }
+    }
+
+    override fun observeIncomingCalls(): Flow<CallSession> = callSupabaseService?.observeIncomingCalls() ?: emptyFlow()
+
+    override suspend fun onIncomingCallReceived(session: CallSession) {
+        val current = _currentCallSession.value
+        val isBusy = current != null &&
+            current.status != CallStatus.IDLE &&
+            current.status != CallStatus.ENDED &&
+            current.callId != session.callId
+        if (isBusy) return
+
+        val incoming = session.copy(
+            status = CallStatus.RINGING,
+            isIncoming = true,
+            isSpeakerOn = session.type == CallType.VIDEO,
+            isVideoEnabled = session.type == CallType.VIDEO,
+        )
+        _currentCallSession.value = incoming
+        webRtcSignalingAdapter.connect(incoming.callId)
+        startRingingTimeout(incoming.callId)
+        Timber.d("Loaded incoming call %s from %s", incoming.callId, incoming.callerName)
     }
 
     override suspend fun startCall(
         calleeId: String,
         calleeName: String,
         callType: CallType,
+        conversationId: String,
     ): Result<CallSession> = runCatching {
         val current = _currentCallSession.value
         require(current == null || current.status == CallStatus.ENDED || current.status == CallStatus.IDLE) {
@@ -125,11 +160,12 @@ class CallRepositoryImpl(
         }
 
         val callId = UUID.randomUUID().toString()
-        val callerId = callSupabaseService?.currentUserId() ?: "user_me"
+        val callerId = currentActorId()
+        val callerName = callSupabaseService?.currentUserDisplayName() ?: "Tôi"
         val session = CallSession(
             callId = callId,
             callerId = callerId,
-            callerName = "Tôi",
+            callerName = callerName,
             calleeId = calleeId,
             calleeName = calleeName,
             status = CallStatus.INVITING,
@@ -141,6 +177,7 @@ class CallRepositoryImpl(
             isFrontCamera = true,
             durationSeconds = 0L,
             startedAtEpochMs = System.currentTimeMillis(),
+            conversationId = conversationId,
         )
 
         _currentCallSession.value = session
@@ -149,14 +186,24 @@ class CallRepositoryImpl(
         webRtcSignalingAdapter.sendSignaling(
             RtcSignalingMessage(
                 sessionId = callId,
-                senderId = session.callerId,
+                senderId = callerId,
                 targetId = calleeId,
                 type = SignalingType.OFFER,
             ),
         )
+        val resolvedConvoId = callSupabaseService?.createCallLog(
+            callId = callId,
+            calleeId = calleeId,
+            isVideo = callType == CallType.VIDEO,
+            conversationId = conversationId,
+        ) ?: conversationId
+        if (resolvedConvoId != conversationId) {
+            _currentCallSession.update { it?.copy(conversationId = resolvedConvoId) }
+        }
+        startRingingTimeout(callId)
 
         Timber.d("Started call: %s to %s (%s)", callId, calleeName, callType)
-        session
+        _currentCallSession.value ?: session
     }
 
     override suspend fun acceptCall(callId: String): Result<CallSession> = runCatching {
@@ -168,9 +215,10 @@ class CallRepositoryImpl(
             "Trạng thái không hợp lệ để nhận cuộc gọi: ${current.status}"
         }
 
+        cancelRingingTimeout()
         val activeSession = current.copy(
             status = CallStatus.ACTIVE,
-            startedAtEpochMs = current.startedAtEpochMs ?: System.currentTimeMillis(),
+            startedAtEpochMs = System.currentTimeMillis(),
         )
         _currentCallSession.value = activeSession
 
@@ -180,41 +228,53 @@ class CallRepositoryImpl(
             isVideo = current.type == CallType.VIDEO,
         )
 
+        webRtcSignalingAdapter.connect(callId)
         webRtcSignalingAdapter.sendSignaling(
             RtcSignalingMessage(
                 sessionId = callId,
-                senderId = "local_peer",
-                targetId = "remote_peer",
+                senderId = currentActorId(),
+                targetId = if (current.isIncoming) current.callerId else current.calleeId,
                 type = SignalingType.ANSWER,
             ),
         )
 
+        callSupabaseService?.markCallAccepted(callId)
         startDurationTicker()
         connectMediaEngine(callId, current.type == CallType.VIDEO)
         Timber.d("Accepted call: %s, transition to ACTIVE", callId)
         activeSession
     }
 
-    override suspend fun rejectCall(callId: String, reason: CallEndReason): Result<Unit> = runCatching {
+    override suspend fun rejectCall(
+        callId: String,
+        reason: CallEndReason,
+        declineMessage: String?,
+    ): Result<Unit> = runCatching {
         val current = _currentCallSession.value
         if (current != null && current.callId == callId && current.status != CallStatus.ENDED) {
-            webRtcSignalingAdapter.sendSignaling(
-                RtcSignalingMessage(
-                    sessionId = callId,
-                    senderId = "local_peer",
-                    targetId = "remote_peer",
-                    type = SignalingType.DECLINE,
-                ),
+            finalizeCall(
+                current = current,
+                reason = reason,
+                declineMessage = declineMessage,
+                notifyRemote = true,
             )
-            finalizeCall(current, reason)
             Timber.d("Rejected call: %s, reason: %s", callId, reason)
         }
     }
 
-    override suspend fun endCall(callId: String, reason: CallEndReason): Result<Unit> = runCatching {
+    override suspend fun endCall(
+        callId: String,
+        reason: CallEndReason,
+        declineMessage: String?,
+    ): Result<Unit> = runCatching {
         val current = _currentCallSession.value
         if (current != null && current.callId == callId && current.status != CallStatus.ENDED) {
-            finalizeCall(current, reason)
+            finalizeCall(
+                current = current,
+                reason = reason,
+                declineMessage = declineMessage,
+                notifyRemote = true,
+            )
             Timber.d("Ended call: %s, reason: %s", callId, reason)
         }
     }
@@ -260,6 +320,23 @@ class CallRepositoryImpl(
         newFront
     }
 
+    override suspend fun syncMediaPermissions(
+        micGranted: Boolean,
+        cameraGranted: Boolean,
+    ) {
+        val current = _currentCallSession.value ?: return
+        if (current.status == CallStatus.ENDED || current.status == CallStatus.IDLE) return
+        if (micGranted || cameraGranted) {
+            callServiceCoordinator.refreshForegroundService()
+        }
+        if (micGranted) {
+            callMediaEngine?.setMicrophoneMuted(current.isAudioMuted)
+        }
+        if (cameraGranted && current.type == CallType.VIDEO && current.isVideoEnabled) {
+            callMediaEngine?.setCameraEnabled(true)
+        }
+    }
+
     override fun getCallLogs(): Flow<List<CallLog>> {
         if (callSupabaseService?.isConfigured() == true) {
             repositoryScope.launch {
@@ -269,6 +346,29 @@ class CallRepositoryImpl(
             }
         }
         return callLogsStateFlow.asStateFlow()
+    }
+
+    private fun startRingingTimeout(callId: String) {
+        cancelRingingTimeout()
+        ringingTimeoutJob = repositoryScope.launch {
+            delay(ringingTimeoutMs)
+            val current = _currentCallSession.value ?: return@launch
+            val isStillRinging = current.callId == callId &&
+                (current.status == CallStatus.INVITING || current.status == CallStatus.RINGING)
+            if (isStillRinging) {
+                Timber.d("Call %s timed out after %d ms", callId, ringingTimeoutMs)
+                finalizeCall(
+                    current = current,
+                    reason = CallEndReason.MISSED,
+                    notifyRemote = true,
+                )
+            }
+        }
+    }
+
+    private fun cancelRingingTimeout() {
+        ringingTimeoutJob?.cancel()
+        ringingTimeoutJob = null
     }
 
     private fun startDurationTicker() {
@@ -287,7 +387,13 @@ class CallRepositoryImpl(
         }
     }
 
-    private suspend fun finalizeCall(current: CallSession, reason: CallEndReason) {
+    private suspend fun finalizeCall(
+        current: CallSession,
+        reason: CallEndReason,
+        declineMessage: String? = null,
+        notifyRemote: Boolean = true,
+    ) {
+        cancelRingingTimeout()
         durationTickerJob?.cancel()
         durationTickerJob = null
 
@@ -298,11 +404,23 @@ class CallRepositoryImpl(
         )
         _currentCallSession.value = endedSession
 
+        if (notifyRemote) {
+            val signalType = if (reason == CallEndReason.REJECTED) SignalingType.DECLINE else SignalingType.BYE
+            webRtcSignalingAdapter.sendSignaling(
+                RtcSignalingMessage(
+                    sessionId = current.callId,
+                    senderId = currentActorId(),
+                    targetId = if (current.isIncoming) current.callerId else current.calleeId,
+                    type = signalType,
+                ),
+            )
+        }
+
         val peerId = if (current.isIncoming) current.callerId else current.calleeId
         val peerName = if (current.isIncoming) current.callerName else current.calleeName
 
         val log = CallLog(
-            id = "log_${UUID.randomUUID()}",
+            id = current.callId,
             callId = current.callId,
             peerId = peerId,
             peerName = peerName,
@@ -311,13 +429,23 @@ class CallRepositoryImpl(
             durationSeconds = current.durationSeconds,
             timestampEpochMs = current.startedAtEpochMs ?: System.currentTimeMillis(),
             isIncoming = current.isIncoming,
+            peerMoodHex = current.peerMoodHex,
         )
 
-        callLogsStateFlow.update { logs -> listOf(log) + logs }
+        callLogsStateFlow.update { logs ->
+            listOf(log) + logs.filterNot { it.callId == current.callId }
+        }
 
         callServiceCoordinator.stopCallService()
         callMediaEngine?.disconnect()
         webRtcSignalingAdapter.disconnect()
+
+        callSupabaseService?.updateCallLog(
+            callId = current.callId,
+            endReason = reason,
+            durationSeconds = current.durationSeconds,
+            declineMessage = declineMessage,
+        )
     }
 
     private fun connectMediaEngine(

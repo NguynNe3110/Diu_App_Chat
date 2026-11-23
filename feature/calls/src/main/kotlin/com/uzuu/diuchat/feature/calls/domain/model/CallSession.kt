@@ -17,4 +17,6 @@ data class CallSession(
     val startedAtEpochMs: Long? = null,
     val endedAtEpochMs: Long? = null,
     val endReason: CallEndReason? = null,
+    val conversationId: String = "",
+    val peerMoodHex: String = "#F7A3A9",
 )

@@ -4,6 +4,7 @@ import kotlinx.serialization.EncodeDefault
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 
 @OptIn(ExperimentalSerializationApi::class)
 @Serializable
@@ -26,4 +27,6 @@ data class ConversationDto(
     val createdAt: String? = null,
     @SerialName("updated_at")
     val updatedAt: String? = null,
+    @Transient
+    val peerUserId: String? = null,
 )

@@ -40,6 +40,8 @@ class CallViewModel(
         peerMoodHex: String = "#F7A3A9",
         isVideo: Boolean = false,
         isIncoming: Boolean = false,
+        callId: String = "",
+        conversationId: String = "",
     ) {
         ensureCallSession(
             peerId = peerId,
@@ -47,15 +49,20 @@ class CallViewModel(
             peerMoodHex = peerMoodHex,
             isVideo = isVideo,
             isIncoming = isIncoming,
+            callId = callId,
+            conversationId = conversationId,
         )
     }
 
+    @Suppress("LongParameterList")
     fun ensureCallSession(
         peerId: String = "",
         peerName: String = "",
         peerMoodHex: String = "#F7A3A9",
         isVideo: Boolean = false,
         isIncoming: Boolean = false,
+        callId: String = "",
+        conversationId: String = "",
     ) {
         sendAction(
             CallAction.SetPeerMetadata(
@@ -64,16 +71,18 @@ class CallViewModel(
                 peerMoodHex = peerMoodHex,
             ),
         )
-        val current = uiStateFlow.value.callSession ?: callRepository.currentCallSession.value
+        val current = callRepository.currentCallSession.value ?: uiStateFlow.value.callSession
         val desiredType = if (isVideo) CallType.VIDEO else CallType.AUDIO
         val isInactiveSession = current == null ||
             current.status == CallStatus.IDLE ||
             current.status == CallStatus.ENDED
 
         if (isIncoming) {
-            if (isInactiveSession || !current.isIncoming) {
+            if (!isInactiveSession && current.isIncoming && (callId.isBlank() || current.callId == callId)) {
+                sendAction(CallAction.UpdateSession(current))
+            } else if (callId.isNotBlank()) {
                 val incomingSession = CallSession(
-                    callId = "call_in_$peerId",
+                    callId = callId,
                     callerId = peerId,
                     callerName = peerName,
                     calleeId = "user_me",
@@ -83,21 +92,48 @@ class CallViewModel(
                     isIncoming = true,
                     isSpeakerOn = isVideo,
                     isVideoEnabled = isVideo,
+                    conversationId = conversationId,
+                    peerMoodHex = peerMoodHex,
                 )
-                sendAction(CallAction.UpdateSession(incomingSession))
+                viewModelScope.launch {
+                    callRepository.onIncomingCallReceived(incomingSession)
+                }
             }
         } else if (isInactiveSession) {
             startOutgoingCall(
                 calleeId = peerId,
                 calleeName = peerName,
                 callType = desiredType,
+                conversationId = conversationId,
             )
         }
     }
 
-    fun startOutgoingCall(calleeId: String, calleeName: String, callType: CallType) {
+    fun startOutgoingCall(
+        calleeId: String,
+        calleeName: String,
+        callType: CallType,
+        conversationId: String = "",
+    ) {
         viewModelScope.launch {
-            startCallUseCase(calleeId, calleeName, callType)
+            startCallUseCase(
+                calleeId = calleeId,
+                calleeName = calleeName,
+                callType = callType,
+                conversationId = conversationId,
+            )
+        }
+    }
+
+    fun onPermissionsResult(
+        micGranted: Boolean,
+        cameraGranted: Boolean,
+    ) {
+        viewModelScope.launch {
+            callRepository.syncMediaPermissions(
+                micGranted = micGranted,
+                cameraGranted = cameraGranted,
+            )
         }
     }
 
@@ -123,7 +159,7 @@ class CallViewModel(
         sendAction(CallAction.RecordQuickReply(message))
         val session = uiStateFlow.value.callSession ?: return
         viewModelScope.launch {
-            endCallUseCase(session.callId, CallEndReason.REJECTED)
+            endCallUseCase(session.callId, CallEndReason.REJECTED, message)
         }
     }
 

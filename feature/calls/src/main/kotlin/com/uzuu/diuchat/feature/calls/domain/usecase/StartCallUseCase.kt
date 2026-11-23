@@ -11,9 +11,11 @@ class StartCallUseCase(
         calleeId: String,
         calleeName: String,
         callType: CallType,
+        conversationId: String = "",
     ): Result<CallSession> = callRepository.startCall(
         calleeId = calleeId,
         calleeName = calleeName,
         callType = callType,
+        conversationId = conversationId,
     )
 }

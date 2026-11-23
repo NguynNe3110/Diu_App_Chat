@@ -112,8 +112,18 @@ fun ChatScreen(
     conversationId: String = "",
     pendingReplyMessageId: String? = null,
     onConsumePendingReply: () -> Unit = {},
-    onStartVoiceCall: (peerId: String, peerName: String, peerMoodHex: String) -> Unit = { _, _, _ -> },
-    onStartVideoCall: (peerId: String, peerName: String, peerMoodHex: String) -> Unit = { _, _, _ -> },
+    onStartVoiceCall: (
+        calleeId: String,
+        conversationId: String,
+        peerName: String,
+        peerMoodHex: String,
+    ) -> Unit = { _, _, _, _ -> },
+    onStartVideoCall: (
+        calleeId: String,
+        conversationId: String,
+        peerName: String,
+        peerMoodHex: String,
+    ) -> Unit = { _, _, _, _ -> },
     onOpenPhotoClick: (ChatMessage) -> Unit = {},
     onOpenPhotoViewer: (
         imageUrl: String,
@@ -156,11 +166,17 @@ fun ChatScreen(
         String.format(Locale.US, "#%06X", (state.partnerMood.colorHex and 0xFFFFFF))
     }
 
+    val resolvedCalleeId = remember(state.currentConversation, state.messages) {
+        state.currentConversation?.directPeerId
+            ?: state.messages.firstOrNull { !it.isFromMe && it.senderId.isNotBlank() }?.senderId
+            ?: ""
+    }
+
     val handleVoiceCall = {
-        onStartVoiceCall(state.conversationId, state.conversationTitle, peerMoodHex)
+        onStartVoiceCall(resolvedCalleeId, state.conversationId, state.conversationTitle, peerMoodHex)
     }
     val handleVideoCall = {
-        onStartVideoCall(state.conversationId, state.conversationTitle, peerMoodHex)
+        onStartVideoCall(resolvedCalleeId, state.conversationId, state.conversationTitle, peerMoodHex)
     }
     val handlePhotoOpen: (ChatMessage) -> Unit = { message ->
         onOpenPhotoClick(message)

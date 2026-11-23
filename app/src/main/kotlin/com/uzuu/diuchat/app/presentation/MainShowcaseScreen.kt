@@ -17,9 +17,11 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -35,11 +37,18 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import com.uzuu.diuchat.app.BuildConfig
+import com.uzuu.diuchat.app.call.CallNotificationManager
+import com.uzuu.diuchat.app.call.IncomingCallLaunchRequest
 import com.uzuu.diuchat.app.presentation.util.NavigationDestinationLogger
 import com.uzuu.diuchat.app.presentation.util.rememberIsOnline
 import com.uzuu.diuchat.feature.auth.presentation.screen.AuthScreen
 import com.uzuu.diuchat.feature.base.common.res.AppPalette
 import com.uzuu.diuchat.feature.base.common.res.AppTheme
+import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuAmbientBackground
+import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuPersonListSkeleton
+import com.uzuu.diuchat.feature.calls.domain.model.CallStatus
+import com.uzuu.diuchat.feature.calls.domain.model.CallType
+import com.uzuu.diuchat.feature.calls.domain.repository.CallRepository
 import com.uzuu.diuchat.feature.calls.presentation.screen.CallHistoryScreen
 import com.uzuu.diuchat.feature.calls.presentation.screen.CallHistoryViewModel
 import com.uzuu.diuchat.feature.calls.presentation.screen.CallScreen
@@ -50,7 +59,6 @@ import com.uzuu.diuchat.feature.chat.domain.usecase.StarMessageUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.ToggleReactionUseCase
 import com.uzuu.diuchat.feature.chat.presentation.screen.ChatScreen
 import com.uzuu.diuchat.feature.chat.presentation.screen.NewGroupScreen
-import kotlinx.coroutines.launch
 import com.uzuu.diuchat.feature.contacts.domain.usecase.GetContactsUseCase
 import com.uzuu.diuchat.feature.contacts.presentation.screen.ContactsScreen
 import com.uzuu.diuchat.feature.home.presentation.HomeScreen
@@ -63,25 +71,112 @@ import com.uzuu.diuchat.feature.letters.presentation.screen.LettersScreen
 import com.uzuu.diuchat.feature.location.presentation.LiveLocationScreen
 import com.uzuu.diuchat.feature.location.presentation.LocationPickerScreen
 import com.uzuu.diuchat.feature.media.presentation.storage.StorageScreen
-import org.koin.androidx.compose.koinViewModel
-import org.koin.compose.koinInject
 import com.uzuu.diuchat.feature.media.presentation.vault.MediaVaultScreen
 import com.uzuu.diuchat.feature.media.presentation.viewer.PhotoViewerScreen
-import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuAmbientBackground
-import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuPersonListSkeleton
 import com.uzuu.diuchat.feature.onboarding.presentation.screen.OnBoardingScreen
 import com.uzuu.diuchat.feature.settings.presentation.screen.SettingsScreen
+import kotlinx.coroutines.launch
+import org.koin.androidx.compose.koinViewModel
+import org.koin.compose.koinInject
 
 @Composable
 fun MainShowcaseScreen(
     modifier: Modifier = Modifier,
     sessionViewModel: AppSessionViewModel = koinViewModel(),
+    pendingIncomingCall: IncomingCallLaunchRequest? = null,
+    onConsumePendingIncomingCall: () -> Unit = {},
+    onCallLockScreenVisibilityChange: (Boolean) -> Unit = {},
 ) {
     // tạo và lưu trữ trạng thái của NavController
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
     val isOnline by rememberIsOnline()
     val startupDestination by sessionViewModel.startupDestination.collectAsState()
+    val callRepository: CallRepository = koinInject()
+    val currentCallSession by callRepository.currentCallSession.collectAsState()
+    val context = LocalContext.current
+    val currentOnConsumePendingIncomingCall by rememberUpdatedState(onConsumePendingIncomingCall)
+    val currentOnCallLockScreenVisibilityChange by rememberUpdatedState(onCallLockScreenVisibilityChange)
+
+    LaunchedEffect(currentCallSession?.status) {
+        val status = currentCallSession?.status
+        val isLiveCall = status == CallStatus.RINGING ||
+            status == CallStatus.INVITING ||
+            status == CallStatus.CONNECTING ||
+            status == CallStatus.ACTIVE
+        currentOnCallLockScreenVisibilityChange(isLiveCall)
+        if (status != null && status != CallStatus.RINGING) {
+            CallNotificationManager.cancelIncomingCallNotification(context)
+        }
+    }
+
+    LaunchedEffect(startupDestination, pendingIncomingCall) {
+        val request = pendingIncomingCall ?: return@LaunchedEffect
+        if (startupDestination !is StartupDestination.Home) return@LaunchedEffect
+
+        CallNotificationManager.cancelIncomingCallNotification(context)
+        val incomingSession = request.payload.toCallSession()
+        val current = callRepository.currentCallSession.value
+        val isDifferentLiveCall = current != null &&
+            current.status != CallStatus.IDLE &&
+            current.status != CallStatus.ENDED &&
+            current.callId != incomingSession.callId
+
+        if (!isDifferentLiveCall) {
+            callRepository.onIncomingCallReceived(incomingSession)
+            if (request.autoAccept) {
+                callRepository.acceptCall(incomingSession.callId)
+            }
+            val isAlreadyOnCall = navController.currentDestination?.hasRoute<NavigationRoute.Call>() == true
+            if (!isAlreadyOnCall) {
+                navController.navigate(
+                    NavigationRoute.Call(
+                        callId = incomingSession.callId,
+                        conversationId = incomingSession.conversationId,
+                        peerId = incomingSession.callerId,
+                        peerName = incomingSession.callerName,
+                        peerMoodHex = incomingSession.peerMoodHex,
+                        isVideo = incomingSession.type == CallType.VIDEO,
+                        isIncoming = true,
+                    ),
+                ) {
+                    launchSingleTop = true
+                }
+            }
+        }
+        currentOnConsumePendingIncomingCall()
+    }
+
+    LaunchedEffect(startupDestination) {
+        if (startupDestination is StartupDestination.Home) {
+            callRepository.observeIncomingCalls().collect { incomingSession ->
+                val current = callRepository.currentCallSession.value
+                val isBusy = current != null &&
+                    current.status != CallStatus.IDLE &&
+                    current.status != CallStatus.ENDED
+                if (!isBusy) {
+                    CallNotificationManager.cancelIncomingCallNotification(context)
+                    callRepository.onIncomingCallReceived(incomingSession)
+                    val isAlreadyOnCall = navController.currentDestination?.hasRoute<NavigationRoute.Call>() == true
+                    if (!isAlreadyOnCall) {
+                        navController.navigate(
+                            NavigationRoute.Call(
+                                callId = incomingSession.callId,
+                                conversationId = incomingSession.conversationId,
+                                peerId = incomingSession.callerId,
+                                peerName = incomingSession.callerName,
+                                peerMoodHex = incomingSession.peerMoodHex,
+                                isVideo = incomingSession.type == CallType.VIDEO,
+                                isIncoming = true,
+                            ),
+                        ) {
+                            launchSingleTop = true
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     if (BuildConfig.DEBUG) {
         addOnDestinationChangedListener(navController)
@@ -206,8 +301,7 @@ fun MainShowcaseScreen(
                                 onNavigateToChat = { conversationId ->
                                     navController.navigate(NavigationRoute.Chat(conversationId))
                                 },
-                                onStartCall = { peerId ->
-                                    val (peerName, peerMoodHex) = resolveContactCallMetadata(peerId)
+                                onStartCall = { peerId, peerName, peerMoodHex ->
                                     navController.navigate(
                                         NavigationRoute.Call(
                                             peerId = peerId,
@@ -233,20 +327,22 @@ fun MainShowcaseScreen(
                                 onBackClick = {
                                     navController.popBackStack()
                                 },
-                                onStartVoiceCall = { peerId, peerName, peerMoodHex ->
+                                onStartVoiceCall = { calleeId, conversationId, peerName, peerMoodHex ->
                                     navController.navigate(
                                         NavigationRoute.Call(
-                                            peerId = peerId,
+                                            conversationId = conversationId,
+                                            peerId = calleeId,
                                             peerName = peerName,
                                             peerMoodHex = peerMoodHex,
                                             isVideo = false,
                                         ),
                                     )
                                 },
-                                onStartVideoCall = { peerId, peerName, peerMoodHex ->
+                                onStartVideoCall = { calleeId, conversationId, peerName, peerMoodHex ->
                                     navController.navigate(
                                         NavigationRoute.Call(
-                                            peerId = peerId,
+                                            conversationId = conversationId,
+                                            peerId = calleeId,
                                             peerName = peerName,
                                             peerMoodHex = peerMoodHex,
                                             isVideo = true,
@@ -314,7 +410,7 @@ fun MainShowcaseScreen(
                             val starMessageUseCase: StarMessageUseCase = koinInject()
                             val toggleReactionUseCase: ToggleReactionUseCase = koinInject()
                             val coroutineScope = rememberCoroutineScope()
-                            val context = LocalContext.current
+                            val viewerContext = LocalContext.current
 
                             PhotoViewerScreen(
                                 imageUrl = args.imageUrl,
@@ -334,7 +430,7 @@ fun MainShowcaseScreen(
                                             type = "text/plain"
                                             putExtra(Intent.EXTRA_TEXT, shareText)
                                         }
-                                        context.startActivity(Intent.createChooser(shareIntent, "Chia sẻ hình ảnh"))
+                                        viewerContext.startActivity(Intent.createChooser(shareIntent, "Chia sẻ hình ảnh"))
                                     }
                                 },
                                 onReactionClick = { moodName ->
@@ -475,6 +571,8 @@ fun MainShowcaseScreen(
                             val viewModel: CallViewModel = koinViewModel()
                             CallScreen(
                                 viewModel = viewModel,
+                                callId = args.callId,
+                                conversationId = args.conversationId,
                                 peerId = args.peerId,
                                 peerName = args.peerName,
                                 peerMoodHex = args.peerMoodHex,
@@ -592,15 +690,6 @@ private fun DiuOfflineBanner(
             )
         }
     }
-}
-
-private fun resolveContactCallMetadata(peerId: String): Pair<String, String> = when (peerId) {
-    "c1", "minh", "conv_linh_diu" -> "Minh" to "#F7A3A9"
-    "c2", "me" -> "Mẹ" to "#F4CA84"
-    "c3", "vy", "thao" -> "Bảo Vy" to "#A2D7AC"
-    "c4", "ngoai" -> "Bà Ngoại" to "#C5B3EA"
-    "c5", "ba" -> "Ba" to "#95C4E7"
-    else -> peerId.replaceFirstChar { it.uppercase() } to "#F7A3A9"
 }
 
 // khi chuyển màn thì in ra log

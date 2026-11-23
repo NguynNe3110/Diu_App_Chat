@@ -1,13 +1,19 @@
 package com.uzuu.diuchat.feature.calls.data.repository
 
+import com.uzuu.diuchat.feature.calls.data.CallMediaEngine
 import com.uzuu.diuchat.feature.calls.data.CallServiceCoordinator
+import com.uzuu.diuchat.feature.calls.data.CallSupabaseService
+import com.uzuu.diuchat.feature.calls.data.CallTokenService
+import com.uzuu.diuchat.feature.calls.data.LiveKitTokenPayload
 import com.uzuu.diuchat.feature.calls.data.WebRtcSignalingAdapter
 import com.uzuu.diuchat.feature.calls.domain.model.CallEndReason
+import com.uzuu.diuchat.feature.calls.domain.model.CallSession
 import com.uzuu.diuchat.feature.calls.domain.model.CallStatus
 import com.uzuu.diuchat.feature.calls.domain.model.CallType
 import com.uzuu.diuchat.feature.calls.domain.model.RtcSignalingMessage
 import com.uzuu.diuchat.feature.calls.domain.model.SignalingType
 import com.uzuu.diuchat.library.testutils.CoroutinesTestDispatcherExtension
+import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
@@ -36,6 +42,18 @@ class CallRepositoryImplTest {
     private val webRtcSignalingAdapter: WebRtcSignalingAdapter = mockk(relaxed = true) {
         every { signalingEvents } returns signalingFlow
     }
+    private val callMediaEngine: CallMediaEngine = mockk(relaxed = true)
+    private val callTokenService: CallTokenService = mockk(relaxed = true) {
+        coEvery { fetchToken(any()) } returns Result.success(
+            LiveKitTokenPayload(token = "lk_token", url = "wss://livekit.example.com"),
+        )
+    }
+    private val callSupabaseService: CallSupabaseService = mockk(relaxed = true) {
+        every { isConfigured() } returns false
+        every { currentUserId() } returns "user_me"
+        every { currentUserDisplayName() } returns "Tôi"
+        coEvery { createCallLog(any(), any(), any(), any()) } answers { arg(3) }
+    }
 
     lateinit var sut: CallRepositoryImpl
 
@@ -45,6 +63,10 @@ class CallRepositoryImplTest {
             callServiceCoordinator = callServiceCoordinator,
             webRtcSignalingAdapter = webRtcSignalingAdapter,
             coroutineDispatcher = testDispatcher,
+            callTokenService = callTokenService,
+            callMediaEngine = callMediaEngine,
+            callSupabaseService = callSupabaseService,
+            ringingTimeoutMs = 45_000L,
         )
     }
 
@@ -168,5 +190,60 @@ class CallRepositoryImplTest {
 
         sut.currentCallSession.value?.status shouldBeEqualTo CallStatus.ENDED
         sut.currentCallSession.value?.endReason shouldBeEqualTo CallEndReason.COMPLETED
+    }
+
+    @Test
+    fun `startCall creates call log and unanswered call times out after 45s`() = runTest(testDispatcher) {
+        val session = sut.startCall("peer_uuid", "Minh", CallType.VIDEO, "conv_uuid").getOrNull().shouldNotBeNull()
+
+        coVerify(exactly = 1) {
+            callSupabaseService.createCallLog(session.callId, "peer_uuid", true, "conv_uuid")
+        }
+
+        testDispatcher.scheduler.advanceTimeBy(45_001L)
+        testDispatcher.scheduler.runCurrent()
+
+        sut.currentCallSession.value?.status shouldBeEqualTo CallStatus.ENDED
+        sut.currentCallSession.value?.endReason shouldBeEqualTo CallEndReason.MISSED
+        coVerify(exactly = 1) {
+            callMediaEngine.disconnect()
+            callSupabaseService.updateCallLog(session.callId, CallEndReason.MISSED, 0L, null)
+        }
+    }
+
+    @Test
+    fun `onIncomingCallReceived connects signaling and acceptCall joins LiveKit room`() = runTest(testDispatcher) {
+        val incoming = CallSession(
+            callId = "real_call_uuid",
+            callerId = "caller_uuid",
+            callerName = "An",
+            calleeId = "user_me",
+            calleeName = "Tôi",
+            status = CallStatus.RINGING,
+            type = CallType.VIDEO,
+            isIncoming = true,
+            conversationId = "conv_uuid",
+        )
+
+        sut.onIncomingCallReceived(incoming)
+        coVerify { webRtcSignalingAdapter.connect("real_call_uuid") }
+
+        sut.acceptCall("real_call_uuid")
+        testDispatcher.scheduler.runCurrent()
+
+        sut.currentCallSession.value?.status shouldBeEqualTo CallStatus.ACTIVE
+        coVerify {
+            callTokenService.fetchToken("real_call_uuid")
+            callMediaEngine.connect("wss://livekit.example.com", "lk_token", true)
+        }
+
+        sut.syncMediaPermissions(micGranted = true, cameraGranted = true)
+        coVerify {
+            callMediaEngine.setMicrophoneMuted(false)
+            callMediaEngine.setCameraEnabled(true)
+        }
+
+        sut.endCall("real_call_uuid", CallEndReason.COMPLETED)
+        testDispatcher.scheduler.runCurrent()
     }
 }
