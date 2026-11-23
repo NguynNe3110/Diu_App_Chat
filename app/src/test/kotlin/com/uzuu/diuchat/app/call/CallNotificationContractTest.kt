@@ -1,6 +1,7 @@
 package com.uzuu.diuchat.app.call
 
 import android.content.pm.ServiceInfo
+import android.os.Build
 import com.uzuu.diuchat.feature.calls.domain.model.CallStatus
 import com.uzuu.diuchat.feature.calls.domain.model.CallType
 import org.amshove.kluent.shouldBeEqualTo
@@ -91,27 +92,38 @@ class CallNotificationContractTest {
     @Test
     fun `resolveForegroundServiceType includes only granted permissions matching call type`() {
         OngoingCallService.resolveForegroundServiceType(
+            hasMicPermission = true,
+            hasCameraPermission = true,
+            isVideo = true,
+            sdkInt = Build.VERSION_CODES.Q,
+        ) shouldBeEqualTo 0
+
+        OngoingCallService.resolveForegroundServiceType(
             hasMicPermission = false,
             hasCameraPermission = false,
             isVideo = true,
+            sdkInt = Build.VERSION_CODES.UPSIDE_DOWN_CAKE,
         ) shouldBeEqualTo 0
 
         OngoingCallService.resolveForegroundServiceType(
             hasMicPermission = true,
             hasCameraPermission = true,
             isVideo = false,
+            sdkInt = Build.VERSION_CODES.UPSIDE_DOWN_CAKE,
         ) shouldBeEqualTo ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
 
         OngoingCallService.resolveForegroundServiceType(
             hasMicPermission = true,
             hasCameraPermission = false,
             isVideo = true,
+            sdkInt = Build.VERSION_CODES.UPSIDE_DOWN_CAKE,
         ) shouldBeEqualTo ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
 
         OngoingCallService.resolveForegroundServiceType(
             hasMicPermission = true,
             hasCameraPermission = true,
             isVideo = true,
+            sdkInt = Build.VERSION_CODES.UPSIDE_DOWN_CAKE,
         ) shouldBeEqualTo (
             ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE or
                 ServiceInfo.FOREGROUND_SERVICE_TYPE_CAMERA

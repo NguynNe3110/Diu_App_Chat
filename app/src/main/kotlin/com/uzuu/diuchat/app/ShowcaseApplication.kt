@@ -1,6 +1,10 @@
 package com.uzuu.diuchat.app
 
 import android.app.Application
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import com.uzuu.diuchat.app.call.CallNotificationManager
+import com.uzuu.diuchat.app.data.push.SupabasePushRegistration
 import com.uzuu.diuchat.app.di.appModule
 import com.uzuu.diuchat.feature.auth.featureAuthModules
 import com.uzuu.diuchat.feature.calls.featureCallsModules
@@ -15,9 +19,6 @@ import com.uzuu.diuchat.feature.onboarding.featureOnboardingModules
 import com.uzuu.diuchat.feature.settings.featureSettingsModules
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
-import android.app.NotificationChannel
-import android.app.NotificationManager
-import com.uzuu.diuchat.app.data.push.SupabasePushRegistration
 import org.koin.core.context.GlobalContext
 import timber.log.Timber
 
@@ -72,5 +73,7 @@ class ShowcaseApplication : Application() {
 
         getSystemService(NotificationManager::class.java)
             .createNotificationChannel(channel)
+
+        CallNotificationManager.createCallNotificationChannels(this)
     }
 }
