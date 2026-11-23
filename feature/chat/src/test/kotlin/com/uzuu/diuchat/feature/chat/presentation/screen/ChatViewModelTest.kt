@@ -1,5 +1,7 @@
 package com.uzuu.diuchat.feature.chat.presentation.screen
 
+import com.uzuu.diuchat.feature.chat.domain.media.VoiceAudioPlayer
+import com.uzuu.diuchat.feature.chat.domain.media.VoiceAudioRecorder
 import com.uzuu.diuchat.feature.chat.domain.model.ChatMessage
 import com.uzuu.diuchat.feature.chat.domain.model.Conversation
 import com.uzuu.diuchat.feature.chat.domain.model.GroupError
@@ -19,6 +21,7 @@ import com.uzuu.diuchat.feature.chat.domain.usecase.LeaveGroupUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.LoadOlderMessagesUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.ManageGroupMemberUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.ObserveTypingStatusUseCase
+import com.uzuu.diuchat.feature.chat.domain.usecase.RevealSealedMessageUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.SendMessageUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.SendPhotoMessageUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.SendSealedMessageUseCase
@@ -60,6 +63,7 @@ class ChatViewModelTest {
     private val mockLoadOlderMessagesUseCase: LoadOlderMessagesUseCase = mockk(relaxed = true)
     private val mockManageGroupMemberUseCase: ManageGroupMemberUseCase = mockk()
     private val mockObserveTypingStatusUseCase: ObserveTypingStatusUseCase = mockk()
+    private val mockRevealSealedMessageUseCase: RevealSealedMessageUseCase = mockk(relaxed = true)
     private val mockSendMessageUseCase: SendMessageUseCase = mockk()
     private val mockSendPhotoMessageUseCase: SendPhotoMessageUseCase = mockk()
     private val mockSendSealedMessageUseCase: SendSealedMessageUseCase = mockk(relaxed = true)
@@ -68,6 +72,11 @@ class ChatViewModelTest {
     private val mockTogglePinMessageUseCase: TogglePinMessageUseCase = mockk()
     private val mockToggleReactionUseCase: ToggleReactionUseCase = mockk()
     private val mockUpdateGroupInfoUseCase: UpdateGroupInfoUseCase = mockk()
+    private val mockVoiceAudioPlayer: VoiceAudioPlayer = mockk(relaxed = true)
+    private val mockVoiceAudioRecorder: VoiceAudioRecorder = mockk(relaxed = true) {
+        every { startRecording() } returns false
+        every { stopRecording() } returns null
+    }
 
     private val sampleMessages =
         listOf(
@@ -110,6 +119,7 @@ class ChatViewModelTest {
             loadOlderMessagesUseCase = mockLoadOlderMessagesUseCase,
             manageGroupMemberUseCase = mockManageGroupMemberUseCase,
             observeTypingStatusUseCase = mockObserveTypingStatusUseCase,
+            revealSealedMessageUseCase = mockRevealSealedMessageUseCase,
             sendMessageUseCase = mockSendMessageUseCase,
             sendPhotoMessageUseCase = mockSendPhotoMessageUseCase,
             sendSealedMessageUseCase = mockSendSealedMessageUseCase,
@@ -118,6 +128,8 @@ class ChatViewModelTest {
             togglePinMessageUseCase = mockTogglePinMessageUseCase,
             toggleReactionUseCase = mockToggleReactionUseCase,
             updateGroupInfoUseCase = mockUpdateGroupInfoUseCase,
+            voiceAudioPlayer = mockVoiceAudioPlayer,
+            voiceAudioRecorder = mockVoiceAudioRecorder,
         )
         sut.loadMessages("conv_linh_diu")
     }
@@ -154,6 +166,35 @@ class ChatViewModelTest {
         coVerify(exactly = 1) {
             mockLoadOlderMessagesUseCase(any(), any())
         }
+    }
+
+    @Test
+    fun `onToggleRevealSealedMessage fetches real content when placeholder and reveals unlocked letter`() = runTest {
+        val sealedPlaceholder = ChatMessage(
+            id = "sealed_msg_1",
+            conversationId = "conv_linh_diu",
+            senderId = "user_other",
+            senderName = "Linh",
+            content = "✉️ Thư hẹn · mở vào 18:00",
+            mood = MoodType.THUONG,
+            status = MessageStatus.SENT,
+            isFromMe = false,
+            mediaType = MessageMediaType.SEALED_LETTER,
+            unlockAtEpochMs = System.currentTimeMillis() - 5_000L,
+            isSealedRevealed = false,
+        )
+        every { mockGetMessagesUseCase("conv_linh_diu") } returns flowOf(listOf(sealedPlaceholder))
+        coEvery { mockRevealSealedMessageUseCase("sealed_msg_1") } returns "Nội dung bí mật đã mở"
+
+        sut.loadMessages("conv_linh_diu")
+        advanceUntilIdle()
+
+        sut.onToggleRevealSealedMessage("sealed_msg_1")
+        advanceUntilIdle()
+
+        val revealed = sut.uiStateFlow.value.messages.first()
+        revealed.isSealedRevealed shouldBeEqualTo true
+        revealed.content shouldBeEqualTo "Nội dung bí mật đã mở"
     }
 
     @Test
@@ -380,7 +421,7 @@ class ChatViewModelTest {
         val message = sampleMessages.first()
         sut.onToggleAudioPlayback(message)
         sut.uiStateFlow.value.playingAudioMessageId shouldBeEqualTo message.id
-        sut.uiStateFlow.value.audioPlaybackProgress shouldBeEqualTo 0.45f
+        sut.uiStateFlow.value.audioPlaybackProgress shouldBeEqualTo 0.05f
 
         // toggle again stops playback
         sut.onToggleAudioPlayback(message)

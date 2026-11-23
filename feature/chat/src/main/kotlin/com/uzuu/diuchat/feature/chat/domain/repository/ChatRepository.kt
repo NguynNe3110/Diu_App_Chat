@@ -111,6 +111,8 @@ interface ChatRepository {
         limit: Int = DEFAULT_PAGE_SIZE,
     ): Boolean = false
 
+    suspend fun revealSealedMessage(messageId: String): String? = null
+
     companion object {
         const val DEFAULT_PAGE_SIZE = 30
     }

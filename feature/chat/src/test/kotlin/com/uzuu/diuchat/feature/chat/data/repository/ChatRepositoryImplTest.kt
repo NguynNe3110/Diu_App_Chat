@@ -268,4 +268,51 @@ class ChatRepositoryImplTest {
             messageDao.insertAll(match { it.size == 1 && it.first().id == "m_old" })
         }
     }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `observeMessages deletes local message when realtime tombstone arrives`() = runTest {
+        every { supabaseService.currentUserId() } returns "user_b"
+        every { supabaseService.observeRealtimeMessages("conv_1") } returns flowOf(
+            MessageDto(
+                id = "m_cancelled",
+                conversationId = "conv_1",
+                senderId = "user_a",
+                content = "",
+                deletedAt = "2026-11-23T11:00:00Z",
+            ),
+        )
+        every { messageDao.observeLatestMessages("conv_1", ChatRepository.DEFAULT_PAGE_SIZE) } returns flowOf(emptyList())
+
+        val collectJob = launch { sut.observeMessages("conv_1").collect {} }
+        advanceUntilIdle()
+        collectJob.cancel()
+
+        coVerify(exactly = 1) { messageDao.delete("m_cancelled") }
+    }
+
+    @Test
+    fun `revealSealedMessage fetches remote sealed content and updates local Room`() = runTest {
+        val localPlaceholder = MessageEntity(
+            id = "m_sealed",
+            conversationId = "conv_1",
+            senderId = "user_a",
+            senderName = "An",
+            content = "✉️ Thư hẹn · mở vào 18:00",
+            mood = MoodType.THUONG.id,
+            status = MessageStatus.SENT.value,
+            createdAtEpochMs = 100L,
+            isFromMe = false,
+            mediaType = "SEALED_LETTER",
+        )
+        coEvery { messageDao.getMessage("m_sealed") } returns localPlaceholder
+        coEvery { supabaseService.fetchSealedLetterContent("m_sealed") } returns Result.success("Chúc ngủ ngon")
+
+        val content = sut.revealSealedMessage("m_sealed")
+
+        content shouldBeEqualTo "Chúc ngủ ngon"
+        coVerify(exactly = 1) {
+            messageDao.insert(match { it.id == "m_sealed" && it.content == "Chúc ngủ ngon" })
+        }
+    }
 }

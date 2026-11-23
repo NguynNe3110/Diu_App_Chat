@@ -69,6 +69,7 @@ import com.uzuu.diuchat.feature.base.common.res.AppTheme
 import com.uzuu.diuchat.feature.base.presentation.compose.composable.DiuAmbientBackground
 import com.uzuu.diuchat.feature.onboarding.presentation.composable.OnBoardingIllustration
 import com.uzuu.diuchat.feature.onboarding.presentation.composable.OnBoardingIndicator
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 
@@ -237,11 +238,13 @@ private fun IntroSlidesContent(
     val scope = rememberCoroutineScope()
     val colors = AppTheme.colors
 
-    // Đồng bộ: vuốt trang → ViewModel
+    // Đồng bộ sau khi trang dừng hẳn để không gây recomposition giữa nhịp trượt
     LaunchedEffect(pagerState, onPageChange) {
-        snapshotFlow { pagerState.currentPage }.collect { page ->
-            onPageChange(page)
-        }
+        snapshotFlow { pagerState.settledPage }
+            .distinctUntilChanged()
+            .collect { page ->
+                onPageChange(page)
+            }
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -286,11 +289,13 @@ private fun IntroSlidesContent(
             // ── Art Zone: Minh họa 3 slide ──────────────────────────────────
             HorizontalPager(
                 state = pagerState,
+                beyondViewportPageCount = pages.size - 1,
                 modifier =
                 Modifier
                     .fillMaxWidth()
                     .weight(1f),
             ) { page ->
+                val p = pages[page]
                 Column(
                     modifier =
                     Modifier
@@ -311,30 +316,20 @@ private fun IntroSlidesContent(
                     Spacer(modifier = Modifier.height(20.dp))
 
                     // ── Text nội dung ────────────────────────────────────────
-                    AnimatedContent(
-                        targetState = page,
-                        transitionSpec = {
-                            (slideInHorizontally(tween(400)) { it / 4 } + fadeIn(tween(400))) togetherWith
-                                (slideOutHorizontally(tween(300)) { -it / 4 } + fadeOut(tween(200)))
-                        },
-                        label = "onb_text",
-                    ) { targetPage ->
-                        val p = pages[targetPage]
-                        Column(
-                            modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            Text(
-                                text = p.title,
-                                style = AppTheme.typography.displayMedium,
-                                color = colors.ink,
-                                modifier = Modifier.padding(bottom = 12.dp),
-                            )
-                            Text(
-                                text = p.subtitle,
-                                style = AppTheme.typography.bodyMedium,
-                                color = colors.inkSecondary,
-                            )
-                        }
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(
+                            text = p.title,
+                            style = AppTheme.typography.displayMedium,
+                            color = colors.ink,
+                            modifier = Modifier.padding(bottom = 12.dp),
+                        )
+                        Text(
+                            text = p.subtitle,
+                            style = AppTheme.typography.bodyMedium,
+                            color = colors.inkSecondary,
+                        )
                     }
                 }
             }

@@ -34,10 +34,20 @@ sealed interface ChatAction : BaseAction<ChatUiState> {
     data class SetMessages(
         val messages: List<ChatMessage>,
     ) : ChatAction {
-        override fun reduce(state: ChatUiState): ChatUiState = state.copy(
-            messages = messages,
-            isLoadingMessages = false,
-        )
+        override fun reduce(state: ChatUiState): ChatUiState {
+            val revealedIds = state.messages.filter { it.isSealedRevealed }.mapTo(mutableSetOf()) { it.id }
+            val merged = if (revealedIds.isEmpty()) {
+                messages
+            } else {
+                messages.map { msg ->
+                    if (msg.id in revealedIds) msg.copy(isSealedRevealed = true) else msg
+                }
+            }
+            return state.copy(
+                messages = merged,
+                isLoadingMessages = false,
+            )
+        }
     }
 
     data class SetConversation(

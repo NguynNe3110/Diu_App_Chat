@@ -2,6 +2,8 @@ package com.uzuu.diuchat.feature.chat.presentation.screen
 
 import androidx.lifecycle.viewModelScope
 import com.uzuu.diuchat.feature.base.presentation.viewmodel.BaseViewModel
+import com.uzuu.diuchat.feature.chat.domain.media.VoiceAudioPlayer
+import com.uzuu.diuchat.feature.chat.domain.media.VoiceAudioRecorder
 import com.uzuu.diuchat.feature.chat.domain.model.ChatMessage
 import com.uzuu.diuchat.feature.chat.domain.model.Conversation
 import com.uzuu.diuchat.feature.chat.domain.model.GroupError
@@ -21,6 +23,7 @@ import com.uzuu.diuchat.feature.chat.domain.usecase.LeaveGroupUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.LoadOlderMessagesUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.ManageGroupMemberUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.ObserveTypingStatusUseCase
+import com.uzuu.diuchat.feature.chat.domain.usecase.RevealSealedMessageUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.SendMessageUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.SendPhotoMessageUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.SendSealedMessageUseCase
@@ -51,6 +54,7 @@ class ChatViewModel(
     private val loadOlderMessagesUseCase: LoadOlderMessagesUseCase,
     private val manageGroupMemberUseCase: ManageGroupMemberUseCase,
     private val observeTypingStatusUseCase: ObserveTypingStatusUseCase,
+    private val revealSealedMessageUseCase: RevealSealedMessageUseCase,
     private val sendMessageUseCase: SendMessageUseCase,
     private val sendPhotoMessageUseCase: SendPhotoMessageUseCase,
     private val sendSealedMessageUseCase: SendSealedMessageUseCase,
@@ -59,12 +63,15 @@ class ChatViewModel(
     private val togglePinMessageUseCase: TogglePinMessageUseCase,
     private val toggleReactionUseCase: ToggleReactionUseCase,
     private val updateGroupInfoUseCase: UpdateGroupInfoUseCase,
+    private val voiceAudioPlayer: VoiceAudioPlayer,
+    private val voiceAudioRecorder: VoiceAudioRecorder,
 ) : BaseViewModel<ChatUiState, ChatAction>(ChatUiState()) {
     private var messagesJob: Job? = null
     private var conversationJob: Job? = null
     private var typingObserveJob: Job? = null
     private var typingClearJob: Job? = null
     private var localTypingStopJob: Job? = null
+    private var voiceRecordingTickerJob: Job? = null
 
     init {
         observeAvailableConversations()
@@ -222,18 +229,46 @@ class ChatViewModel(
     }
 
     fun onStartVoiceRecording() {
-        val defaultAmplitudes = listOf(0.2f, 0.5f, 0.8f, 0.4f, 0.9f, 0.6f, 0.7f, 0.4f, 0.8f, 0.5f, 0.3f, 0.6f)
+        voiceAudioPlayer.stop()
+        sendAction(ChatAction.SetAudioPlayback(null, 0f))
+        val started = voiceAudioRecorder.startRecording()
+        val initialAmplitudes = listOf(0.25f, 0.45f, 0.65f, 0.35f, 0.75f, 0.5f, 0.6f, 0.4f, 0.7f, 0.45f, 0.3f, 0.55f)
         sendAction(
             ChatAction.SetVoiceRecordingState(
                 VoiceRecordingState.Recording(
-                    elapsedMs = 9000L,
-                    amplitudes = defaultAmplitudes,
+                    elapsedMs = 0L,
+                    amplitudes = initialAmplitudes,
                 ),
             ),
         )
+        if (!started) return
+        val startedAt = System.currentTimeMillis()
+        voiceRecordingTickerJob?.cancel()
+        voiceRecordingTickerJob = viewModelScope.launch {
+            val rollingBars = ArrayDeque<Float>(22).apply {
+                repeat(22) { addLast(0.22f) }
+            }
+            while (true) {
+                delay(120L)
+                val amp = voiceAudioRecorder.readNormalizedAmplitude()
+                if (rollingBars.size >= 22) rollingBars.removeFirst()
+                rollingBars.addLast(amp)
+                sendAction(
+                    ChatAction.SetVoiceRecordingState(
+                        VoiceRecordingState.Recording(
+                            elapsedMs = System.currentTimeMillis() - startedAt,
+                            amplitudes = rollingBars.toList(),
+                        ),
+                    ),
+                )
+            }
+        }
     }
 
     fun onCancelVoiceRecording() {
+        voiceRecordingTickerJob?.cancel()
+        voiceRecordingTickerJob = null
+        voiceAudioRecorder.cancelRecording()
         sendAction(ChatAction.SetVoiceRecordingState(VoiceRecordingState.Idle))
     }
 
@@ -242,12 +277,15 @@ class ChatViewModel(
         waveform: List<Float> = listOf(0.3f, 0.6f, 0.8f, 0.5f, 0.9f, 0.4f, 0.7f, 0.6f, 0.8f, 0.4f),
         audioUri: String = "file:///data/user/0/com.uzuu.diuchat/cache/audio_preview.m4a",
     ) {
+        voiceRecordingTickerJob?.cancel()
+        voiceRecordingTickerJob = null
+        val clip = voiceAudioRecorder.stopRecording()
         sendAction(
             ChatAction.SetVoiceRecordingState(
                 VoiceRecordingState.Preview(
-                    audioUri = audioUri,
-                    durationMs = durationMs,
-                    waveform = waveform,
+                    audioUri = clip?.audioUri ?: audioUri,
+                    durationMs = clip?.durationMs ?: durationMs,
+                    waveform = clip?.waveform ?: waveform,
                     isPlaying = false,
                     currentPositionMs = 0L,
                 ),
@@ -269,6 +307,9 @@ class ChatViewModel(
     fun onSendVoiceMessage() {
         val currentState = uiStateFlow.value
         val recordingState = currentState.voiceRecordingState
+        voiceRecordingTickerJob?.cancel()
+        voiceRecordingTickerJob = null
+
         val (audioUri, durationMs, waveform) = when (recordingState) {
             is VoiceRecordingState.Preview -> Triple(
                 recordingState.audioUri,
@@ -276,11 +317,18 @@ class ChatViewModel(
                 recordingState.waveform,
             )
 
-            is VoiceRecordingState.Recording -> Triple(
-                "file:///data/user/0/com.uzuu.diuchat/cache/audio_recorded.m4a",
-                recordingState.elapsedMs,
-                recordingState.amplitudes,
-            )
+            is VoiceRecordingState.Recording -> {
+                val clip = voiceAudioRecorder.stopRecording()
+                if (clip != null) {
+                    Triple(clip.audioUri, clip.durationMs, clip.waveform)
+                } else {
+                    Triple(
+                        "file:///data/user/0/com.uzuu.diuchat/cache/audio_recorded.m4a",
+                        recordingState.elapsedMs.coerceAtLeast(1000L),
+                        recordingState.amplitudes,
+                    )
+                }
+            }
 
             else -> return
         }
@@ -308,10 +356,34 @@ class ChatViewModel(
     fun onToggleAudioPlayback(message: ChatMessage) {
         val currentState = uiStateFlow.value
         if (currentState.playingAudioMessageId == message.id) {
+            voiceAudioPlayer.stop()
             sendAction(ChatAction.SetAudioPlayback(null, 0f))
         } else {
-            sendAction(ChatAction.SetAudioPlayback(message.id, 0.45f))
+            val uri = message.mediaUri.orEmpty()
+            sendAction(ChatAction.SetAudioPlayback(message.id, 0.05f))
+            if (uri.isNotBlank()) {
+                voiceAudioPlayer.play(
+                    messageId = message.id,
+                    audioUri = uri,
+                    onProgress = { progress ->
+                        sendAction(ChatAction.SetAudioPlayback(message.id, progress))
+                    },
+                    onCompleted = {
+                        sendAction(ChatAction.SetAudioPlayback(null, 0f))
+                    },
+                    onError = {
+                        sendAction(ChatAction.SetAudioPlayback(null, 0f))
+                    },
+                )
+            }
         }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        voiceRecordingTickerJob?.cancel()
+        voiceAudioRecorder.cancelRecording()
+        voiceAudioPlayer.release()
     }
 
     fun onSendMessage() {
@@ -527,10 +599,35 @@ class ChatViewModel(
 
     fun onToggleRevealSealedMessage(messageId: String) {
         val target = uiStateFlow.value.messages.find { it.id == messageId } ?: return
+        if (target.isSealedRevealed) {
+            sendAction(ChatAction.ToggleRevealSealedMessage(messageId))
+            return
+        }
         val unlockAt = target.unlockAtEpochMs
         val isTimeReached = unlockAt == null || System.currentTimeMillis() >= unlockAt
         if (!target.isFromMe && !isTimeReached) return
-        sendAction(ChatAction.ToggleRevealSealedMessage(messageId))
+
+        val needsRemoteContent = target.content.isBlank() || target.content.startsWith("✉️ Thư hẹn")
+        if (needsRemoteContent) {
+            viewModelScope.launch {
+                val realContent = runCatching { revealSealedMessageUseCase(messageId) }.getOrNull()
+                if (!realContent.isNullOrBlank()) {
+                    val updatedList = uiStateFlow.value.messages.map { msg ->
+                        if (msg.id == messageId) msg.copy(content = realContent, isSealedRevealed = true) else msg
+                    }
+                    sendAction(ChatAction.SetMessages(updatedList))
+                } else if (target.isFromMe || isTimeReached) {
+                    sendAction(ChatAction.ToggleRevealSealedMessage(messageId))
+                }
+            }
+        } else {
+            sendAction(ChatAction.ToggleRevealSealedMessage(messageId))
+            if (!target.isFromMe) {
+                viewModelScope.launch {
+                    runCatching { revealSealedMessageUseCase(messageId) }
+                }
+            }
+        }
     }
 
     fun onCancelSealedMessage(messageId: String) {
