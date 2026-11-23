@@ -13,4 +13,6 @@ data class ChatMessagesResponse(
     val messages: List<MessageDto> = emptyList(),
     @SerialName("conversation")
     val conversation: ConversationDto? = null,
+    @SerialName("has_more")
+    val hasMore: Boolean = false,
 )

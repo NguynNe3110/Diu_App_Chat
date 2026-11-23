@@ -1,6 +1,8 @@
 package com.uzuu.diuchat.feature.chat.data
 
 import androidx.room.Room
+import com.uzuu.diuchat.feature.base.data.media.AndroidImageDownscaler
+import com.uzuu.diuchat.feature.base.data.media.ImageDownscaler
 import com.uzuu.diuchat.feature.chat.data.datasource.api.service.ChatSupabaseService
 import com.uzuu.diuchat.feature.chat.data.datasource.database.DiuChatDatabase
 import com.uzuu.diuchat.feature.chat.data.mapper.ChatMapper
@@ -32,6 +34,7 @@ val dataModule = module {
         )
     }
     singleOf(::ChatMapper)
+    single<ImageDownscaler> { AndroidImageDownscaler(androidContext()) }
     single<ChatRepository> {
         ChatRepositoryImpl(
             conversationDao = get(),
@@ -41,6 +44,7 @@ val dataModule = module {
             chatMapper = get(),
             supabaseService = get(),
             context = androidContext(),
+            imageDownscaler = get(),
         )
     }
 }

@@ -104,4 +104,14 @@ interface ChatRepository {
         content = content,
         mood = mood,
     )
+
+    suspend fun loadOlderMessages(
+        conversationId: String,
+        beforeEpochMs: Long,
+        limit: Int = DEFAULT_PAGE_SIZE,
+    ): Boolean = false
+
+    companion object {
+        const val DEFAULT_PAGE_SIZE = 30
+    }
 }

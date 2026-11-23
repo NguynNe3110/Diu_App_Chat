@@ -18,6 +18,7 @@ import com.uzuu.diuchat.feature.chat.domain.usecase.GetConversationUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.GetConversationsUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.GetMessagesUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.LeaveGroupUseCase
+import com.uzuu.diuchat.feature.chat.domain.usecase.LoadOlderMessagesUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.ManageGroupMemberUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.ObserveTypingStatusUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.SendMessageUseCase
@@ -47,6 +48,7 @@ class ChatViewModel(
     private val getConversationsUseCase: GetConversationsUseCase,
     private val getMessagesUseCase: GetMessagesUseCase,
     private val leaveGroupUseCase: LeaveGroupUseCase,
+    private val loadOlderMessagesUseCase: LoadOlderMessagesUseCase,
     private val manageGroupMemberUseCase: ManageGroupMemberUseCase,
     private val observeTypingStatusUseCase: ObserveTypingStatusUseCase,
     private val sendMessageUseCase: SendMessageUseCase,
@@ -87,6 +89,8 @@ class ChatViewModel(
             sendAction(ChatAction.SetConversationId(conversationId))
         }
         sendAction(ChatAction.SetLoadingMessages(true))
+        sendAction(ChatAction.SetLoadingOlderMessages(false))
+        sendAction(ChatAction.SetHasMoreMessages(true))
         messagesJob?.cancel()
         messagesJob = viewModelScope.launch {
             getMessagesUseCase(conversationId)
@@ -119,6 +123,31 @@ class ChatViewModel(
                         }
                     }
                 }
+        }
+    }
+
+    fun onLoadOlderMessages() {
+        val currentState = uiStateFlow.value
+        if (
+            currentState.conversationId.isBlank() ||
+            currentState.isLoadingMessages ||
+            currentState.isLoadingOlderMessages ||
+            !currentState.hasMoreMessages
+        ) {
+            return
+        }
+        val oldestEpochMs = currentState.messages.firstOrNull()?.createdAtEpochMs ?: return
+        sendAction(ChatAction.SetLoadingOlderMessages(true))
+        viewModelScope.launch {
+            try {
+                val hasMore = loadOlderMessagesUseCase(
+                    conversationId = currentState.conversationId,
+                    beforeEpochMs = oldestEpochMs,
+                )
+                sendAction(ChatAction.SetHasMoreMessages(hasMore))
+            } finally {
+                sendAction(ChatAction.SetLoadingOlderMessages(false))
+            }
         }
     }
 

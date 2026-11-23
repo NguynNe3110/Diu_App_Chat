@@ -13,6 +13,18 @@ sealed interface ChatAction : BaseAction<ChatUiState> {
         override fun reduce(state: ChatUiState): ChatUiState = state.copy(isLoadingMessages = isLoading)
     }
 
+    data class SetLoadingOlderMessages(
+        val isLoading: Boolean,
+    ) : ChatAction {
+        override fun reduce(state: ChatUiState): ChatUiState = state.copy(isLoadingOlderMessages = isLoading)
+    }
+
+    data class SetHasMoreMessages(
+        val hasMore: Boolean,
+    ) : ChatAction {
+        override fun reduce(state: ChatUiState): ChatUiState = state.copy(hasMoreMessages = hasMore)
+    }
+
     data class SetPartnerTyping(
         val isTyping: Boolean,
     ) : ChatAction {

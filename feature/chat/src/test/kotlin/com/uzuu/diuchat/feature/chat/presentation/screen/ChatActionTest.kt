@@ -34,6 +34,15 @@ class ChatActionTest {
     }
 
     @Test
+    fun `SetLoadingOlderMessages and SetHasMoreMessages update pagination flags`() {
+        val loading = ChatAction.SetLoadingOlderMessages(true).reduce(initialState)
+        loading.isLoadingOlderMessages shouldBeEqualTo true
+
+        val done = ChatAction.SetHasMoreMessages(false).reduce(loading)
+        done.hasMoreMessages shouldBeEqualTo false
+    }
+
+    @Test
     fun `SetConversation updates currentConversation and derived fields`() {
         val convo = Conversation(
             id = "conv_1",

@@ -3,6 +3,7 @@ package com.uzuu.diuchat.feature.chat.data.repository
 import android.content.Context
 import android.net.Uri
 import androidx.room.withTransaction
+import com.uzuu.diuchat.feature.base.data.media.ImageDownscaler
 import com.uzuu.diuchat.feature.chat.data.datasource.api.model.MessageDto
 import com.uzuu.diuchat.feature.chat.data.datasource.api.service.ChatSupabaseService
 import com.uzuu.diuchat.feature.chat.data.datasource.database.DiuChatDatabase
@@ -23,11 +24,16 @@ import com.uzuu.diuchat.feature.chat.domain.model.MessageReaction
 import com.uzuu.diuchat.feature.chat.domain.model.MessageStatus
 import com.uzuu.diuchat.feature.chat.domain.model.MoodType
 import com.uzuu.diuchat.feature.chat.domain.repository.ChatRepository
-import java.util.UUID
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.channelFlow
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.time.Instant
+import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
 
 @Suppress("TooManyFunctions")
 class ChatRepositoryImpl(
@@ -38,10 +44,19 @@ class ChatRepositoryImpl(
     private val chatMapper: ChatMapper = ChatMapper(),
     private val supabaseService: ChatSupabaseService = ChatSupabaseService(null),
     private val context: Context? = null,
+    private val imageDownscaler: ImageDownscaler? = null,
 ) : ChatRepository {
+    private val messageWindowLimits = ConcurrentHashMap<String, MutableStateFlow<Int>>()
+
+    @OptIn(ExperimentalCoroutinesApi::class)
     override fun observeMessages(
         conversationId: String,
     ): Flow<List<ChatMessage>> = channelFlow {
+        val windowLimitFlow =
+            messageWindowLimits.compute(conversationId) { _, existing ->
+                existing?.apply { value = ChatRepository.DEFAULT_PAGE_SIZE }
+                    ?: MutableStateFlow(ChatRepository.DEFAULT_PAGE_SIZE)
+            }!!
         launch {
             syncInitialMessages(conversationId)
         }
@@ -51,10 +66,46 @@ class ChatRepositoryImpl(
             }
         }
         launch {
-            messageDao.observeMessages(conversationId).collect { entities ->
-                send(entities.map(chatMapper::messageEntityToDomain))
-            }
+            windowLimitFlow
+                .flatMapLatest { limit -> messageDao.observeLatestMessages(conversationId, limit) }
+                .collect { entities ->
+                    send(entities.map(chatMapper::messageEntityToDomain))
+                }
         }
+    }
+
+    override suspend fun loadOlderMessages(
+        conversationId: String,
+        beforeEpochMs: Long,
+        limit: Int,
+    ): Boolean {
+        val safeLimit = limit.coerceAtLeast(1)
+        val beforeIso = Instant.ofEpochMilli(beforeEpochMs).toString()
+        val response =
+            supabaseService
+                .fetchMessages(
+                    conversationId = conversationId,
+                    limit = safeLimit,
+                    beforeCreatedAt = beforeIso,
+                ).getOrNull()
+        val activeUserId = currentUserId()
+        val fetchedEntities =
+            response?.messages.orEmpty().map { dto ->
+                chatMapper.messageDtoToEntity(dto, activeUserId)
+            }
+        if (fetchedEntities.isNotEmpty()) {
+            messageDao.insertAll(fetchedEntities)
+        }
+        val windowLimitFlow =
+            messageWindowLimits.computeIfAbsent(conversationId) {
+                MutableStateFlow(ChatRepository.DEFAULT_PAGE_SIZE)
+            }
+        windowLimitFlow.update { current -> current + safeLimit }
+
+        val oldestEpochAfterFetch =
+            fetchedEntities.minOfOrNull { it.createdAtEpochMs } ?: beforeEpochMs
+        val hasMoreLocal = messageDao.countOlderMessages(conversationId, oldestEpochAfterFetch) > 0
+        return (response?.hasMore == true) || hasMoreLocal
     }
 
     override fun observeConversations(): Flow<List<Conversation>> = channelFlow {
@@ -177,9 +228,10 @@ class ChatRepositoryImpl(
         val isLocalUri = photoUri.startsWith("content://") || photoUri.startsWith("file://")
         val bytes =
             if (isLocalUri) {
-                runCatching {
-                    context?.contentResolver?.openInputStream(Uri.parse(photoUri))?.use { it.readBytes() }
-                }.getOrNull()
+                imageDownscaler?.downscale(photoUri)
+                    ?: runCatching {
+                        context?.contentResolver?.openInputStream(Uri.parse(photoUri))?.use { it.readBytes() }
+                    }.getOrNull()
             } else {
                 null
             }
@@ -541,7 +593,12 @@ class ChatRepositoryImpl(
     private fun currentUserName(): String = supabaseService.currentUserDisplayName()?.takeIf { it.isNotBlank() } ?: ME_DISPLAY_NAME
 
     private suspend fun syncInitialMessages(conversationId: String) {
-        val response = supabaseService.fetchMessages(conversationId).getOrNull() ?: return
+        val response =
+            supabaseService
+                .fetchMessages(
+                    conversationId = conversationId,
+                    limit = ChatRepository.DEFAULT_PAGE_SIZE,
+                ).getOrNull() ?: return
         response.conversation?.let { convoDto ->
             conversationDao.upsert(chatMapper.conversationDtoToEntity(convoDto))
         }

@@ -16,6 +16,7 @@ import com.uzuu.diuchat.feature.chat.domain.usecase.GetConversationUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.GetConversationsUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.GetMessagesUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.LeaveGroupUseCase
+import com.uzuu.diuchat.feature.chat.domain.usecase.LoadOlderMessagesUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.ManageGroupMemberUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.ObserveTypingStatusUseCase
 import com.uzuu.diuchat.feature.chat.domain.usecase.SendMessageUseCase
@@ -56,6 +57,7 @@ class ChatViewModelTest {
     private val mockGetConversationsUseCase: GetConversationsUseCase = mockk()
     private val mockGetMessagesUseCase: GetMessagesUseCase = mockk()
     private val mockLeaveGroupUseCase: LeaveGroupUseCase = mockk()
+    private val mockLoadOlderMessagesUseCase: LoadOlderMessagesUseCase = mockk(relaxed = true)
     private val mockManageGroupMemberUseCase: ManageGroupMemberUseCase = mockk()
     private val mockObserveTypingStatusUseCase: ObserveTypingStatusUseCase = mockk()
     private val mockSendMessageUseCase: SendMessageUseCase = mockk()
@@ -105,6 +107,7 @@ class ChatViewModelTest {
             getConversationsUseCase = mockGetConversationsUseCase,
             getMessagesUseCase = mockGetMessagesUseCase,
             leaveGroupUseCase = mockLeaveGroupUseCase,
+            loadOlderMessagesUseCase = mockLoadOlderMessagesUseCase,
             manageGroupMemberUseCase = mockManageGroupMemberUseCase,
             observeTypingStatusUseCase = mockObserveTypingStatusUseCase,
             sendMessageUseCase = mockSendMessageUseCase,
@@ -124,6 +127,33 @@ class ChatViewModelTest {
         advanceUntilIdle()
         sut.uiStateFlow.value.messages shouldBeEqualTo sampleMessages
         sut.uiStateFlow.value.conversationTitle shouldBeEqualTo "Linh Dịu"
+    }
+
+    @Test
+    fun `onLoadOlderMessages calls useCase with oldest timestamp and stops when no more messages`() = runTest {
+        advanceUntilIdle()
+        coEvery {
+            mockLoadOlderMessagesUseCase(
+                conversationId = "conv_linh_diu",
+                beforeEpochMs = sampleMessages.first().createdAtEpochMs,
+            )
+        } returns false
+
+        sut.onLoadOlderMessages()
+        advanceUntilIdle()
+
+        sut.uiStateFlow.value.hasMoreMessages shouldBeEqualTo false
+        sut.uiStateFlow.value.isLoadingOlderMessages shouldBeEqualTo false
+        coVerify(exactly = 1) {
+            mockLoadOlderMessagesUseCase("conv_linh_diu", sampleMessages.first().createdAtEpochMs)
+        }
+
+        // Subsequent call should be ignored because hasMoreMessages is false
+        sut.onLoadOlderMessages()
+        advanceUntilIdle()
+        coVerify(exactly = 1) {
+            mockLoadOlderMessagesUseCase(any(), any())
+        }
     }
 
     @Test
