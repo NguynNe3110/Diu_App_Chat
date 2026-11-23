@@ -81,6 +81,8 @@ fun VideoOverlay(
                 LiveKitVideoView(
                     videoTrack = localVideoTrack,
                     onInitRenderer = onInitRenderer,
+                    isOverlay = true,
+                    isMirror = isFrontCamera,
                     modifier = Modifier.fillMaxSize(),
                 )
             } else {

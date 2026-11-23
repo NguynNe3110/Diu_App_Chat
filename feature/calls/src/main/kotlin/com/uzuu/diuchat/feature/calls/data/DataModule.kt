@@ -22,6 +22,7 @@ val dataModule = module {
             callTokenService = get(),
             callMediaEngine = get(),
             callSupabaseService = get(),
+            appSoundPlayer = getOrNull(),
         )
     }
 }

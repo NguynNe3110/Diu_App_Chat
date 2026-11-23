@@ -111,40 +111,40 @@ fun MainShowcaseScreen(
     }
 
     LaunchedEffect(startupDestination, pendingIncomingCall) {
-        val request = pendingIncomingCall ?: return@LaunchedEffect
-        if (startupDestination !is StartupDestination.Home) return@LaunchedEffect
+        val request = pendingIncomingCall
+        if (request != null && startupDestination is StartupDestination.Home) {
+            CallNotificationManager.cancelIncomingCallNotification(context)
+            val incomingSession = request.payload.toCallSession()
+            val current = callRepository.currentCallSession.value
+            val isDifferentLiveCall = current != null &&
+                current.status != CallStatus.IDLE &&
+                current.status != CallStatus.ENDED &&
+                current.callId != incomingSession.callId
 
-        CallNotificationManager.cancelIncomingCallNotification(context)
-        val incomingSession = request.payload.toCallSession()
-        val current = callRepository.currentCallSession.value
-        val isDifferentLiveCall = current != null &&
-            current.status != CallStatus.IDLE &&
-            current.status != CallStatus.ENDED &&
-            current.callId != incomingSession.callId
-
-        if (!isDifferentLiveCall) {
-            callRepository.onIncomingCallReceived(incomingSession)
-            if (request.autoAccept) {
-                callRepository.acceptCall(incomingSession.callId)
-            }
-            val isAlreadyOnCall = navController.currentDestination?.hasRoute<NavigationRoute.Call>() == true
-            if (!isAlreadyOnCall) {
-                navController.navigate(
-                    NavigationRoute.Call(
-                        callId = incomingSession.callId,
-                        conversationId = incomingSession.conversationId,
-                        peerId = incomingSession.callerId,
-                        peerName = incomingSession.callerName,
-                        peerMoodHex = incomingSession.peerMoodHex,
-                        isVideo = incomingSession.type == CallType.VIDEO,
-                        isIncoming = true,
-                    ),
-                ) {
-                    launchSingleTop = true
+            if (!isDifferentLiveCall) {
+                callRepository.onIncomingCallReceived(incomingSession)
+                if (request.autoAccept) {
+                    callRepository.acceptCall(incomingSession.callId)
+                }
+                val isAlreadyOnCall = navController.currentDestination?.hasRoute<NavigationRoute.Call>() == true
+                if (!isAlreadyOnCall) {
+                    navController.navigate(
+                        NavigationRoute.Call(
+                            callId = incomingSession.callId,
+                            conversationId = incomingSession.conversationId,
+                            peerId = incomingSession.callerId,
+                            peerName = incomingSession.callerName,
+                            peerMoodHex = incomingSession.peerMoodHex,
+                            isVideo = incomingSession.type == CallType.VIDEO,
+                            isIncoming = true,
+                        ),
+                    ) {
+                        launchSingleTop = true
+                    }
                 }
             }
+            currentOnConsumePendingIncomingCall()
         }
-        currentOnConsumePendingIncomingCall()
     }
 
     LaunchedEffect(startupDestination) {

@@ -217,7 +217,10 @@ internal class SettingsSupabaseService(
 
     private fun hoursToMinutes(hours: Double): Int = (hours * MINUTES_PER_HOUR).roundToInt().coerceIn(0, MAX_MINUTE_OF_DAY)
 
-    private fun minutesToHours(minutes: Int): Double = ((minutes.toDouble() / MINUTES_PER_HOUR) * DECIMAL_SCALE).roundToInt() / DECIMAL_SCALE
+    private fun minutesToHours(minutes: Int): Double {
+        val rawHours = minutes.toDouble() / MINUTES_PER_HOUR
+        return (rawHours * DECIMAL_SCALE).roundToInt() / DECIMAL_SCALE
+    }
 
     private fun isValidUuid(value: String): Boolean = runCatching { UUID.fromString(value) }.isSuccess
 

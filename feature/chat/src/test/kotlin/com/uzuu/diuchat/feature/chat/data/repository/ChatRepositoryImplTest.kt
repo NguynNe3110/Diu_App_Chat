@@ -1,6 +1,8 @@
 package com.uzuu.diuchat.feature.chat.data.repository
 
 import com.uzuu.diuchat.feature.base.data.media.ImageDownscaler
+import com.uzuu.diuchat.feature.base.domain.media.AppSoundPlayer
+import com.uzuu.diuchat.feature.base.domain.media.DiuSoundEffect
 import com.uzuu.diuchat.feature.chat.data.datasource.api.model.ConversationDto
 import com.uzuu.diuchat.feature.chat.data.datasource.api.model.MessageDto
 import com.uzuu.diuchat.feature.chat.data.datasource.api.response.ChatMessagesResponse
@@ -16,6 +18,7 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.verify
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flowOf
@@ -32,6 +35,7 @@ class ChatRepositoryImplTest {
     private val imageDownscaler: ImageDownscaler = mockk(relaxed = true) {
         coEvery { downscale(any(), any()) } returns null
     }
+    private val appSoundPlayer: AppSoundPlayer = mockk(relaxed = true)
     private val supabaseService: ChatSupabaseService = mockk(relaxed = true) {
         every { currentUserId() } returns null
         every { currentUserDisplayName() } returns null
@@ -48,6 +52,7 @@ class ChatRepositoryImplTest {
         database = null,
         supabaseService = supabaseService,
         imageDownscaler = imageDownscaler,
+        appSoundPlayer = appSoundPlayer,
     )
 
     @Test
@@ -76,6 +81,7 @@ class ChatRepositoryImplTest {
             messageDao.updateStatus(result.id, MessageStatus.SENT.value)
             outboxDao.delete(any())
         }
+        verify(exactly = 1) { appSoundPlayer.playOneShot(DiuSoundEffect.MESSAGE_SENT) }
     }
 
     @Test
@@ -123,6 +129,7 @@ class ChatRepositoryImplTest {
             messageDao.updateStatus(result.id, MessageStatus.SENT.value)
             outboxDao.delete(any())
         }
+        verify(exactly = 1) { appSoundPlayer.playOneShot(DiuSoundEffect.MESSAGE_SENT) }
     }
 
     @Test

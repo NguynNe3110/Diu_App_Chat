@@ -117,12 +117,11 @@ object IncomingCallPayloadParser {
     }
 
     fun fromIntent(intent: Intent?): IncomingCallLaunchRequest? {
-        if (intent == null) return null
-        val action = intent.action
+        val action = intent?.action
         val isSupportedAction =
             action == CallNotificationContract.ACTION_INCOMING_CALL_OPEN ||
                 action == CallNotificationContract.ACTION_INCOMING_CALL_ACCEPT
-        if (!isSupportedAction) return null
+        if (intent == null || !isSupportedAction) return null
 
         val callId = intent.getStringExtra(CallNotificationContract.EXTRA_CALL_ID)?.trim().orEmpty()
         val callerId = intent.getStringExtra(CallNotificationContract.EXTRA_CALLER_ID)?.trim().orEmpty()
