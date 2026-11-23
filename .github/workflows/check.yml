@@ -68,7 +68,7 @@ jobs:
                 "oauth_client": [],
                 "api_key": [
                   {
-                    "current_key": "AIzaSyDummyKeyForCiBuildOnly00000000000"
+                    "current_key": "ci-placeholder-api-key"
                   }
                 ],
                 "services": {
@@ -140,7 +140,7 @@ jobs:
                 "oauth_client": [],
                 "api_key": [
                   {
-                    "current_key": "AIzaSyDummyKeyForCiBuildOnly00000000000"
+                    "current_key": "ci-placeholder-api-key"
                   }
                 ],
                 "services": {
@@ -328,7 +328,7 @@ jobs:
                 "oauth_client": [],
                 "api_key": [
                   {
-                    "current_key": "AIzaSyDummyKeyForCiBuildOnly00000000000"
+                    "current_key": "ci-placeholder-api-key"
                   }
                 ],
                 "services": {
