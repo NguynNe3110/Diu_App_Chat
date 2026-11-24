@@ -59,5 +59,6 @@ google-services.json
 # Claude Code
 .claude/
 
-/docs/
+/docs/*
+!/docs/plans/
 /skills/
